@@ -1,0 +1,47 @@
+@use './variables' as vars;
+
+@mixin app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: vars.$color-surface-canvas;
+}
+
+@mixin content-container {
+    width: min(1120px, calc(100% - (vars.$space-lg * 2)));
+    margin: 0 auto;
+}
+
+@mixin card-base {
+    background-color: vars.$color-surface-card;
+    border-radius: vars.$radius-card;
+    box-shadow: vars.$shadow-card;
+    padding: vars.$space-md;
+}
+
+@mixin card-hover {
+    box-shadow: vars.$shadow-card-hover;
+    transform: translateY(-2px);
+    transition:
+        box-shadow 200ms ease,
+        transform 200ms ease;
+}
+
+@mixin chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: vars.$space-xs vars.$space-md;
+    border-radius: vars.$radius-chip;
+    border: 1px solid vars.$color-border-strong;
+    background-color: transparent;
+    color: vars.$color-text-primary;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+@mixin section-stack {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-lg;
+}

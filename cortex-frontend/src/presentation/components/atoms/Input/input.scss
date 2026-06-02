@@ -1,0 +1,33 @@
+@use '@/presentation/styles/variables' as vars;
+
+.input-field {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-sm;
+}
+
+.input-field__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.input-field__control {
+    background-color: vars.$color-surface-card;
+    border: 1px solid vars.$color-border-subtle;
+    border-radius: vars.$radius-input;
+    min-height: 44px;
+    padding: 0 vars.$space-md;
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.input-field__control::placeholder {
+    color: vars.$color-text-placeholder;
+}
+
+.input-field__control:focus {
+    border-color: vars.$color-accent-primary;
+    box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.08);
+    outline: none;
+}

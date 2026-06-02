@@ -1,0 +1,62 @@
+@use './variables' as *;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html {
+    background-color: $color-surface-canvas;
+}
+
+body {
+    font-family: $font-family-sans;
+    color: $color-text-primary;
+    background-color: $color-surface-canvas;
+}
+
+#root {
+    min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+    font-family: inherit;
+}
+
+.page-card {
+    max-width: 720px;
+    padding: $space-xl;
+    border: 1px solid $color-border-divider;
+    border-radius: $radius-card;
+    background-color: $color-surface-card;
+    box-shadow: $shadow-card;
+}
+
+.page-card--narrow {
+    max-width: 480px;
+}
+
+.page-card__eyebrow {
+    color: $color-text-muted;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.page-card__title {
+    margin-top: $space-sm;
+    font-size: clamp(1.5rem, 2vw, 2rem);
+    line-height: 1.2;
+}
+
+.page-card__description {
+    margin-top: $space-sm;
+    color: $color-text-muted;
+}
+
+.page-form {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+    margin-top: $space-lg;
+}

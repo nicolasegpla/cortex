@@ -1,0 +1,45 @@
+$font-family-sans: 'Inter', sans-serif;
+
+// Surface / canvas
+$color-surface-canvas: #fafafa;
+$color-surface-card: #ffffff;
+$color-surface-elevated: #ffffff;
+$color-surface-muted: #f3f3f4;
+$color-surface-glass: rgba(255, 255, 255, 0.92);
+
+// Borders
+$color-border-subtle: rgba(0, 0, 0, 0.08);
+$color-border-strong: rgba(0, 0, 0, 0.15);
+$color-border-divider: rgba(0, 0, 0, 0.06);
+
+// Spacing
+$space-xs: 4px;
+$space-sm: 8px;
+$space-md: 16px;
+$space-lg: 24px;
+$space-xl: 32px;
+$space-2xl: 48px;
+
+// Radii
+$radius-chip: 999px;
+$radius-card: 12px;
+$radius-input: 8px;
+$radius-rect: 4px;
+
+// Shadows
+$shadow-card:
+    0 1px 4px 0 rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+$shadow-card-hover:
+    0 4px 12px 0 rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+$shadow-soft: 0 20px 40px 0 rgba(0, 0, 0, 0.06);
+
+// Text and feedback
+$color-text-primary: #111827;
+$color-text-muted: #6b7280;
+$color-text-placeholder: #9ca3af;
+$color-text-inverse-soft: #e5e7eb;
+$color-feedback-error-text: #410002;
+$color-accent-primary: #111827;
+$color-accent-contrast: #ffffff;
