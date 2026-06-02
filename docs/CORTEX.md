@@ -1,81 +1,95 @@
 # CORTEX
 
-Sistema de inteligencia empresarial con memoria, conocimiento y datos unificados, accesible desde cualquier canal.
+Current system overview for the implementation we are building right now.
 
----
+## Quick path
 
-## Qué es
+1. Frontend and backend run as separate apps
+2. Supabase is the operational data platform
+3. Strict TDD is mandatory
+4. Phase 1 is focused on the first client slice, not the full long-term vision
 
-CORTEX es un agente de IA conectado a tres fuentes de conocimiento de la empresa: los documentos institucionales, la base de datos operacional y su propia memoria acumulada. El agente recibe preguntas o instrucciones desde una interfaz web o Telegram, consulta lo que necesita y responde o actúa.
+## What CORTEX is in phase 1
 
----
+CORTEX is a reusable single-tenant application base that will be used to deliver client-specific business flows without rebuilding the platform from scratch every time.
 
-## Las cinco capas
+In this phase, the goal is not to deliver the entire long-term agent platform. The goal is to establish a clean technical base for a real client implementation.
 
-### Channel layer
-Cómo el usuario se comunica con CORTEX. Por ahora dos canales: la interfaz web en React 19 y un bot de Telegram. Ambos hablan con el mismo backend, así que el agente es idéntico en los dos.
+## Phase-1 technical shape
 
-### Backend layer
-FastAPI en Python. Es el cerebro operativo: autentica al usuario, recibe el mensaje, decide qué modelo de IA usar, orquesta las consultas a las distintas fuentes y devuelve la respuesta al canal correcto. También maneja la ingestión de documentos y los webhooks de Telegram.
+| Layer | Current decision |
+| --- | --- |
+| Channel layer | Web first; Telegram later |
+| Frontend | React 19 + Vite + TypeScript + SCSS |
+| Backend | FastAPI modular monolith |
+| Data layer | Supabase Cloud |
+| Memory | Not part of the first implementation slice |
+| Package manager | pnpm |
+| Testing | Strict TDD |
+| Local orchestration | Docker Compose |
 
-### AI provider layer
-El usuario configura su propia API key del modelo que prefiera: Claude, GPT u otros. CORTEX enruta la conversación al modelo elegido. Nadie comparte keys, cada empresa o usuario paga directamente a su proveedor.
+## Phase-1 scope
 
-### MCP layer
-Los brazos del agente. Dos servidores MCP conectados al backend: Engram para acceder a la memoria y Supabase para acceder a datos y documentos. El agente los consulta automáticamente según lo que necesite para responder.
+### Included
 
-### Data layer
-Supabase agrupa todo el almacenamiento en un solo lugar: pgvector para los documentos vectorizados, PostgreSQL para los datos operacionales, Storage para los archivos originales y Auth para usuarios y API keys.
+- frontend shell with dashboard and login page
+- backend shell with health, auth placeholder, and entity placeholder routes
+- Supabase-ready configuration
+- Docker-based local workflow
+- frontend and backend test foundations
 
----
+### Deferred
 
-## La memoria
+- Engram Cloud
+- memory synchronization strategy
+- dynamic entity builder
+- advanced agent orchestration
+- production hosting hardening
 
-Engram guarda lo que el agente aprende en cada sesión: decisiones tomadas, contexto de trabajos anteriores, preferencias detectadas. La próxima vez que el usuario pide algo relacionado, el agente ya tiene ese contexto sin que nadie se lo repita.
+## Technical boundaries
 
----
+### Supabase
 
-## El conocimiento
+Supabase is the source of truth for:
 
-Los documentos de la empresa (manuales, políticas, procedimientos en PDF, Word o Excel) se procesan y vectorizan en Supabase pgvector. Cuando el agente necesita saber cómo funciona algo en la empresa, busca semánticamente en esos documentos. No busca palabras exactas, entiende el significado.
+- operational tables
+- auth
+- file storage
+- future vectorized document storage
 
----
+### Backend
 
-## Los datos
+The backend is responsible for:
 
-Los datos operacionales viven en PostgreSQL dentro de Supabase, organizados por schemas. El agente accede directo vía MCP. Puede responder preguntas como "cuántos clientes tenemos en el sector cafetero" o "dame la información de este cliente" sin que nadie tenga que buscar en hojas de Excel.
+- API routing
+- auth flow integration
+- entity CRUD orchestration
+- future document ingestion flow
+- future AI-provider orchestration
 
----
+### Frontend
 
-## Los canales
+The frontend is responsible for:
 
-**Web:** interfaz completa con chat, upload de documentos, dashboards y vista de archivos generados.
+- user-facing forms and views
+- dashboard and login experience
+- API consumption
+- future document and chat interfaces
 
-**Telegram:** el mismo agente accesible desde el móvil. El usuario escribe, el bot responde. Útil para consultas rápidas en movimiento sin abrir el navegador.
+## Development rules
 
-**Futuros:** WhatsApp, Slack, Email. Todos hablarían con el mismo backend sin cambiar nada del agente.
+### Rule 1
 
----
+Every new feature starts with a failing test.
 
-## Flujo de una conversación típica
+### Rule 2
 
-El usuario escribe algo, ya sea en la web o en Telegram. El backend autentica, toma el mensaje y se lo pasa al modelo de IA configurado. El agente consulta Engram para ver si hay contexto previo relevante, consulta pgvector si necesita información de algún documento, consulta PostgreSQL si necesita datos operacionales, y produce una respuesta. Si hizo algo importante, guarda el aprendizaje en Engram para la próxima sesión.
+Do not introduce platform-level abstractions before the first client slice proves the need.
 
----
+### Rule 3
 
-## Stack del demo
+Prefer reusable patterns, but avoid speculative overengineering.
 
-| Capa | Tecnología |
-|---|---|
-| Frontend | React 19 + Vite + shadcn/ui |
-| Backend | FastAPI (Python) |
-| Base de datos | Supabase (PostgreSQL + pgvector + Storage + Auth) |
-| Memoria | Engram (SQLite local) |
-| Canales | React 19 · Telegram Bot API |
-| AI | Anthropic Claude (API key propia) |
+## Next step
 
----
-
-## Lo que no es
-
-CORTEX no es un chatbot genérico. Sabe lo que sabe la empresa porque está conectado a sus documentos y sus datos. No inventa, consulta. Y recuerda lo que aprendió porque tiene memoria persistente entre sesiones.
+Use this foundation to implement the first 4 client entities and their 4 forms with test-first delivery.

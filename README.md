@@ -1,69 +1,73 @@
-# CORTEX Phase 1 Bootstrap
+# CORTEX
 
-## Overview
+Reusable single-tenant foundation for client deployments. Phase 1 is focused on a real client slice: a frontend shell, a backend shell, strict TDD, and Supabase-ready integration points.
 
-This repository contains the phase-1 bootstrap for CORTEX, a reusable single-tenant base for client deployments.
+## Quick path
 
-Phase 1 focuses on a minimal but production-minded foundation:
+1. Start the stack with Docker: `docker compose up --build`
+2. Run frontend tests: `cd cortex-frontend && pnpm test`
+3. Run backend tests: `cd cortex-backend && pytest`
+4. Implement each new feature with strict TDD: `RED -> GREEN -> REFACTOR`
 
-- `cortex-frontend/`: React 19 + Vite + TypeScript + SCSS application shell
-- `cortex-backend/`: FastAPI modular monolith with placeholder routers and services
-- External Supabase integration for auth, operational data, and storage
+## Current phase
 
-Engram is part of the broader product vision, but it is intentionally out of scope for this first implementation slice.
+Phase 1 intentionally includes only the reusable base needed to start the first client implementation.
 
-## Architecture
+### In scope now
 
-### Frontend
+- React 19 + Vite + TypeScript + SCSS frontend shell
+- FastAPI modular monolith backend shell
+- External Supabase integration points for auth, data, and storage
+- Strict TDD setup for frontend and backend
+- Docker development workflow with dedicated images
 
-- React 19
-- Vite
-- TypeScript
-- React Router DOM
-- Zustand
-- SCSS design tokens and layout primitives
+### Out of scope now
 
-### Backend
+- Engram Cloud
+- Dynamic table or form builder
+- Production infrastructure hardening
+- Full agent orchestration
 
-- FastAPI
-- Pydantic Settings
-- Lazy Supabase client initialization
-- Modular monolith structure with routers, schemas, services, and core configuration
+## Architecture at a glance
 
-### Data Platform
+| Area | Decision |
+| --- | --- |
+| Frontend | React 19, Vite, TypeScript, SCSS, pnpm |
+| Backend | FastAPI modular monolith |
+| Data platform | Supabase Cloud |
+| Package manager | pnpm for frontend |
+| Testing rule | Strict TDD |
+| Local orchestration | Docker Compose |
 
-- Supabase is external to this repository
-- No local database container is included in `docker-compose.yml`
-- Backend startup does not require a live Supabase connection
+## Strict TDD
 
-## Current Scope
+This project follows strict Test-Driven Development.
 
-This bootstrap prepares the codebase for the first real client implementation.
+`RED -> GREEN -> REFACTOR`
 
-Included now:
+Expected workflow:
 
-- frontend routing for dashboard and login
-- reusable button and input atoms
-- shared SCSS tokens, reset, base styles, and mixins
-- backend health endpoint
-- backend placeholder auth and entity modules
-- backend test setup with pytest
+1. Write the test first
+2. Run the test and watch it fail
+3. Implement the minimum code to make it pass
+4. Refactor without breaking the tests
 
-Planned next:
+## Local setup
 
-- 4 operational tables
-- 4 forms
-- real Supabase auth flows
-- entity CRUD implementation
+### Docker
 
-## Local Setup
+```bash
+docker compose up --build
+```
+
+The development stack uses dedicated images for frontend and backend. Dependencies are installed during image build, while source code is mounted for live reload.
 
 ### Frontend
 
 ```bash
 cd cortex-frontend
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 ### Backend
@@ -76,28 +80,45 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Docker Compose
+## Test commands
+
+### Frontend
 
 ```bash
-docker compose up --build
+cd cortex-frontend
+pnpm test
+pnpm test:watch
+pnpm test:coverage
+pnpm run build
 ```
 
-## Environment Files
+### Backend
 
-Frontend variables:
+```bash
+cd cortex-backend
+pytest
+pytest -v
+pytest --tb=short
+```
+
+## Environment variables
+
+### Frontend
 
 - `VITE_API_BASE_URL`
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-Backend variables:
+### Backend
 
 - `APP_ENV`
 - `CORS_ORIGINS`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
 
-## Project Structure
+See the `.env.example` files inside `cortex-frontend/` and `cortex-backend/`.
+
+## Repository map
 
 ```text
 .
@@ -115,5 +136,16 @@ Backend variables:
 |       |-- features/
 |       |-- presentation/
 |       `-- services/
-`-- docker-compose.yml
+|-- docker-compose.yml
+`-- docs/
 ```
+
+## Documentation
+
+- `docs/README.md` — documentation map
+- `docs/CORTEX.md` — current system overview and phase-1 architecture
+- `docs/CORTEX_VISION.md` — product vision and positioning
+
+## Next step
+
+Define the first 4 client entities and implement them test-first.

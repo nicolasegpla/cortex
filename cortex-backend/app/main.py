@@ -1,5 +1,5 @@
-from collections.abc import Generator
-from contextlib import contextmanager
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,8 +8,8 @@ from app.core.config import get_settings
 from app.routers import auth, entities, health
 
 
-@contextmanager
-def lifespan(_: FastAPI) -> Generator[None, None, None]:
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
