@@ -24,8 +24,8 @@ export function BreweryList() {
     const loadBreweries = async () => {
         try {
             setLoading(true);
-            const response = await apiClient.get('/breweries');
-            setBreweries(response.data);
+            const data = await apiClient.get<Brewery[]>('/breweries');
+            setBreweries(data);
         } catch (err) {
             setError('Failed to load breweries');
         } finally {
