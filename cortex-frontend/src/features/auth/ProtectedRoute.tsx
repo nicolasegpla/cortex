@@ -7,9 +7,9 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-    const { user, isLoading } = useAuthStore();
+    const { user, isLoading, isInitialized } = useAuthStore();
 
-    if (isLoading) {
+    if (isLoading || !isInitialized) {
         return (<div className="loading-screen">Loading...</div>);
     }
 

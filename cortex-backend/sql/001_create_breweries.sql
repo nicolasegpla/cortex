@@ -53,5 +53,5 @@ CREATE TRIGGER update_breweries_updated_at
 
 ALTER TABLE public.breweries ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow all" ON public.breweries
-    FOR ALL USING (true) WITH CHECK (true);
+-- Drop the permissive "Allow all" policy if it exists (replaced by role-aware policies)
+DROP POLICY IF EXISTS "Allow all" ON public.breweries;

@@ -4,6 +4,7 @@ import { MainLayout } from '@/presentation/layouts/MainLayout';
 import { DashboardPage } from '@/presentation/pages/DashboardPage';
 import { LoginPage } from '@/presentation/pages/LoginPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
+import { RequireRole } from '@/features/auth/RequireRole';
 import { BreweryList } from '@/features/breweries/BreweryList';
 import { BreweryCreate } from '@/features/breweries/BreweryCreate';
 
@@ -25,6 +26,10 @@ export const router = createBrowserRouter([
                 element: <LoginPage />,
             },
             {
+                path: 'register',
+                element: <LoginPage />,
+            },
+            {
                 path: 'breweries',
                 element: (
                     <ProtectedRoute>
@@ -38,6 +43,14 @@ export const router = createBrowserRouter([
                     <ProtectedRoute>
                         <BreweryCreate />
                     </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'admin',
+                element: (
+                    <RequireRole allowedRoles={['super_admin']}>
+                        <div>Admin Panel</div>
+                    </RequireRole>
                 ),
             },
         ],

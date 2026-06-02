@@ -57,6 +57,48 @@ class TestJWTVerification:
 
         assert "401" in str(exc_info.value) or "Invalid" in str(exc_info.value)
 
+    def test_verify_token_uses_jwt_secret_when_configured(self) -> None:
+        from app.core.security import verify_token
+
+        jwt_secret = "custom-jwt-secret-123"
+        payload = {
+            "sub": "user-123",
+            "email": "test@example.com",
+            "user_metadata": {"role": "super_admin"},
+        }
+        token = jwt_encode(payload, jwt_secret, algorithm="HS256")
+
+        with patch("app.core.security.get_settings") as mock_settings:
+            mock_settings.return_value = MagicMock(
+                supabase_jwt_secret=jwt_secret,
+                supabase_service_key="different-service-key",
+            )
+            result = verify_token(token)
+
+        assert result["sub"] == "user-123"
+        assert result["user_metadata"]["role"] == "super_admin"
+
+    def test_verify_token_falls_back_to_service_key_when_jwt_secret_missing(self) -> None:
+        from app.core.security import verify_token
+
+        service_key = "service-key-fallback"
+        payload = {
+            "sub": "user-123",
+            "email": "test@example.com",
+            "user_metadata": {"role": "operativo"},
+        }
+        token = jwt_encode(payload, service_key, algorithm="HS256")
+
+        with patch("app.core.security.get_settings") as mock_settings:
+            mock_settings.return_value = MagicMock(
+                supabase_jwt_secret=None,
+                supabase_service_key=service_key,
+            )
+            result = verify_token(token)
+
+        assert result["sub"] == "user-123"
+        assert result["user_metadata"]["role"] == "operativo"
+
 
 class TestCurrentUserDependency:
     """Test current_user dependency injection."""

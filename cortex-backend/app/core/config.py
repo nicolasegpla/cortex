@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     cors_origins_raw: str = Field(default='http://localhost:5173', alias='CORS_ORIGINS')
     supabase_url: str | None = Field(default=None, alias='SUPABASE_URL')
     supabase_service_key: str | None = Field(default=None, alias='SUPABASE_SERVICE_KEY')
+    supabase_jwt_secret: str | None = Field(default=None, alias='SUPABASE_JWT_SECRET')
+    supabase_anon_key: str | None = Field(default=None, alias='SUPABASE_ANON_KEY')
 
     @property
     def cors_origins(self) -> list[str]:

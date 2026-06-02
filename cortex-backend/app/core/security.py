@@ -41,8 +41,8 @@ def verify_token(token: str | None) -> dict:
         )
 
     settings = get_settings()
-    # Use supabase service key as JWT secret for verification
-    secret = settings.supabase_service_key or ""
+    # Use dedicated JWT secret if available, fall back to service key
+    secret = settings.supabase_jwt_secret or settings.supabase_service_key or ""
 
     if not secret:
         raise HTTPException(
