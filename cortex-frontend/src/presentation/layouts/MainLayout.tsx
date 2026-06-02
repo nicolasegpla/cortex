@@ -31,22 +31,24 @@ export function MainLayout() {
                         <h1 className="main-layout__title">Client workspace foundation</h1>
                     </div>
 
-                    <nav aria-label="Primary navigation" className="main-layout__nav">
-                        {navigationItems.map((item) => (
-                            <NavLink
-                                key={item.to}
-                                to={item.to}
-                                className={({ isActive }) =>
-                                    isActive
-                                        ? 'main-layout__nav-link main-layout__nav-link--active'
-                                        : 'main-layout__nav-link'
-                                }
-                                end={item.to === '/'}
-                            >
-                                {item.label}
-                            </NavLink>
-                        ))}
-                    </nav>
+                    {user && (
+                        <nav aria-label="Primary navigation" className="main-layout__nav">
+                            {navigationItems.map((item) => (
+                                <NavLink
+                                    key={item.to}
+                                    to={item.to}
+                                    className={({ isActive }) =>
+                                        isActive
+                                            ? 'main-layout__nav-link main-layout__nav-link--active'
+                                            : 'main-layout__nav-link'
+                                    }
+                                    end={item.to === '/'}
+                                >
+                                    {item.label}
+                                </NavLink>
+                            ))}
+                        </nav>
+                    )}
 
                     <div className="main-layout__user-section">
                         {user ? (
