@@ -1,13 +1,27 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+
+import { useAuthStore } from '@/features/auth/store';
+import { supabaseClient } from '@/services/supabase/client';
 
 import './main-layout.scss';
 
 const navigationItems = [
     { label: 'Dashboard', to: '/' },
-    { label: 'Login', to: '/login' },
+    { label: 'Breweries', to: '/breweries' },
 ] as const;
 
 export function MainLayout() {
+    const { user, role, logout } = useAuthStore();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        if (supabaseClient) {
+            await supabaseClient.auth.signOut();
+        }
+        logout();
+        navigate('/login');
+    };
+
     return (
         <div className="main-layout">
             <header className="main-layout__header">
@@ -33,6 +47,23 @@ export function MainLayout() {
                             </NavLink>
                         ))}
                     </nav>
+
+                    <div className="main-layout__user-section">
+                        {user ? (
+                            <>
+                                <span className="user-info">
+                                    {user.email} ({role})
+                                </span>
+                                <button onClick={handleLogout} className="logout-button">
+                                    Logout
+                                </button>
+                            </>
+                        ) : (
+                            <NavLink to="/login" className="main-layout__nav-link">
+                                Login
+                            </NavLink>
+                        )}
+                    </div>
                 </div>
             </header>
 

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
+from app.core.security import User, get_current_user
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 
 router = APIRouter(prefix='/auth', tags=['auth'])
@@ -17,7 +18,11 @@ def register(_: RegisterRequest) -> TokenResponse:
     return TokenResponse(access_token='', token_type='bearer')
 
 
-@router.get('/me', status_code=status.HTTP_501_NOT_IMPLEMENTED)
-def me() -> dict[str, str]:
-    # TODO: return the authenticated user profile.
-    return {'detail': 'Not implemented'}
+@router.get('/me', response_model=dict)
+def me(current_user: User = Depends(get_current_user)) -> dict[str, str]:
+    """Return the currently authenticated user's profile."""
+    return {
+        'id': str(current_user.id),
+        'email': current_user.email,
+        'role': current_user.role,
+    }
