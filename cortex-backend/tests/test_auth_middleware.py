@@ -1,13 +1,29 @@
 """Tests for JWT auth middleware and role-based access control."""
 
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
 from fastapi import Depends, FastAPI, status
 from fastapi.testclient import TestClient
-from jwt import encode as jwt_encode
 
 from app.core.config import Settings, get_settings
+
+
+def create_mock_user(user_id: str, email: str, role: str = "operativo"):
+    """Create a mock Supabase User object."""
+    mock_user = MagicMock()
+    mock_user.id = user_id
+    mock_user.email = email
+    mock_user.user_metadata = {"role": role}
+    return mock_user
+
+
+def create_mock_user_response(user_id: str, email: str, role: str = "operativo"):
+    """Create a mock UserResponse from Supabase."""
+    mock_response = MagicMock()
+    mock_response.user = create_mock_user(user_id, email, role)
+    return mock_response
 
 
 class TestJWTVerification:
@@ -16,17 +32,16 @@ class TestJWTVerification:
     def test_verify_token_with_valid_token_returns_payload(self) -> None:
         from app.core.security import verify_token
 
-        # Generate a valid token with our secret
-        settings = get_settings()
-        secret = settings.supabase_service_key or "test-secret"
-        payload = {
-            "sub": "user-123",
-            "email": "test@example.com",
-            "user_metadata": {"role": "super_admin"},
-        }
-        token = jwt_encode(payload, secret, algorithm="HS256")
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+            mock_client.auth.get_user.return_value = create_mock_user_response(
+                "user-123", "test@example.com", "super_admin"
+            )
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
 
-        result = verify_token(token)
+            result = verify_token("valid-token")
 
         assert result["sub"] == "user-123"
         assert result["email"] == "test@example.com"
@@ -35,69 +50,59 @@ class TestJWTVerification:
     def test_verify_token_with_invalid_token_raises_401(self) -> None:
         from app.core.security import verify_token
 
-        with pytest.raises(Exception) as exc_info:
-            verify_token("invalid-token")
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+            from supabase_auth.errors import AuthApiError
+            mock_client.auth.get_user.side_effect = AuthApiError(
+                "Invalid token", 401, "invalid_token"
+            )
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
+
+            with pytest.raises(Exception) as exc_info:
+                verify_token("invalid-token")
 
         assert "401" in str(exc_info.value) or "Invalid" in str(exc_info.value)
 
     def test_verify_token_with_expired_token_raises_401(self) -> None:
         from app.core.security import verify_token
 
-        settings = get_settings()
-        secret = settings.supabase_service_key or "test-secret"
-        payload = {
-            "sub": "user-123",
-            "email": "test@example.com",
-            "exp": 0,  # expired
-        }
-        token = jwt_encode(payload, secret, algorithm="HS256")
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+            from supabase_auth.errors import AuthApiError
+            mock_client.auth.get_user.side_effect = AuthApiError(
+                "Token expired", 401, "token_expired"
+            )
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
 
-        with pytest.raises(Exception) as exc_info:
-            verify_token(token)
+            with pytest.raises(Exception) as exc_info:
+                verify_token("expired-token")
 
         assert "401" in str(exc_info.value) or "Invalid" in str(exc_info.value)
 
-    def test_verify_token_uses_jwt_secret_when_configured(self) -> None:
+    def test_verify_token_with_missing_client_raises_401(self) -> None:
         from app.core.security import verify_token
 
-        jwt_secret = "custom-jwt-secret-123"
-        payload = {
-            "sub": "user-123",
-            "email": "test@example.com",
-            "user_metadata": {"role": "super_admin"},
-        }
-        token = jwt_encode(payload, jwt_secret, algorithm="HS256")
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = None
+            mock_get_service.return_value = mock_service
 
-        with patch("app.core.security.get_settings") as mock_settings:
-            mock_settings.return_value = MagicMock(
-                supabase_jwt_secret=jwt_secret,
-                supabase_service_key="different-service-key",
-            )
-            result = verify_token(token)
+            with pytest.raises(Exception) as exc_info:
+                verify_token("valid-token")
 
-        assert result["sub"] == "user-123"
-        assert result["user_metadata"]["role"] == "super_admin"
+        assert "401" in str(exc_info.value)
 
-    def test_verify_token_falls_back_to_service_key_when_jwt_secret_missing(self) -> None:
+    def test_verify_token_with_none_raises_401(self) -> None:
         from app.core.security import verify_token
 
-        service_key = "service-key-fallback"
-        payload = {
-            "sub": "user-123",
-            "email": "test@example.com",
-            "user_metadata": {"role": "operativo"},
-        }
-        token = jwt_encode(payload, service_key, algorithm="HS256")
+        with pytest.raises(Exception) as exc_info:
+            verify_token(None)
 
-        with patch("app.core.security.get_settings") as mock_settings:
-            mock_settings.return_value = MagicMock(
-                supabase_jwt_secret=None,
-                supabase_service_key=service_key,
-            )
-            result = verify_token(token)
-
-        assert result["sub"] == "user-123"
-        assert result["user_metadata"]["role"] == "operativo"
+        assert "401" in str(exc_info.value)
 
 
 class TestCurrentUserDependency:
@@ -106,16 +111,16 @@ class TestCurrentUserDependency:
     def test_get_current_user_with_valid_token_returns_user(self) -> None:
         from app.core.security import User, get_current_user
 
-        settings = get_settings()
-        secret = settings.supabase_service_key or "test-secret"
-        payload = {
-            "sub": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "email": "admin@example.com",
-            "user_metadata": {"role": "super_admin"},
-        }
-        token = jwt_encode(payload, secret, algorithm="HS256")
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+            mock_client.auth.get_user.return_value = create_mock_user_response(
+                "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "admin@example.com", "super_admin"
+            )
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
 
-        user = get_current_user(token)
+            user = get_current_user("valid-token")
 
         assert isinstance(user, User)
         assert str(user.id) == "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
@@ -133,16 +138,20 @@ class TestCurrentUserDependency:
     def test_get_current_user_without_role_defaults_to_operativo(self) -> None:
         from app.core.security import User, get_current_user
 
-        settings = get_settings()
-        secret = settings.supabase_service_key or "test-secret"
-        payload = {
-            "sub": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "email": "user@example.com",
-            "user_metadata": {},
-        }
-        token = jwt_encode(payload, secret, algorithm="HS256")
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+            mock_user = MagicMock()
+            mock_user.id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            mock_user.email = "user@example.com"
+            mock_user.user_metadata = {}
+            mock_response = MagicMock()
+            mock_response.user = mock_user
+            mock_client.auth.get_user.return_value = mock_response
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
 
-        user = get_current_user(token)
+            user = get_current_user("valid-token")
 
         assert isinstance(user, User)
         assert user.role == "operativo"
@@ -196,35 +205,30 @@ class TestRequireRoleDependency:
 
 
 class TestAuthEndpoints:
-    """Test auth router endpoints with real JWT tokens."""
+    """Test auth router endpoints with mocked JWT tokens."""
 
     @pytest.fixture
     def admin_token(self) -> str:
-        settings = get_settings()
-        secret = settings.supabase_service_key or "test-secret"
-        payload = {
-            "sub": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "email": "admin@example.com",
-            "user_metadata": {"role": "super_admin"},
-        }
-        return jwt_encode(payload, secret, algorithm="HS256")
+        return "admin-mock-token"
 
     @pytest.fixture
     def operativo_token(self) -> str:
-        settings = get_settings()
-        secret = settings.supabase_service_key or "test-secret"
-        payload = {
-            "sub": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
-            "email": "user@example.com",
-            "user_metadata": {"role": "operativo"},
-        }
-        return jwt_encode(payload, secret, algorithm="HS256")
+        return "operativo-mock-token"
 
     def test_auth_me_returns_current_user_with_role(self, client: TestClient, admin_token: str) -> None:
-        response = client.get(
-            "/auth/me",
-            headers={"Authorization": f"Bearer {admin_token}"},
-        )
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+            mock_client.auth.get_user.return_value = create_mock_user_response(
+                "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "admin@example.com", "super_admin"
+            )
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
+
+            response = client.get(
+                "/auth/me",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -237,18 +241,37 @@ class TestAuthEndpoints:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_auth_me_with_invalid_token_returns_401(self, client: TestClient) -> None:
-        response = client.get(
-            "/auth/me",
-            headers={"Authorization": "Bearer invalid-token"},
-        )
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+            from supabase_auth.errors import AuthApiError
+            mock_client.auth.get_user.side_effect = AuthApiError(
+                "Invalid token", 401, "invalid_token"
+            )
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
+
+            response = client.get(
+                "/auth/me",
+                headers={"Authorization": "Bearer invalid-token"},
+            )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_auth_me_returns_operativo_role(self, client: TestClient, operativo_token: str) -> None:
-        response = client.get(
-            "/auth/me",
-            headers={"Authorization": f"Bearer {operativo_token}"},
-        )
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+            mock_client.auth.get_user.return_value = create_mock_user_response(
+                "b2c3d4e5-f6a7-8901-bcde-f23456789012", "user@example.com", "operativo"
+            )
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
+
+            response = client.get(
+                "/auth/me",
+                headers={"Authorization": f"Bearer {operativo_token}"},
+            )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()

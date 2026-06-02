@@ -2,12 +2,12 @@
 
 from uuid import UUID
 
-import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 
 from app.core.config import get_settings
+from app.services.supabase_service import SupabaseService
 
 # OAuth2 scheme for token extraction from Authorization header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
@@ -21,14 +21,19 @@ class User(BaseModel):
     role: str = "operativo"
 
 
+def get_supabase_service() -> SupabaseService:
+    """Get or create a SupabaseService instance."""
+    return SupabaseService()
+
+
 def verify_token(token: str | None) -> dict:
-    """Verify a Supabase JWT token and return its payload.
+    """Verify a Supabase JWT token using the Supabase server and return its payload.
 
     Args:
         token: The JWT token to verify.
 
     Returns:
-        dict: The decoded token payload.
+        dict: The decoded token payload with user info.
 
     Raises:
         HTTPException: If the token is invalid or missing.
@@ -40,33 +45,42 @@ def verify_token(token: str | None) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    settings = get_settings()
-    # Use dedicated JWT secret if available, fall back to service key
-    secret = settings.supabase_jwt_secret or settings.supabase_service_key or ""
+    service = get_supabase_service()
+    client = service.get_client()
 
-    if not secret:
+    if not client:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="JWT secret not configured",
+            detail="Supabase client not configured",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     try:
-        payload = jwt.decode(token, secret, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except jwt.InvalidTokenError as exc:
+        # Validate token against Supabase Auth server
+        # This works with any JWT signing algorithm (HS256, ECC, etc.)
+        user_response = client.auth.get_user(token)
+        
+        if not user_response or not user_response.user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        user = user_response.user
+        return {
+            "sub": user.id,
+            "email": user.email,
+            "user_metadata": user.user_metadata or {},
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid authentication credentials: {exc}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    return payload
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:

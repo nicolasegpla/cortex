@@ -1,5 +1,6 @@
 """Tests for role-based access control on brewery endpoints."""
 
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -7,36 +8,27 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 
+def create_mock_user_response(user_id: str, email: str, role: str = "operativo"):
+    """Create a mock UserResponse from Supabase."""
+    mock_user = MagicMock()
+    mock_user.id = user_id
+    mock_user.email = email
+    mock_user.user_metadata = {"role": role}
+    mock_response = MagicMock()
+    mock_response.user = mock_user
+    return mock_response
+
+
 class TestBreweryPermissions:
     """Test that role-based access control works correctly on brewery endpoints."""
 
     @pytest.fixture
     def admin_token(self) -> str:
-        from app.core.config import get_settings
-        from jwt import encode as jwt_encode
-
-        settings = get_settings()
-        secret = settings.supabase_service_key or "test-secret"
-        payload = {
-            "sub": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "email": "admin@example.com",
-            "user_metadata": {"role": "super_admin"},
-        }
-        return jwt_encode(payload, secret, algorithm="HS256")
+        return "admin-mock-token"
 
     @pytest.fixture
     def operativo_token(self) -> str:
-        from app.core.config import get_settings
-        from jwt import encode as jwt_encode
-
-        settings = get_settings()
-        secret = settings.supabase_service_key or "test-secret"
-        payload = {
-            "sub": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
-            "email": "user@example.com",
-            "user_metadata": {"role": "operativo"},
-        }
-        return jwt_encode(payload, secret, algorithm="HS256")
+        return "operativo-mock-token"
 
     @pytest.fixture(autouse=True)
     def mock_brewery_service(self, monkeypatch):
@@ -82,6 +74,39 @@ class TestBreweryPermissions:
         monkeypatch.setattr("app.services.brewery_service.BreweryService.get_by_id", mock_get_by_id)
         monkeypatch.setattr("app.services.brewery_service.BreweryService.update", mock_update)
         monkeypatch.setattr("app.services.brewery_service.BreweryService.delete", mock_delete)
+
+    @pytest.fixture(autouse=True)
+    def mock_supabase_auth(self):
+        """Mock Supabase auth service for all tests."""
+        with patch("app.core.security.get_supabase_service") as mock_get_service:
+            mock_client = MagicMock()
+
+            def mock_get_user(token):
+                if token == "admin-mock-token":
+                    return create_mock_user_response(
+                        "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "admin@example.com",
+                        "super_admin",
+                    )
+                elif token == "operativo-mock-token":
+                    return create_mock_user_response(
+                        "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+                        "user@example.com",
+                        "operativo",
+                    )
+                elif token == "invalid-token":
+                    from supabase_auth.errors import AuthApiError
+                    raise AuthApiError("Invalid token", 401, "invalid_token")
+                else:
+                    from supabase_auth.errors import AuthApiError
+                    raise AuthApiError("Invalid token", 401, "invalid_token")
+
+            mock_client.auth.get_user = mock_get_user
+            mock_service = MagicMock()
+            mock_service.get_client.return_value = mock_client
+            mock_get_service.return_value = mock_service
+
+            yield
 
     @pytest.mark.parametrize("endpoint,method,payload", [
         ("/breweries", "post", {"nombre_cerveceria": "Test"}),
