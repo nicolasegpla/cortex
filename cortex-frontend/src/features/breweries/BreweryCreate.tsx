@@ -80,7 +80,7 @@ export function BreweryCreate() {
             await apiClient.post('/breweries', payload);
             navigate('/breweries');
         } catch (err) {
-            setError('Failed to create brewery');
+            setError('Error al crear la cervecería');
         } finally {
             setSaving(false);
         }
@@ -88,7 +88,7 @@ export function BreweryCreate() {
 
     return (
         <div className="brewery-create">
-            <h2>Create Brewery</h2>
+            <h2>Crear Cervecería</h2>
 
             {error && (
                 <div className="error" role="alert">{error}</div>
@@ -96,22 +96,22 @@ export function BreweryCreate() {
 
             <form onSubmit={handleSubmit} className="page-form">
                 <fieldset className="form-section">
-                    <legend>Identification</legend>
+                    <legend>Identificación</legend>
                     <Input
-                        label="Brewery Name *"
+                        label="Nombre de la Cervecería *"
                         name="nombre_cerveceria"
                         value={formData.nombre_cerveceria}
                         onChange={handleChange}
                         required
                     />
                     <Input
-                        label="Legal Name"
+                        label="Razón Social"
                         name="razon_social"
                         value={formData.razon_social}
                         onChange={handleChange}
                     />
                     <Input
-                        label="Tax ID (NIT)"
+                        label="NIT"
                         name="nit"
                         value={formData.nit}
                         onChange={handleChange}
@@ -119,21 +119,21 @@ export function BreweryCreate() {
                 </fieldset>
 
                 <fieldset className="form-section">
-                    <legend>Location</legend>
+                    <legend>Ubicación</legend>
                     <Input
-                        label="Address"
+                        label="Dirección"
                         name="direccion"
                         value={formData.direccion}
                         onChange={handleChange}
                     />
                     <Input
-                        label="City"
+                        label="Ciudad"
                         name="ciudad"
                         value={formData.ciudad}
                         onChange={handleChange}
                     />
                     <Input
-                        label="Country"
+                        label="País"
                         name="pais"
                         value={formData.pais}
                         onChange={handleChange}
@@ -141,33 +141,33 @@ export function BreweryCreate() {
                 </fieldset>
 
                 <fieldset className="form-section">
-                    <legend>Contact</legend>
+                    <legend>Contacto</legend>
                     <Input
-                        label="Contact Name"
+                        label="Nombre de Contacto"
                         name="nombre_contacto"
                         value={formData.nombre_contacto}
                         onChange={handleChange}
                     />
                     <Input
-                        label="Brewer Name"
+                        label="Nombre del Cervecero"
                         name="nombre_cervecero"
                         value={formData.nombre_cervecero}
                         onChange={handleChange}
                     />
                     <Input
-                        label="Phone 1"
+                        label="Celular 1"
                         name="celular_1"
                         value={formData.celular_1}
                         onChange={handleChange}
                     />
                     <Input
-                        label="Phone 2"
+                        label="Celular 2"
                         name="celular_2"
                         value={formData.celular_2}
                         onChange={handleChange}
                     />
                     <Input
-                        label="Email"
+                        label="Correo"
                         name="correo"
                         type="email"
                         value={formData.correo}
@@ -176,27 +176,27 @@ export function BreweryCreate() {
                 </fieldset>
 
                 <fieldset className="form-section">
-                    <legend>Raw Materials</legend>
+                    <legend>Insumos</legend>
                     <Input
-                        label="Malts Used (comma separated)"
+                        label="Malta que Utiliza (separado por comas)"
                         name="maltas_utilizadas"
                         value={formData.maltas_utilizadas}
                         onChange={handleChange}
-                        placeholder="e.g. Pilsner, Munich, Caramel"
+                        placeholder="ej: Pilsner, Munich, Caramelo"
                     />
                     <Input
-                        label="Hops Used (comma separated)"
+                        label="Lúpulos que Utiliza (separado por comas)"
                         name="lupulos_utilizados"
                         value={formData.lupulos_utilizados}
                         onChange={handleChange}
-                        placeholder="e.g. Cascade, Citra, Simcoe"
+                        placeholder="ej: Cascade, Citra, Simcoe"
                     />
                     <Input
-                        label="Yeasts Used (comma separated)"
+                        label="Levaduras que Utiliza (separado por comas)"
                         name="levaduras_utilizadas"
                         value={formData.levaduras_utilizadas}
                         onChange={handleChange}
-                        placeholder="e.g. US-05, S-04, Belgian Ale"
+                        placeholder="ej: US-05, S-04, Belgian Ale"
                     />
                     <label className="checkbox-label">
                         <input
@@ -205,66 +205,66 @@ export function BreweryCreate() {
                             checked={formData.utiliza_otros_productos}
                             onChange={handleChange}
                         />
-                        Uses Other Products
+                        Utiliza Otros Productos
                     </label>
                 </fieldset>
 
                 <fieldset className="form-section">
-                    <legend>Production</legend>
+                    <legend>Producción</legend>
                     <Input
-                        label="Beer Styles (comma separated)"
+                        label="Estilos de Cerveza que Elabora (separado por comas)"
                         name="estilos_cerveza"
                         value={formData.estilos_cerveza}
                         onChange={handleChange}
-                        placeholder="e.g. IPA, Stout, Lager"
+                        placeholder="ej: IPA, Stout, Lager"
                     />
                     <div className="form-field">
-                        <label htmlFor="tipo_operacion">Operation Type</label>
+                        <label htmlFor="tipo_operacion">Tipo de Operación</label>
                         <select
                             id="tipo_operacion"
                             name="tipo_operacion"
                             value={formData.tipo_operacion}
                             onChange={handleChange}
                         >
-                            <option value="">Select type...</option>
+                            <option value="">Seleccione tipo...</option>
                             <option value="maquila">Maquila</option>
-                            <option value="planta_propia">Own Plant</option>
-                            <option value="ambos">Both</option>
+                            <option value="planta_propia">Planta Propia</option>
+                            <option value="ambos">Ambos</option>
                         </select>
                     </div>
                 </fieldset>
 
                 <fieldset className="form-section">
-                    <legend>Equipment</legend>
+                    <legend>Equipo</legend>
                     <Input
-                        label="Equipment Brand"
+                        label="Marca del Equipo"
                         name="marca_equipo"
                         value={formData.marca_equipo}
                         onChange={handleChange}
                     />
                     <Input
-                        label="Brewhouse Capacity"
+                        label="Capacidad del Brewhouse"
                         name="capacidad_brewhouse"
                         value={formData.capacidad_brewhouse}
                         onChange={handleChange}
-                        placeholder="e.g. 500L"
+                        placeholder="ej: 500L"
                     />
                     <Input
-                        label="Fermentation Capacity"
+                        label="Capacidad de Fermentación"
                         name="capacidad_fermentacion"
                         value={formData.capacidad_fermentacion}
                         onChange={handleChange}
-                        placeholder="e.g. 2000L"
+                        placeholder="ej: 2000L"
                     />
                     <Input
-                        label="Monthly Production (liters)"
+                        label="Litros que Hace al Mes"
                         name="litros_mes"
                         type="number"
                         value={formData.litros_mes}
                         onChange={handleChange}
                     />
                     <Input
-                        label="Equipment Quality"
+                        label="Calidad del Equipo"
                         name="calidad_equipo"
                         value={formData.calidad_equipo}
                         onChange={handleChange}
@@ -272,16 +272,16 @@ export function BreweryCreate() {
                 </fieldset>
 
                 <fieldset className="form-section">
-                    <legend>Commercial</legend>
+                    <legend>Comercial</legend>
                     <Input
-                        label="Sales Formats (comma separated)"
+                        label="Formatos de Venta (separado por comas)"
                         name="formatos_venta"
                         value={formData.formatos_venta}
                         onChange={handleChange}
-                        placeholder="e.g. Can, Bottle, Keg"
+                        placeholder="ej: Lata, Botella, Barril"
                     />
                     <Input
-                        label="Where They Sell"
+                        label="En Dónde Vende la Cerveza"
                         name="donde_vende"
                         value={formData.donde_vende}
                         onChange={handleChange}
@@ -289,9 +289,9 @@ export function BreweryCreate() {
                 </fieldset>
 
                 <fieldset className="form-section">
-                    <legend>Notes</legend>
+                    <legend>Notas</legend>
                     <div className="form-field">
-                        <label htmlFor="observaciones">Observations</label>
+                        <label htmlFor="observaciones">Observaciones</label>
                         <textarea
                             id="observaciones"
                             name="observaciones"
@@ -301,7 +301,7 @@ export function BreweryCreate() {
                         />
                     </div>
                     <div className="form-field">
-                        <label htmlFor="oportunidades">Opportunities</label>
+                        <label htmlFor="oportunidades">Oportunidades</label>
                         <textarea
                             id="oportunidades"
                             name="oportunidades"
@@ -313,7 +313,7 @@ export function BreweryCreate() {
                 </fieldset>
 
                 <Button type="submit" disabled={saving}>
-                    {saving ? 'Creating...' : 'Create Brewery'}
+                    {saving ? 'Creando...' : 'Crear Cervecería'}
                 </Button>
             </form>
         </div>
