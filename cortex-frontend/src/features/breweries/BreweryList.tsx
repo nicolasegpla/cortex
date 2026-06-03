@@ -90,7 +90,7 @@ export function BreweryList() {
         <div className="brewery-list">
             <div className="brewery-list__header">
                 <h2>Cervecerías</h2>
-                <Link to="/breweries/new" className="button">Agregar Cervecería</Link>
+                <Link to="/breweries/new" className="brewery-list__add-button">Agregar Cervecería</Link>
             </div>
 
             {breweries.length === 0 ? (

@@ -25,6 +25,22 @@
         }
     }
 
+    &__add-button {
+        @include chip;
+        transition:
+            background-color 150ms ease,
+            border-color 150ms ease,
+            color 150ms ease;
+
+        &:hover,
+        &:focus-visible {
+            background-color: $color-accent-primary;
+            border-color: $color-accent-primary;
+            color: $color-accent-contrast;
+            outline: none;
+        }
+    }
+
     &__table-wrapper {
         overflow-x: auto;
         overflow-y: hidden;
