@@ -30,6 +30,7 @@ function createMockStream(chunks: string[]): ReadableStream <Uint8Array> {
 
 describe('useChatStore', () => {
     beforeEach(() => {
+        localStorage.clear();
         useChatStore.setState({
             messages: [],
             isLoading: false,
@@ -200,6 +201,19 @@ describe('useChatStore', () => {
             expect(useChatStore.getState().activeProvider).toBe('anthropic');
         });
 
+        it('should preserve selected model when switching to another provider with the same model family', () => {
+            useChatStore.setState({
+                activeProvider: 'deepseek',
+                activeModel: 'deepseek-v4-pro',
+            });
+
+            const { setActiveProvider } = useChatStore.getState();
+            setActiveProvider('deepseek');
+
+            expect(useChatStore.getState().activeProvider).toBe('deepseek');
+            expect(useChatStore.getState().activeModel).toBe('deepseek-v4-pro');
+        });
+
         it('should reset active model to provider default when provider changes', () => {
             const { setActiveProvider } = useChatStore.getState();
             setActiveProvider('deepseek');
@@ -231,6 +245,19 @@ describe('useChatStore', () => {
             setActiveModel('deepseek-v4-pro');
 
             expect(useChatStore.getState().activeModel).toBe('deepseek-v4-pro');
+        });
+
+        it('should persist provider and model selection to localStorage', async () => {
+            const { setActiveProvider, setActiveModel } = useChatStore.getState();
+
+            setActiveProvider('deepseek');
+            setActiveModel('deepseek-v4-pro');
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            const saved = JSON.parse(localStorage.getItem('cortex-chat-preferences') || '{}');
+            expect(saved.state.activeProvider).toBe('deepseek');
+            expect(saved.state.activeModel).toBe('deepseek-v4-pro');
         });
     });
 

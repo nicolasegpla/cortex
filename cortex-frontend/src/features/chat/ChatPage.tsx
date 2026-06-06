@@ -28,7 +28,7 @@ export function ChatPage() {
         clearError,
     } = useChatStore();
 
-    const { getValidatedProviders } = useCredentialsStore();
+    const { fetchCredentials, getValidatedProviders } = useCredentialsStore();
     const validatedProviders = getValidatedProviders();
 
     const [input, setInput] = useState('');
@@ -45,6 +45,10 @@ export function ChatPage() {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    useEffect(() => {
+        void fetchCredentials();
+    }, [fetchCredentials]);
 
     useEffect(() => {
         if (validatedProviders.length === 0) return;

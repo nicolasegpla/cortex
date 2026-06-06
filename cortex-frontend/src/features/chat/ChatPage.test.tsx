@@ -70,6 +70,26 @@ describe('ChatPage', () => {
         expect(screen.getByLabelText('Send message')).toBeInTheDocument();
     });
 
+    it('should fetch credentials on mount', () => {
+        const fetchCredentials = vi.fn();
+
+        mockUseCredentialsStore.mockReturnValue({
+            providers: {},
+            isLoading: false,
+            error: null,
+            fetchCredentials,
+            saveCredential: vi.fn(),
+            deleteCredential: vi.fn(),
+            testCredential: vi.fn(),
+            getValidatedProviders: () => [],
+            clearError: vi.fn(),
+        });
+
+        render(<ChatPage />);
+
+        expect(fetchCredentials).toHaveBeenCalled();
+    });
+
     it('should display messages', () => {
         mockUseChatStore.mockReturnValue({
             messages: [

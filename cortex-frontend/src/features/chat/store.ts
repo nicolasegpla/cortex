@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import { apiClient } from '@/services/api/client';
 
@@ -110,101 +111,133 @@ async function* readSSEChunks(stream: ReadableStream<Uint8Array>): AsyncGenerato
     }
 }
 
-export const useChatStore = create<ChatState>((set, get) => ({
-    messages: [],
-    isLoading: false,
-    error: null,
-    activeProvider: 'openai',
-    activeModel: DEFAULT_MODELS['openai'],
-    _abortController: null,
+function sanitizePersistedSelection(provider: Provider, model: string) {
+    const validModels = PROVIDER_MODELS[provider].map((option) => option.id);
 
-    sendMessage: async (text) => {
-        const trimmed = text.trim();
-        if (!trimmed) return;
+    return {
+        activeProvider: provider,
+        activeModel: validModels.includes(model) ? model : DEFAULT_MODELS[provider],
+    };
+}
 
-        const state = get();
-        const userMessage: ChatMessage = { role: 'user', content: trimmed };
-        const messages = [...state.messages, userMessage];
+export const useChatStore = create<ChatState>()(
+    persist((set, get) => ({
+        messages: [],
+        isLoading: false,
+        error: null,
+        activeProvider: 'openai',
+        activeModel: DEFAULT_MODELS['openai'],
+        _abortController: null,
 
-        set({ messages, isLoading: true, error: null });
+        sendMessage: async (text) => {
+            const trimmed = text.trim();
+            if (!trimmed) return;
 
-        const abortController = new AbortController();
-        set({ _abortController: abortController });
+            const state = get();
+            const userMessage: ChatMessage = { role: 'user', content: trimmed };
+            const messages = [...state.messages, userMessage];
 
-        try {
-            const stream = await apiClient.stream('/chat/stream', {
-                model: state.activeModel,
-                messages: messages.map((m) => ({ role: m.role, content: m.content })),
-                provider: state.activeProvider,
-            });
+            set({ messages, isLoading: true, error: null });
 
-            let assistantContent = '';
+            const abortController = new AbortController();
+            set({ _abortController: abortController });
 
-            for await (const chunk of readSSEChunks(stream)) {
-                if (abortController.signal.aborted) break;
+            try {
+                const stream = await apiClient.stream('/chat/stream', {
+                    model: state.activeModel,
+                    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+                    provider: state.activeProvider,
+                });
 
-                if (chunk.event === 'delta') {
-                    assistantContent += chunk.data;
-                    set({
-                        messages: [
-                            ...messages,
-                            { role: 'assistant', content: assistantContent },
-                        ],
-                    });
-                } else if (chunk.event === 'error') {
-                    set({
-                        error: chunk.data || 'Streaming error',
-                        isLoading: false,
-                        messages: [
-                            ...messages,
-                            { role: 'assistant', content: assistantContent },
-                        ],
-                    });
-                    return;
-                } else if (chunk.event === 'done') {
-                    break;
+                let assistantContent = '';
+
+                for await (const chunk of readSSEChunks(stream)) {
+                    if (abortController.signal.aborted) break;
+
+                    if (chunk.event === 'delta') {
+                        assistantContent += chunk.data;
+                        set({
+                            messages: [
+                                ...messages,
+                                { role: 'assistant', content: assistantContent },
+                            ],
+                        });
+                    } else if (chunk.event === 'error') {
+                        set({
+                            error: chunk.data || 'Streaming error',
+                            isLoading: false,
+                            messages: [
+                                ...messages,
+                                { role: 'assistant', content: assistantContent },
+                            ],
+                        });
+                        return;
+                    } else if (chunk.event === 'done') {
+                        break;
+                    }
                 }
+
+                set({
+                    isLoading: false,
+                    messages: [
+                        ...messages,
+                        { role: 'assistant', content: assistantContent },
+                    ],
+                });
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed to send message';
+                set({
+                    error: message,
+                    isLoading: false,
+                    messages: [
+                        ...messages,
+                        { role: 'assistant', content: '' },
+                    ],
+                });
+            } finally {
+                set({ _abortController: null });
             }
+        },
 
-            set({
-                isLoading: false,
-                messages: [
-                    ...messages,
-                    { role: 'assistant', content: assistantContent },
-                ],
-            });
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to send message';
-            set({
-                error: message,
-                isLoading: false,
-                messages: [
-                    ...messages,
-                    { role: 'assistant', content: '' },
-                ],
-            });
-        } finally {
-            set({ _abortController: null });
-        }
-    },
+        abort: () => {
+            const { _abortController } = get();
+            if (_abortController) {
+                _abortController.abort();
+                set({ isLoading: false, _abortController: null });
+            }
+        },
 
-    abort: () => {
-        const { _abortController } = get();
-        if (_abortController) {
-            _abortController.abort();
-            set({ isLoading: false, _abortController: null });
-        }
-    },
+        clearMessages: () => set({ messages: [], error: null }),
 
-    clearMessages: () => set({ messages: [], error: null }),
+        setActiveProvider: (provider) =>
+            set((state) => {
+                const currentModelBelongsToProvider = PROVIDER_MODELS[provider].some(
+                    (option) => option.id === state.activeModel
+                );
 
-    setActiveProvider: (provider) =>
-        set({
-            activeProvider: provider,
-            activeModel: DEFAULT_MODELS[provider],
+                return {
+                    activeProvider: provider,
+                    activeModel: currentModelBelongsToProvider
+                        ? state.activeModel
+                        : DEFAULT_MODELS[provider],
+                };
+            }),
+
+        setActiveModel: (model) => set({ activeModel: model }),
+
+        clearError: () => set({ error: null }),
+    }), {
+        name: 'cortex-chat-preferences',
+        partialize: (state) => ({
+            activeProvider: state.activeProvider,
+            activeModel: state.activeModel,
         }),
+        onRehydrateStorage: () => (state) => {
+            if (!state) return;
 
-    setActiveModel: (model) => set({ activeModel: model }),
-
-    clearError: () => set({ error: null }),
-}));
+            const selection = sanitizePersistedSelection(state.activeProvider, state.activeModel);
+            state.activeProvider = selection.activeProvider;
+            state.activeModel = selection.activeModel;
+        },
+    })
+);
