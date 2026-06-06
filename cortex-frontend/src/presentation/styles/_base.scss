@@ -2,13 +2,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 html {
-    background-color: $color-surface-canvas;
+    background-color: var(--color-surface-canvas);
 }
 
 body {
     font-family: $font-family-sans;
-    color: $color-text-primary;
-    background-color: $color-surface-canvas;
+    color: var(--color-text-primary);
+    background-color: var(--color-surface-canvas);
 }
 
 #root {
@@ -24,11 +24,11 @@ select {
 
 .page-card {
     max-width: 720px;
-    padding: $space-xl;
-    border: 1px solid $color-border-divider;
-    border-radius: $radius-card;
-    background-color: $color-surface-card;
-    box-shadow: $shadow-card;
+    padding: var(--space-xl);
+    border: 1px solid var(--color-border-divider);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface-card);
+    box-shadow: var(--shadow-card);
 }
 
 .page-card--narrow {
@@ -36,7 +36,7 @@ select {
 }
 
 .page-card__eyebrow {
-    color: $color-text-muted;
+    color: var(--color-text-muted);
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -44,19 +44,19 @@ select {
 }
 
 .page-card__title {
-    margin-top: $space-sm;
+    margin-top: var(--space-sm);
     font-size: clamp(1.5rem, 2vw, 2rem);
     line-height: 1.2;
 }
 
 .page-card__description {
-    margin-top: $space-sm;
-    color: $color-text-muted;
+    margin-top: var(--space-sm);
+    color: var(--color-text-muted);
 }
 
 .page-form {
     display: flex;
     flex-direction: column;
-    gap: $space-md;
-    margin-top: $space-lg;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
 }

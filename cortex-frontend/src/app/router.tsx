@@ -1,8 +1,10 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 
-import { MainLayout } from '@/presentation/layouts/MainLayout';
+import { AppShell } from '@/presentation/layouts/AppShell';
 import { DashboardPage } from '@/presentation/pages/DashboardPage';
 import { LoginPage } from '@/presentation/pages/LoginPage';
+import { SessionsPage } from '@/presentation/pages/SessionsPage';
+import { ConfigPage } from '@/presentation/pages/ConfigPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { RequireRole } from '@/features/auth/RequireRole';
 import { BreweryList } from '@/features/breweries/BreweryList';
@@ -12,7 +14,7 @@ import { ChatPage } from '@/features/chat/ChatPage';
 export const router = createBrowserRouter([
     {
         path: '/',
-        element: <MainLayout />,
+        element: <AppShell />,
         children: [
             {
                 index: true,
@@ -51,6 +53,30 @@ export const router = createBrowserRouter([
                 element: (
                     <ProtectedRoute>
                         <BreweryCreate />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'databases',
+                element: (
+                    <ProtectedRoute>
+                        <Navigate to="/breweries" replace />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'sessions',
+                element: (
+                    <ProtectedRoute>
+                        <SessionsPage />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'config',
+                element: (
+                    <ProtectedRoute>
+                        <ConfigPage />
                     </ProtectedRoute>
                 ),
             },

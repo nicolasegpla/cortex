@@ -58,6 +58,18 @@ export function BreweryList() {
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('¿Estás seguro de que deseas eliminar esta cervecería?')) {
+            return;
+        }
+        try {
+            await apiClient.delete(`/breweries/${id}`);
+            setBreweries((prev) => prev.filter((b) => b.id !== id));
+        } catch (err) {
+            setError('Error al eliminar la cervecería');
+        }
+    };
+
     const formatTipoOperacion = (tipo: string | null) => {
         if (!tipo) return '-';
         const map: Record<string, string> = {
@@ -164,7 +176,12 @@ export function BreweryList() {
                                         <td>
                                             <div className="brewery-list__actions">
                                                 <button className="brewery-list__edit-button">Editar</button>
-                                                <button className="brewery-list__delete-button">Eliminar</button>
+                                                <button 
+                                                className="brewery-list__delete-button"
+                                                onClick={() => handleDelete(brewery.id)}
+                                            >
+                                                Eliminar
+                                            </button>
                                             </div>
                                         </td>
                                     </tr>

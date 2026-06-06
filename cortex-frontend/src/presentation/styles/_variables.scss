@@ -1,45 +1,40 @@
 $font-family-sans: 'Inter', sans-serif;
 
-// Surface / canvas
-$color-surface-canvas: #fafafa;
-$color-surface-card: #ffffff;
-$color-surface-elevated: #ffffff;
-$color-surface-muted: #f3f3f4;
-$color-surface-glass: rgba(255, 255, 255, 0.92);
-
-// Borders
-$color-border-subtle: rgba(0, 0, 0, 0.08);
-$color-border-strong: rgba(0, 0, 0, 0.15);
-$color-border-divider: rgba(0, 0, 0, 0.06);
-
 // Spacing
-$space-xs: 4px;
-$space-sm: 8px;
-$space-md: 16px;
-$space-lg: 24px;
-$space-xl: 32px;
-$space-2xl: 48px;
+$space-xs: var(--space-xs);
+$space-sm: var(--space-sm);
+$space-md: var(--space-md);
+$space-lg: var(--space-lg);
+$space-xl: var(--space-xl);
+$space-2xl: var(--space-2xl);
 
 // Radii
-$radius-chip: 999px;
-$radius-card: 12px;
-$radius-input: 8px;
-$radius-rect: 4px;
+$radius-chip: var(--radius-chip);
+$radius-card: var(--radius-card);
+$radius-input: var(--radius-input);
+$radius-rect: var(--radius-rect);
 
 // Shadows
-$shadow-card:
-    0 1px 4px 0 rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
-$shadow-card-hover:
-    0 4px 12px 0 rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
-$shadow-soft: 0 20px 40px 0 rgba(0, 0, 0, 0.06);
+$shadow-card: var(--shadow-card);
+$shadow-card-hover: var(--shadow-card-hover);
+$shadow-soft: var(--shadow-soft);
 
-// Text and feedback
-$color-text-primary: #111827;
-$color-text-muted: #6b7280;
-$color-text-placeholder: #9ca3af;
-$color-text-inverse-soft: #e5e7eb;
-$color-feedback-error-text: #410002;
-$color-accent-primary: #111827;
-$color-accent-contrast: #ffffff;
+// Colors — migrated to CSS custom properties in _tokens.scss
+// Kept as var() aliases for backward compatibility during migration
+$color-surface-canvas: var(--color-surface-canvas);
+$color-surface-card: var(--color-surface-card);
+$color-surface-elevated: var(--color-surface-elevated);
+$color-surface-muted: var(--color-surface-muted);
+$color-surface-glass: var(--color-surface-glass);
+
+$color-border-subtle: var(--color-border-subtle);
+$color-border-strong: var(--color-border-strong);
+$color-border-divider: var(--color-border-divider);
+
+$color-text-primary: var(--color-text-primary);
+$color-text-muted: var(--color-text-muted);
+$color-text-placeholder: var(--color-text-placeholder);
+$color-text-inverse-soft: var(--color-text-inverse-soft);
+$color-feedback-error-text: var(--color-feedback-error-text);
+$color-accent-primary: var(--color-accent-primary);
+$color-accent-contrast: var(--color-accent-contrast);
