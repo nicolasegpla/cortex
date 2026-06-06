@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { useChatStore } from './store';
@@ -33,6 +33,7 @@ describe('ChatPage', () => {
     const mockSetActiveModel = vi.fn();
 
     beforeEach(() => {
+        cleanup();
         vi.clearAllMocks();
         mockUseChatStore.mockReturnValue({
             messages: [],
@@ -64,9 +65,9 @@ describe('ChatPage', () => {
     it('should render chat interface', () => {
         render(<ChatPage />);
 
-        expect(screen.getByText('Chat')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Type a message...')).toBeInTheDocument();
-        expect(screen.getByText('Send')).toBeInTheDocument();
+        expect(screen.getByText('What can I do for you?')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Assign a task or ask anything')).toBeInTheDocument();
+        expect(screen.getByLabelText('Send message')).toBeInTheDocument();
     });
 
     it('should display messages', () => {
@@ -114,10 +115,10 @@ describe('ChatPage', () => {
 
         render(<ChatPage />);
 
-        const inputs = screen.getAllByPlaceholderText('Type a message...');
+        const inputs = screen.getAllByPlaceholderText('Assign a task or ask anything');
         await user.type(inputs[0], 'Test message');
 
-        const sendButtons = screen.getAllByText('Send');
+        const sendButtons = screen.getAllByLabelText('Send message');
         await user.click(sendButtons[0]);
 
         await waitFor(() => {
@@ -143,7 +144,7 @@ describe('ChatPage', () => {
 
         render(<ChatPage />);
 
-        expect(screen.getByText('Stop')).toBeInTheDocument();
+        expect(screen.getByLabelText('Stop generating')).toBeInTheDocument();
     });
 
     it('should call abort on stop button', async () => {
@@ -165,7 +166,7 @@ describe('ChatPage', () => {
 
         render(<ChatPage />);
 
-        const stopButtons = screen.getAllByText('Stop');
+        const stopButtons = screen.getAllByLabelText('Stop generating');
         await user.click(stopButtons[0]);
 
         expect(mockAbort).toHaveBeenCalled();
@@ -224,8 +225,8 @@ describe('ChatPage', () => {
 
         render(<ChatPage />);
 
-        expect(screen.getAllByText('Provider:')[0]).toBeInTheDocument();
-        expect(screen.getAllByRole('combobox')[0]).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Select provider')[0]).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Select model')[0]).toBeInTheDocument();
     });
 
     it('should switch to first validated provider when active provider is unavailable', () => {
