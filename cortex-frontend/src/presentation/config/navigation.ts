@@ -37,8 +37,8 @@ export const navigationConfig: NavSection[] = [
         title: 'Data',
         items: [
             {
-                label: 'Cervecerías',
-                to: '/breweries',
+                label: 'Databases',
+                to: '/databases',
                 icon: Database,
             },
             {

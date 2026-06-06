@@ -1,8 +1,9 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 
 import { AppShell } from '@/presentation/layouts/AppShell';
 import { DashboardPage } from '@/presentation/pages/DashboardPage';
 import { LoginPage } from '@/presentation/pages/LoginPage';
+import { DatabasesPage } from '@/presentation/pages/DatabasesPage';
 import { SessionsPage } from '@/presentation/pages/SessionsPage';
 import { ConfigPage } from '@/presentation/pages/ConfigPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
@@ -60,7 +61,7 @@ export const router = createBrowserRouter([
                 path: 'databases',
                 element: (
                     <ProtectedRoute>
-                        <Navigate to="/breweries" replace />
+                        <DatabasesPage />
                     </ProtectedRoute>
                 ),
             },

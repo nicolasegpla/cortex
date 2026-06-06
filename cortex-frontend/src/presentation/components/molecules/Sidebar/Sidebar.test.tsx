@@ -89,18 +89,18 @@ describe('Sidebar', () => {
 
     it('should highlight active nav item based on current route', () => {
         render(
-            <MemoryRouter initialEntries={['/breweries']}>
+            <MemoryRouter initialEntries={['/databases']}>
                 <Sidebar />
             </MemoryRouter>
         );
 
-        const breweriesLink = screen.getByRole('link', { name: /Cervecerías/i });
-        expect(breweriesLink).toHaveAttribute('aria-current', 'page');
+        const databasesLink = screen.getByRole('link', { name: /Databases/i });
+        expect(databasesLink).toHaveAttribute('aria-current', 'page');
     });
 
     it('should not highlight inactive nav items', () => {
         render(
-            <MemoryRouter initialEntries={['/breweries']}>
+            <MemoryRouter initialEntries={['/databases']}>
                 <Sidebar />
             </MemoryRouter>
         );

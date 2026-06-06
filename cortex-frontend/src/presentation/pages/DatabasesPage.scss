@@ -1,0 +1,108 @@
+.databases-page {
+    padding: var(--space-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+
+    &__header {
+        margin-bottom: var(--space-2xl);
+    }
+
+    &__title {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-sm) 0;
+    }
+
+    &__subtitle {
+        font-size: 14px;
+        color: var(--color-text-muted);
+        margin: 0;
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: var(--space-lg);
+    }
+}
+
+.database-card {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-divider);
+    background-color: var(--color-surface-primary);
+    text-decoration: none;
+    transition: all 200ms ease;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--color-border-strong);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    &--coming-soon {
+        opacity: 0.7;
+        cursor: not-allowed;
+
+        &:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: var(--color-border-divider);
+        }
+    }
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-md);
+    }
+
+    &__icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        background-color: var(--color-surface-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-accent-primary);
+    }
+
+    &__badge {
+        font-size: 11px;
+        font-weight: 500;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-full);
+        background-color: var(--color-surface-muted);
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    &__title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-sm) 0;
+    }
+
+    &__description {
+        font-size: 13px;
+        color: var(--color-text-muted);
+        line-height: 1.5;
+        margin: 0 0 var(--space-md) 0;
+        flex: 1;
+    }
+
+    &__action {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-accent-primary);
+        margin-top: auto;
+    }
+}

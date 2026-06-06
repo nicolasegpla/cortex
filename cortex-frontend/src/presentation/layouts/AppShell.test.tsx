@@ -91,17 +91,17 @@ describe('AppShell', () => {
 
     it('should mark active nav item based on current route', () => {
         render(
-            <MemoryRouter initialEntries={['/breweries']}>
+            <MemoryRouter initialEntries={['/databases']}>
                 <Routes>
                     <Route path="*" element={<AppShell />}>
                         <Route index element={<div>Chat</div>} />
-                        <Route path="breweries" element={<div>Breweries</div>} />
+                        <Route path="databases" element={<div>Databases</div>} />
                     </Route>
                 </Routes>
             </MemoryRouter>
         );
 
-        const breweriesLink = screen.getByRole('link', { name: /Cervecerías/i });
-        expect(breweriesLink).toHaveAttribute('aria-current', 'page');
+        const databasesLink = screen.getByRole('link', { name: /Databases/i });
+        expect(databasesLink).toHaveAttribute('aria-current', 'page');
     });
 });
