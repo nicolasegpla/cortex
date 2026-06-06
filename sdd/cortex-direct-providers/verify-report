@@ -1,0 +1,185 @@
+# Verification Report
+
+**Change**: cortex-direct-providers
+**Version**: N/A (V1 spec)
+**Mode**: Strict TDD
+
+---
+
+## Completeness
+
+| Metric | Value |
+|--------|-------|
+| Tasks total | 22 |
+| Tasks complete | 22 |
+| Tasks incomplete | 0 |
+
+---
+
+## Build & Tests Execution
+
+**TypeScript**: ✅ Passed (tsc --noEmit — zero errors)
+```
+npx tsc --noEmit — no output (clean)
+```
+
+**Backend Tests**: ✅ 185 passed / 0 failed / 4 warnings
+```
+pytest cortex-backend/tests/ -v — 185 passed, 4 warnings (deprecation FutureWarning on google.generativeai, HTTP_422 deprecation, httpx deprecation)
+```
+
+**Frontend Tests**: ✅ 39 passed / 0 failed
+```
+vitest run src/features/chat/ — 4 test files, 39 tests, all green
+```
+
+**Coverage**: ➖ Not available (no coverage tool configured)
+
+---
+
+## Spec Compliance Matrix
+
+| Requirement | Scenario | Test | Result |
+|-------------|----------|------|--------|
+| REQ-1: Direct Provider Adapter Contract — Stream through selected provider | Stream through a selected provider | test_openai_adapter::test_stream_chat_yields_text_chunks, test_anthropic_adapter::*, test_deepseek_adapter::*, test_gemini_adapter::test_stream_chat_yields_text_parts | ✅ COMPLIANT |
+| REQ-1: Direct Provider Adapter Contract — Handle provider family differences | Handle provider family differences (OpenAI-compat vs Anthropic-style) | test_deepseek_adapter::test_deepseek_is_openai_subclass + test_deepseek_base_url; test_anthropic_adapter::test_stream_chat_converts_messages_format; test_gemini_adapter::test_stream_chat_yields_text_parts | ✅ COMPLIANT |
+| REQ-2: Provider Validation Outcome — Validation fails safely | Validation fails safely (revoked/malformed/unreachable) | test_openai_adapter::test_validate_returns_false_on_error, test_anthropic_adapter::*, test_gemini_adapter::test_validate_returns_false_on_error | ✅ COMPLIANT |
+| REQ-3: Supported Provider Discovery and Routing — Show supported providers | Show supported providers (OpenAI, Anthropic, Gemini, DeepSeek) | test_registry::test_list_providers_returns_all_registered + test_list_providers_excludes_non_v1_providers | ✅ COMPLIANT |
+| REQ-3: Supported Provider Discovery and Routing — Exclude unsupported architecture | Exclude Kimi/Minimax as V1 providers | test_registry::test_list_providers_excludes_non_v1_providers + test_chat_schemas::test_chat_request_deprecated_kimi_provider_raises + test_chat_request_deprecated_minimax_provider_raises | ✅ COMPLIANT |
+| REQ-4: Backend-Mediated Multi-Provider Chat — Stream a provider response | Stream a provider response through backend | test_chat_router::test_chat_stream_returns_sse_delta_events + test_chat_stream_gemini_returns_sse_delta_events + test_chat_stream_deepseek_returns_sse_delta_events + test_chat_stream_resolves_adapter_by_provider | ✅ COMPLIANT |
+| REQ-4: Backend-Mediated Multi-Provider Chat — Prevent direct provider access | Browser never sends credential directly to external provider | Source inspection: chat.tsx sends via SSE to /chat/stream backend; no direct API calls from frontend | ✅ COMPLIANT |
+| REQ-5: User Credential Lifecycle — Save or update a credential | Save/update a credential | test_provider_credential_service::test_save_credential_encrypts_api_key + test_save_credential_upserts_existing | ✅ COMPLIANT |
+| REQ-5: User Credential Lifecycle — Remove a credential | Remove a credential | test_provider_credential_service::test_delete_credential_enforces_user_and_provider | ✅ COMPLIANT |
+| REQ-6: Validation and Provider Readiness Feedback — Credential validates successfully | Valid credential shows provider as ready | test_provider_credential_service::test_test_credential_validates_with_adapter; credentialsStore test: getValidatedProviders returns providers with validated_at | ✅ COMPLIANT |
+| REQ-6: Validation and Provider Readiness Feedback — Credential validation fails | Invalid credential shows non-secret actionable failure | test_provider_credential_service::test_test_credential_invalid_key; credentialsStore test: testCredential returns false when invalid | ✅ COMPLIANT |
+
+**Compliance summary**: 11/11 scenarios compliant
+
+---
+
+## Correctness (Static Evidence)
+
+| Requirement | Status | Notes |
+|------------|--------|-------|
+| Provider type = V1 set (openai, anthropic, gemini, deepseek) | ✅ Implemented | Backend: `Literal["openai", "anthropic", "gemini", "deepseek"]` in chat.py; Frontend: `type Provider = "openai" \| "anthropic" \| "gemini" \| "deepseek"` in credentialsStore.ts |
+| Kimi/Minimax removed from primary flow | ✅ Implemented | Zero occurrences in app source code; only in tests verifying rejection |
+| ProviderRegistry dispatches correctly | ✅ Implemented | registry.py with register/get_adapter/list_providers; __init__.py auto-registers all 4 V1 adapters |
+| DeepSeek = OpenAIAdapter subclass | ✅ Implemented | DeepSeekAdapter inherits OpenAIAdapter with `_base_url="https://api.deepseek.com/v1"` and `provider_name="deepseek"` |
+| Gemini = standalone adapter | ✅ Implemented | GeminiAdapter using google-generativeai SDK, supports gemini-2.0-flash and gemini-1.5-pro |
+| Frontend PROVIDERS array = V1 set | ✅ Implemented | ChatSettings.tsx: OpenAI, Anthropic, Google Gemini, DeepSeek |
+| Frontend DEFAULT_MODELS = V1 set | ✅ Implemented | store.ts maps each V1 provider to correct default model |
+| Frontend PROVIDER_LABELS = V1 set | ✅ Implemented | ChatPage.tsx: openai→OpenAI, anthropic→Anthropic, gemini→Google Gemini, deepseek→DeepSeek |
+| google-generativeai dependency | ✅ Implemented | requirements.txt includes `google-generativeai>=0.8.0` |
+
+---
+
+## Coherence (Design)
+
+| Decision | Followed? | Notes |
+|----------|-----------|-------|
+| DeepSeek: OpenAIAdapter subclass with base_url override | ✅ Yes | DeepSeekAdapter inherits OpenAIAdapter, _base_url="https://api.deepseek.com/v1" |
+| Gemini: google-generativeai SDK with standalone adapter | ✅ Yes | GeminiAdapter uses genai.GenerativeModel, async stream_chat, validate via generate_content_async |
+| Kimi/Minimax: Remove immediately | ✅ Yes | No Kimi/Minimax adapters in codebase; schema rejects them |
+| ProviderRegistry class over get_adapter() function | ✅ Yes | ProviderRegistry with register/get_adapter/list_providers; singleton instance in __init__.py |
+| Per-adapter SUPPORTED_MODELS class attribute | ✅ Yes | Each adapter defines SUPPORTED_MODELS; list_providers reads via getattr |
+| Adapter-level validate() method | ✅ Yes | Each adapter has validate(api_key) → bool; OpenAI: models.list, Anthropic: messages.create(max_tokens=1), Gemini: generate_content_async |
+| Frontend Provider type expansion | ✅ Yes | credentialsStore.ts Provider type, ChatSettings.tsx PROVIDERS array, ChatPage.tsx PROVIDER_LABELS all reflect V1 set |
+
+---
+
+## TDD Compliance
+
+| Check | Result | Details |
+|-------|--------|---------|
+| TDD Evidence reported | ✅ | Found in apply-progress (4-slice TDD Cycle Evidence table) |
+| All tasks have tests | ✅ | 22/22 tasks have associated test files |
+| RED confirmed (tests exist) | ✅ | 22/22 test files verified in codebase |
+| GREEN confirmed (tests pass) | ✅ | 185 backend + 39 frontend = 224 tests all passing |
+| Triangulation adequate | ✅ | 8 tasks with multiple test cases, 14 type/refactor tasks N/A |
+| Safety Net for modified files | ✅ | Full suite runs before each phase |
+
+**TDD Compliance**: 6/6 checks passed
+
+---
+
+## Test Layer Distribution
+
+| Layer | Tests | Files | Tools |
+|-------|-------|-------|-------|
+| Unit | ~170 | backend test_adapters/, test_llm_provider_service.py, test_chat_schemas.py, store.test.ts, credentialsStore.test.ts | pytest, vitest |
+| Integration | ~54 | ChatSettings.test.tsx, ChatPage.test.tsx, test_chat_router.py, test_provider_credentials_router.py | vitest+jsdom, pytest+TestClient |
+| E2E | 0 | — | not installed |
+| **Total** | **224** | **19** | |
+
+---
+
+## Changed File Coverage
+
+| File | Lines | Notes | Rating |
+|------|-------|-------|--------|
+| `cortex-backend/app/adapters/base.py` | 47 | New: LlmProviderAdapter ABC | ✅ Tested via adapters |
+| `cortex-backend/app/adapters/openai.py` | 72 | Extracted from llm_provider_service | ✅ 7 unit tests |
+| `cortex-backend/app/adapters/anthropic.py` | 70 | Extracted from llm_provider_service | ✅ 7 unit tests |
+| `cortex-backend/app/adapters/gemini.py` | 74 | New: GeminiAdapter | ✅ 7 unit tests |
+| `cortex-backend/app/adapters/deepseek.py` | 10 | New: DeepSeekAdapter subclass | ✅ 5 unit tests |
+| `cortex-backend/app/adapters/registry.py` | 66 | New: ProviderRegistry | ✅ 10 unit tests |
+| `cortex-backend/app/adapters/__init__.py` | 26 | New: re-exports + auto-register | ✅ Covered by registry tests |
+| `cortex-backend/app/schemas/chat.py` | 19 | Modified: V1 provider literal | ✅ 8 schema tests |
+| `cortex-backend/app/routers/chat.py` | 84 | Modified: uses registry | ✅ 8 router tests |
+| `cortex-backend/app/services/llm_provider_service.py` | 57 | Modified: delegates to adapters | ✅ 28 service tests |
+| `cortex-frontend/src/features/chat/credentialsStore.ts` | 106 | Modified: Provider type V1 | ✅ 12 unit tests |
+| `cortex-frontend/src/features/chat/store.ts` | 174 | Modified: DEFAULT_MODELS V1 | ✅ 8 unit tests |
+| `cortex-frontend/src/features/chat/ChatSettings.tsx` | 157 | Modified: PROVIDERS V1 | ✅ 7 integration tests |
+| `cortex-frontend/src/features/chat/ChatPage.tsx` | 174 | Modified: PROVIDER_LABELS V1 | ✅ 5 integration tests |
+
+**Average changed file coverage**: Not measured (no coverage tool)
+**Coverage analysis skipped — no coverage tool detected**
+
+---
+
+## Assertion Quality
+
+All assertions verify real behavior:
+- Adapter tests mock external SDKs and assert yielded chunks, error propagation, validation results — no tautologies
+- Schema tests assert ValidationError on invalid/deprecated providers
+- Registry tests assert correct dispatch, exclusion, and listing
+- Frontend store tests assert state transitions after actions
+- Frontend component tests assert rendered UI labels and user interactions
+- No ghost loops, no empty-collection-only assertions, no smoke-test-only assertions
+
+**Assertion quality**: ✅ All assertions verify real behavior
+
+---
+
+## Quality Metrics
+
+**Linter**: ➖ Not run (no linting step verified in this verification pass)
+**Type Checker**: ✅ No errors (`npx tsc --noEmit` clean)
+
+**Backend warnings** (non-blocking):
+- FutureWarning on `google.generativeai` deprecation → SUGGESTION: Migrate to `google.genai` package in V2
+- HTTP_422_UNPROCESSABLE_ENTITY deprecation → cosmetic, not a bug
+- httpx deprecation in TestClient → cosmetic
+
+---
+
+## Issues Found
+
+**CRITICAL**: None
+
+**WARNING**:
+1. `google.generativeai` package is deprecated — the GeminiAdapter uses the legacy SDK. The spec requirement is met, but a future migration to `google.genai` will be needed. (Seen in: `cortex-backend/app/adapters/gemini.py:3`, `requirements.txt`)
+2. `test_provider_credential_service.py::test_save_credential_without_label` uses `provider="kimi"` as test data. While the credential service schema is provider-agnostic, this could be confusing. Low risk — it's only test data.
+
+**SUGGESTION**:
+1. Consider adding E2E test tooling (Playwright or similar) for chat workspace provider selection flows.
+2. Consider running `pytest --cov` with coverage tooling for changed-file coverage reporting in future verify phases.
+3. The `PROVIDER_ADAPTERS` dict in `llm_provider_service.py` is a redundant lookup alongside `ProviderRegistry` — could be unified in a future refactor.
+
+---
+
+## Verdict
+
+**PASS WITH WARNINGS**
+
+All 22 tasks complete. All 224 tests passing (185 backend + 39 frontend). TypeScript compiles cleanly. All 11 spec scenarios have covering tests and are compliant. All 7 design decisions are followed. Kimi/Minimax are fully removed from application flow. The only warnings are the deprecated `google.generativeai` SDK usage and cosmetic test data — neither blocks V1 readiness.

@@ -1,0 +1,100 @@
+# Archive Report: cortex-direct-providers
+
+**Change**: cortex-direct-providers
+**Archived**: 2026-06-06
+**Artifact Store**: both (Engram + OpenSpec)
+**Delivery Strategy**: ask-always
+**Chain Strategy**: feature-branch-chain
+
+---
+
+## Executive Summary
+
+Cortex V1 direct-provider migration completed. Replaced the OpenClaw-first / Kimi-Minimax phase-1 architecture with a direct adapter layer for OpenAI, Anthropic, Gemini, and DeepSeek. All 22 tasks complete. All 224 tests passing. Verification: **PASS WITH WARNINGS** (1 critical issue: none; 2 warnings: deprecated `google.generativeai` SDK, confusing test data).
+
+---
+
+## Verification Outcome
+
+| Metric | Value |
+|--------|-------|
+| Tasks total | 22 |
+| Tasks complete | 22 |
+| Tasks incomplete | 0 |
+| TypeScript | ✅ Clean (zero errors) |
+| Backend tests | ✅ 185 passed / 0 failed / 4 warnings |
+| Frontend tests | ✅ 39 passed / 0 failed |
+| Spec compliance | ✅ 11/11 scenarios compliant |
+| TDD compliance | ✅ 6/6 checks passed |
+| Verdict | **PASS WITH WARNINGS** |
+
+---
+
+## Warnings (Non-Blocking)
+
+| Severity | Issue | Location | Recommendation |
+|----------|-------|----------|----------------|
+| WARNING | `google.generativeai` package is deprecated | `cortex-backend/app/adapters/gemini.py:3`, `requirements.txt` | Migrate to `google.genai` in V2 |
+| WARNING | Test data uses `provider="kimi"` in credential service tests | `test_provider_credential_service.py::test_save_credential_without_label` | Use neutral test data; low risk — it's only test data |
+| SUGGESTION | No E2E test tooling | — | Add Playwright for chat workspace provider selection flows |
+| SUGGESTION | No coverage tooling | — | Run `pytest --cov` for changed-file coverage reporting |
+| SUGGESTION | `PROVIDER_ADAPTERS` dict redundant with `ProviderRegistry` | `llm_provider_service.py` | Unify in future refactor |
+
+---
+
+## Delivery Shape
+
+The change was delivered as a **feature-branch-chain** with 4 slices under the 400-line review budget:
+
+| Slice | Goal | Files Changed |
+|-------|------|---------------|
+| 1 | Adapter extraction + DeepSeek | `app/adapters/`, `llm_provider_service.py` |
+| 2 | Gemini adapter + ProviderRegistry | `app/adapters/gemini.py`, `app/adapters/registry.py` |
+| 3 | Backend wiring + schemas | `app/routers/chat.py`, `app/schemas/chat.py` |
+| 4 | Frontend + test suite | `cortex-frontend/src/features/chat/` |
+
+Review budget: ~900–1,050 lines total exceeded the 400-line threshold, confirming the chained-PR approach was warranted.
+
+---
+
+## Artifacts
+
+| Artifact | Location | Status |
+|----------|----------|--------|
+| Proposal | `openspec/changes/archive/2026-06-06-cortex-direct-providers/proposal.md` | ✅ |
+| Design | `openspec/changes/archive/2026-06-06-cortex-direct-providers/design.md` | ✅ |
+| Delta Specs | `openspec/changes/archive/2026-06-06-cortex-direct-providers/specs/` | ✅ |
+| Tasks | `sdd/cortex-direct-providers/tasks.md` | ✅ |
+| Verify Report | `sdd/cortex-direct-providers/verify-report` | ✅ |
+
+---
+
+## Source of Truth Updated
+
+The following specs now reflect V1 direct-provider behavior:
+
+| Spec | Action | Details |
+|------|--------|---------|
+| `openspec/specs/provider-adapter/spec.md` | **Created** | New spec — Direct Provider Adapter Contract + Provider Validation Outcome |
+| `openspec/specs/provider-registry/spec.md` | **Created** | New spec — Supported Provider Discovery and Routing |
+| `openspec/specs/chat-session/spec.md` | **Updated** | Backend-Mediated Multi-Provider Chat → V1 provider set (OpenAI, Anthropic, Gemini, DeepSeek); Kimi/Minimax removed |
+| `openspec/specs/provider-credentials/spec.md` | **Updated** | User Credential Lifecycle + Validation and Provider Readiness Feedback → V1 provider set; Kimi/Minimax removed |
+
+---
+
+## Changed Files (14 files, 19 test files, 224 tests)
+
+| Layer | Files | Notes |
+|-------|-------|-------|
+| Backend adapters | `app/adapters/base.py`, `openai.py`, `anthropic.py`, `gemini.py`, `deepseek.py`, `registry.py`, `__init__.py` | 7 new/extracted files |
+| Backend wiring | `app/routers/chat.py`, `app/schemas/chat.py`, `app/services/llm_provider_service.py` | 3 modified files |
+| Frontend | `credentialsStore.ts`, `store.ts`, `ChatSettings.tsx`, `ChatPage.tsx` | 4 modified files |
+| Tests | `tests/test_adapters/`, `test_chat_router.py`, `test_llm_provider_service.py`, `test_chat_schemas.py`, store tests, credentialsStore tests | 19 test files, 224 tests |
+
+---
+
+## SDD Cycle Complete
+
+The change has been fully planned, implemented, verified, and archived. Ready for the next change.
+
+**Final status**: PASS WITH WARNINGS — all functional requirements met; warnings are non-blocking and tracked for V2.

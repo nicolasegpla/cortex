@@ -1,0 +1,95 @@
+## provider-adapter
+
+## Requirements
+
+### Requirement: Direct Provider Adapter Contract
+The system MUST provide an adapter for OpenAI, Anthropic, Gemini, and DeepSeek and SHALL normalize chat, streaming, and credential validation behind one contract.
+
+#### Scenario: Stream through a selected provider
+- GIVEN a user selects a supported provider and valid key
+- WHEN a chat request starts
+- THEN Cortex sends the request through that provider adapter
+- AND the response streams back through Cortex
+
+#### Scenario: Handle provider family differences
+- GIVEN the selected provider uses an OpenAI-compatible or Anthropic-style API
+- WHEN Cortex prepares the request
+- THEN the adapter applies provider-specific rules while keeping one chat flow
+
+### Requirement: Provider Validation Outcome
+Each adapter MUST validate its user-managed credential and SHALL return ready, invalid, or unavailable status without disclosing secrets.
+
+#### Scenario: Validation fails safely
+- GIVEN a revoked, malformed, or unreachable provider credential
+- WHEN validation runs
+- THEN the adapter returns a non-secret failure outcome
+
+## provider-registry
+
+## Requirements
+
+### Requirement: Supported Provider Discovery and Routing
+The system MUST expose OpenAI, Anthropic, Gemini, and DeepSeek as the only V1 direct providers, SHALL report readiness, and MUST route chat only to the adapter for the selected supported provider.
+
+#### Scenario: Show supported providers
+- GIVEN the workspace loads provider choices
+- WHEN supported providers are requested
+- THEN the list includes OpenAI, Anthropic, Gemini, and DeepSeek with readiness metadata
+
+#### Scenario: Exclude unsupported architecture
+- GIVEN provider discovery is shown
+- WHEN the system determines supported options
+- THEN it MUST NOT advertise Kimi Code or any OpenClaw-first or gateway-backed path as a supported V1 provider
+
+## chat-session
+
+## MODIFIED Requirements
+
+### Requirement: Backend-Mediated Multi-Provider Chat
+The system MUST send all chat traffic through the Cortex backend and SHALL support OpenAI, Anthropic, Gemini, and DeepSeek through the selected direct provider adapter.
+(Previously: Phase-1 chat supported OpenAI, Kimi, Minimax, and Anthropic through backend provider handling.)
+
+#### Scenario: Stream a provider response
+- GIVEN the user has a valid credential for a selected provider
+- WHEN the user sends a message
+- THEN Cortex routes the request through the selected provider adapter
+- AND the assistant response streams back to the workspace
+
+#### Scenario: Prevent direct provider access from browser
+- GIVEN a browser session uses the chat workspace
+- WHEN a message is sent
+- THEN the browser never sends the provider credential or vendor-bound request directly to an external provider
+
+## provider-credentials
+
+## MODIFIED Requirements
+
+### Requirement: User Credential Lifecycle
+The system MUST allow a user to add, update, remove, and test their own provider credentials for OpenAI, Anthropic, Gemini, and DeepSeek.
+(Previously: The lifecycle covered OpenAI, Kimi, Minimax, and Anthropic.)
+
+#### Scenario: Save or update a credential
+- GIVEN a user enters a provider credential in settings
+- WHEN they save it
+- THEN the credential is associated with that user and provider
+- AND the workspace can later use it for direct provider chat
+
+#### Scenario: Remove a credential
+- GIVEN a stored credential exists for a provider
+- WHEN the user deletes it
+- THEN that credential is no longer available for future chat or validation requests
+
+### Requirement: Validation and Provider Readiness Feedback
+The system MUST let the selected provider adapter validate a credential and SHALL present ready, invalid, or unavailable status that guides chat usage.
+(Previously: Validation was centralized and readiness covered only the earlier phase-1 provider set.)
+
+#### Scenario: Credential validates successfully
+- GIVEN a user tests a valid provider credential for OpenAI, Anthropic, Gemini, or DeepSeek
+- WHEN validation completes
+- THEN the workspace shows that provider as ready for chat
+
+#### Scenario: Credential validation fails
+- GIVEN a user tests an invalid, revoked, or unreachable provider credential
+- WHEN validation completes
+- THEN the workspace shows a non-secret actionable failure state
+- AND the user is not misled into believing the provider is ready

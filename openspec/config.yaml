@@ -1,0 +1,60 @@
+# OpenSpec Config — cortex
+
+## Project
+
+- name: cortex
+- type: hybrid fullstack (React + FastAPI)
+- artifact_store: both
+
+## Context
+
+Cortex is a reusable single-tenant application base for delivering client-specific business flows. Phase-1 scope: web-first UI, FastAPI backend, Supabase data layer, strict TDD. First initiative: chat-first multi-provider LLM workspace with secure API-key management. Initial providers: Kimi, OpenAI, Minimax, Anthropic.
+
+## Strict TDD
+
+- enabled: true
+- reason: test runner present on both frontend (vitest) and backend (pytest); project convention (CORTEX.md Rule 1)
+
+## Testing
+
+### Frontend (cortex-frontend)
+
+- runner: vitest 3.2.4
+- framework: @testing-library/react 16.3.0
+- environment: jsdom 26.1.0
+- coverage: @vitest/coverage-v8
+- command: `pnpm test` / `pnpm test:coverage`
+- type checker: tsc -b (strict mode)
+- linter: (not detected in package.json scripts)
+- formatter: (not detected in package.json scripts)
+
+### Backend (cortex-backend)
+
+- runner: pytest 8.3.2
+- framework: pytest + httpx 0.27.0
+- command: `pytest` (via pytest.ini config)
+- coverage: (not detected — pytest-cov not in requirements.txt)
+- type checker: mypy (not in requirements.txt)
+- linter: ruff (not in requirements.txt)
+- formatter: black (not in requirements.txt)
+
+## Phase Rules
+
+| Phase | Required inputs | Model |
+|---|---|---|
+| sdd-propose | — | opus |
+| sdd-spec | proposal | sonnet |
+| sdd-design | proposal | opus |
+| sdd-tasks | spec + design | sonnet |
+| sdd-apply | tasks + spec + design | sonnet |
+| sdd-verify | spec + tasks | sonnet |
+| sdd-archive | all artifacts | haiku |
+
+## Providers
+
+Initial LLM provider set: Kimi, OpenAI, Minimax, Anthropic.
+
+## Persistence
+
+- mode: both (Engram + OpenSpec file artifacts)
+- engram_topic_prefix: sdd/cortex
