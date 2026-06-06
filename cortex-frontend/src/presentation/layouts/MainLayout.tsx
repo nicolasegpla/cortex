@@ -6,7 +6,8 @@ import { supabaseClient } from '@/services/supabase/client';
 import './main-layout.scss';
 
 const navigationItems = [
-    { label: 'Dashboard', to: '/' },
+    { label: 'Chat', to: '/' },
+    { label: 'Browse', to: '/browse' },
     { label: 'Breweries', to: '/breweries' },
 ] as const;
 
