@@ -1,0 +1,33 @@
+change_name: chat-db-access
+status: archived
+archived_date: "2026-06-06"
+phases:
+  explore: complete
+  propose: complete
+  spec: complete
+  design: complete
+  tasks: complete
+  apply: complete
+  verify: complete
+  archive: complete
+artifacts:
+  explore:
+    engram_topic_key: sdd/chat-db-access/explore
+    openspec_path: openspec/changes/chat-db-access/exploration.md
+  proposal:
+    engram_topic_key: sdd/chat-db-access/proposal
+    openspec_path: openspec/changes/chat-db-access/proposal.md
+  spec:
+    engram_topic_key: sdd/chat-db-access/spec
+    openspec_path: openspec/changes/chat-db-access/specs
+  design:
+    engram_topic_key: sdd/chat-db-access/design
+    openspec_path: openspec/changes/chat-db-access/design.md
+  tasks:
+    engram_topic_key: sdd/chat-db-access/tasks
+    openspec_path: openspec/changes/chat-db-access/tasks.md
+  apply_progress:
+    engram_topic_key: sdd/chat-db-access/apply-progress
+  verify_report:
+    engram_topic_key: sdd/chat-db-access/verify-report
+next_recommended: archive

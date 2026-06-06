@@ -1,10 +1,6 @@
-# Provider Adapter Specification
+# Delta for Provider Adapter
 
-## Purpose
-
-Define a direct-provider contract for V1 chat and validation.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Direct Provider Adapter Contract
 
@@ -28,12 +24,3 @@ The system MUST provide a direct adapter for OpenAI, Anthropic, Gemini, and Deep
 - WHEN the selected adapter reports tool calling unavailable
 - THEN Cortex uses the adapter's standard streaming path
 - AND the request does not fail solely because tools are unavailable
-
-### Requirement: Provider Validation Outcome
-
-Each adapter MUST validate the user-managed credential for its own provider and SHALL return ready, invalid, or unavailable status without disclosing secrets.
-
-#### Scenario: Validation fails safely
-- GIVEN a revoked, malformed, or unreachable provider credential
-- WHEN validation runs
-- THEN the adapter returns a non-secret failure outcome
