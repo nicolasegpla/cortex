@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
 
@@ -75,9 +76,12 @@
     }
 
     &__content {
+        display: flex;
+        flex-direction: column;
         flex: 1;
         overflow: hidden;
         position: relative;
+        min-height: 0;
     }
 
     /* Empty state */
@@ -86,9 +90,10 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100%;
+        flex: 1;
         padding: var(--space-2xl);
         gap: var(--space-md);
+        min-height: 0;
     }
 
     &__heading {
@@ -109,12 +114,13 @@
 
     /* Messages */
     &__messages {
-        height: 100%;
+        flex: 1;
         overflow-y: auto;
         padding: var(--space-lg);
         display: flex;
         flex-direction: column;
         gap: var(--space-lg);
+        min-height: 0;
     }
 
     &__message {

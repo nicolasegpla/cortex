@@ -1,9 +1,10 @@
 .app-shell {
     display: grid;
     grid-template-columns: 240px 1fr;
-    min-height: 100vh;
+    height: 100vh;
     background-color: var(--color-surface-canvas);
     transition: grid-template-columns 200ms ease;
+    overflow: hidden;
 }
 
 .app-shell:has(.sidebar--collapsed) {
@@ -14,6 +15,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
 }
 
 .app-shell__top-bar {
@@ -44,6 +46,12 @@
     flex: 1;
     padding: var(--space-lg);
     overflow-y: auto;
+    min-height: 0;
+}
+
+.app-shell__main--chat {
+    padding: 0;
+    overflow: hidden;
 }
 
 // Sidebar styles (co-located in AppShell.scss for single-file layout)

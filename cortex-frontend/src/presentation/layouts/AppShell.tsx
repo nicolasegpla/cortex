@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 import { Sidebar } from '@/presentation/components/molecules/Sidebar/Sidebar';
 import { ThemeToggle } from '@/presentation/components/atoms/ThemeToggle/ThemeToggle';
@@ -6,6 +6,9 @@ import { ThemeToggle } from '@/presentation/components/atoms/ThemeToggle/ThemeTo
 import './AppShell.scss';
 
 export function AppShell() {
+    const location = useLocation();
+    const isChatRoute = location.pathname === '/chat';
+
     return (
         <div className="app-shell">
             <Sidebar />
@@ -18,7 +21,7 @@ export function AppShell() {
                         <ThemeToggle />
                     </div>
                 </header>
-                <main className="app-shell__main">
+                <main className={`app-shell__main ${isChatRoute ? 'app-shell__main--chat' : ''}`}>
                     <Outlet />
                 </main>
             </div>
