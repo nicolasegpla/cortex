@@ -18,6 +18,7 @@ Phase 1 intentionally includes only the reusable base needed to start the first 
 - React 19 + Vite + TypeScript + SCSS frontend shell
 - FastAPI modular monolith backend shell
 - External Supabase integration points for auth, data, and storage
+- Server-side chat tool execution for approved read-only brewery queries
 - Strict TDD setup for frontend and backend
 - Docker development workflow with dedicated images
 
@@ -35,6 +36,7 @@ Phase 1 intentionally includes only the reusable base needed to start the first 
 | Frontend | React 19, Vite, TypeScript, SCSS, pnpm |
 | Backend | FastAPI modular monolith |
 | Data platform | Supabase Cloud |
+| Chat DB access | Server-side whitelisted tools, read-only, breweries only today |
 | Package manager | pnpm for frontend |
 | Testing rule | Strict TDD |
 | Local orchestration | Docker Compose |
@@ -144,6 +146,7 @@ See the `.env.example` files inside `cortex-frontend/` and `cortex-backend/`.
 
 - `docs/README.md` — documentation map
 - `docs/CORTEX.md` — current system overview and phase-1 architecture
+- `docs/chat-db-readonly-access.md` — chat database access architecture and extension guardrails
 - `docs/CORTEX_VISION.md` — product vision and positioning
 
 ## Next step

@@ -64,8 +64,20 @@ The backend is responsible for:
 - API routing
 - auth flow integration
 - entity CRUD orchestration
+- server-side chat tool execution for approved read-only database access
 - future document ingestion flow
 - future AI-provider orchestration
+
+### Chat database access
+
+Current chat-to-database access is implemented through a server-side tool whitelist.
+
+- Current implementation is breweries only.
+- Current access mode is read-only only.
+- Future expansion to more tables must remain read-only by default.
+- Unrestricted SQL from the model is forbidden.
+
+See `chat-db-readonly-access.md` for the detailed architecture and extension checklist.
 
 ### Frontend
 
