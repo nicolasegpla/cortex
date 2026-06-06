@@ -147,6 +147,7 @@ export const useChatStore = create<ChatState>()(
                     model: state.activeModel,
                     messages: messages.map((m) => ({ role: m.role, content: m.content })),
                     provider: state.activeProvider,
+                    enable_tools: true,
                 });
 
                 let assistantContent = '';

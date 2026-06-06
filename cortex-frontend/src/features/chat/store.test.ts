@@ -69,6 +69,12 @@ describe('useChatStore', () => {
             expect(state.messages[0]).toEqual({ role: 'user', content: 'Hi there' });
             expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Helloworld' });
             expect(state.isLoading).toBe(false);
+            expect(apiClient.stream).toHaveBeenCalledWith('/chat/stream', {
+                model: 'gpt-4o',
+                messages: [{ role: 'user', content: 'Hi there' }],
+                provider: 'openai',
+                enable_tools: true,
+            });
         });
 
         it('should handle streaming error event', async () => {
