@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     supabase_service_key: str | None = Field(default=None, alias='SUPABASE_SERVICE_KEY')
     supabase_jwt_secret: str | None = Field(default=None, alias='SUPABASE_JWT_SECRET')
     supabase_anon_key: str | None = Field(default=None, alias='SUPABASE_ANON_KEY')
+    encryption_key: str | None = Field(default=None, alias='ENCRYPTION_KEY')
 
     @property
     def cors_origins(self) -> list[str]:
