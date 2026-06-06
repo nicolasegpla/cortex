@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 import google.generativeai as genai
 
 from app.adapters.base import LlmProviderAdapter
+from app.schemas.chat import ToolDefinition
 
 
 class GeminiAdapter(LlmProviderAdapter):
@@ -72,3 +73,13 @@ class GeminiAdapter(LlmProviderAdapter):
             return True
         except Exception:
             return False
+
+    def build_tool_payload(self, tools: list[ToolDefinition]) -> list[dict]:
+        """Gemini tool format — placeholder for future implementation."""
+        raise NotImplementedError("Gemini tool calling not yet implemented")
+
+    async def stream_chat_with_tools(
+        self, model: str, messages: list[dict], tools: list[ToolDefinition], api_key: str
+    ):
+        """Gemini tool streaming — placeholder for future implementation."""
+        raise NotImplementedError("Gemini tool streaming not yet implemented")

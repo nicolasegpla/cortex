@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 import anthropic
 
 from app.adapters.base import LlmProviderAdapter
+from app.schemas.chat import ToolDefinition
 
 
 class AnthropicAdapter(LlmProviderAdapter):
@@ -68,3 +69,13 @@ class AnthropicAdapter(LlmProviderAdapter):
             return True
         except anthropic.APIError:
             return False
+
+    def build_tool_payload(self, tools: list[ToolDefinition]) -> list[dict]:
+        """Anthropic tool format — placeholder for future implementation."""
+        raise NotImplementedError("Anthropic tool calling not yet implemented")
+
+    async def stream_chat_with_tools(
+        self, model: str, messages: list[dict], tools: list[ToolDefinition], api_key: str
+    ):
+        """Anthropic tool streaming — placeholder for future implementation."""
+        raise NotImplementedError("Anthropic tool streaming not yet implemented")

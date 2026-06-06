@@ -82,13 +82,14 @@ class TestChatRouter:
             yield mock_get
 
     @pytest.fixture
-    def client(self, mock_credential_service):
+    def client(self, mock_credential_service, mock_tool_registry):
         """Create a TestClient with dependency overrides."""
         from app.main import create_app
-        from app.routers.chat import get_credential_service
+        from app.routers.chat import get_credential_service, get_tool_registry
 
         app = create_app()
         app.dependency_overrides[get_credential_service] = lambda: mock_credential_service
+        app.dependency_overrides[get_tool_registry] = lambda: mock_tool_registry
         from fastapi.testclient import TestClient
         yield TestClient(app)
         app.dependency_overrides.clear()
@@ -266,3 +267,157 @@ class TestChatRouter:
         mock_credential_service.get_decrypted_key.assert_called_once()
         call_args = mock_credential_service.get_decrypted_key.call_args
         assert call_args[0][1] == "anthropic"
+
+    # --- Tool path tests (Phase 3: chat-db-access) ---
+
+    def test_chat_stream_with_tools_uses_tool_path(
+        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
+    ):
+        """RED: When enable_tools=True and adapter supports tools, use stream_chat_with_tools."""
+        mock_adapter = mock_registry_get_adapter.return_value
+        mock_adapter.supports_tools.return_value = True
+
+        called_with_tools = False
+
+        async def mock_stream_with_tools(*args, **kwargs):
+            nonlocal called_with_tools
+            called_with_tools = True
+            yield "Hello"
+
+        mock_adapter.stream_chat_with_tools = mock_stream_with_tools
+
+        response = client.post(
+            "/chat/stream",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "Hi"}],
+                "enable_tools": True,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert called_with_tools is True
+
+    def test_chat_stream_with_tools_executes_tool_and_restreams(
+        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter, mock_brewery_service
+    ):
+        """RED: Tool call results in tool execution and second stream with final answer."""
+        mock_adapter = mock_registry_get_adapter.return_value
+        mock_adapter.supports_tools.return_value = True
+
+        async def first_stream(*args, **kwargs):
+            from app.schemas.chat import ToolCallResult
+            yield ToolCallResult(tool_call_id="call_1", name="count_breweries", arguments={})
+
+        async def second_stream(*args, **kwargs):
+            yield "There are 42 breweries."
+
+        mock_adapter.stream_chat_with_tools.side_effect = [first_stream(), second_stream()]
+
+        response = client.post(
+            "/chat/stream",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "How many breweries?"}],
+                "enable_tools": True,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        body = response.text
+        assert "event: delta" in body
+        assert "There are 42 breweries." in body
+        assert "event: done" in body
+
+        # Verify tool was executed via mock service
+        mock_brewery_service.count.assert_called_once()
+
+    def test_chat_stream_enable_tools_false_uses_regular_path(
+        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
+    ):
+        """TRIANGULATE: enable_tools=False uses regular stream_chat (backward compat)."""
+        mock_adapter = mock_registry_get_adapter.return_value
+        mock_adapter.supports_tools.return_value = True  # Even if adapter supports tools
+
+        response = client.post(
+            "/chat/stream",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "Hi"}],
+                "enable_tools": False,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        body = response.text
+        assert "event: delta" in body
+        assert "data: Hello" in body
+        assert "event: done" in body
+
+    def test_chat_stream_unsupported_adapter_uses_regular_path(
+        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
+    ):
+        """TRIANGULATE: adapter without tool support falls back to stream_chat."""
+        mock_adapter = mock_registry_get_adapter.return_value
+        mock_adapter.supports_tools.return_value = False
+
+        response = client.post(
+            "/chat/stream",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "Hi"}],
+                "enable_tools": True,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        body = response.text
+        assert "event: delta" in body
+        assert "data: Hello" in body
+        assert "event: done" in body
+
+    def test_chat_stream_with_tools_two_turn_loop(
+        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter, mock_brewery_service
+    ):
+        """INTEGRATION: Two-turn loop — first tool_call, then final text. Both adapter calls made."""
+        mock_adapter = mock_registry_get_adapter.return_value
+        mock_adapter.supports_tools.return_value = True
+
+        async def first_stream(*args, **kwargs):
+            from app.schemas.chat import ToolCallResult
+            yield ToolCallResult(tool_call_id="call_1", name="search_breweries", arguments={"city": "Bogotá"})
+
+        async def second_stream(*args, **kwargs):
+            yield "Found Test Brewery in Bogotá."
+
+        mock_adapter.stream_chat_with_tools.side_effect = [first_stream(), second_stream()]
+
+        response = client.post(
+            "/chat/stream",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "Find breweries in Bogotá"}],
+                "enable_tools": True,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        body = response.text
+        assert "Found Test Brewery in Bogotá." in body
+        assert "event: done" in body
+
+        # Both adapter calls were made
+        assert mock_adapter.stream_chat_with_tools.call_count == 2
+
+        # Tool was executed via mock service
+        mock_brewery_service.search.assert_called_once_with(city="Bogotá", country=None, operation_type=None)

@@ -79,3 +79,38 @@ class BreweryService:
             self.supabase.table("breweries").delete().eq("id", str(brewery_id)).execute()
         )
         return bool(response.data)
+
+    def search(
+        self,
+        city: str | None = None,
+        country: str | None = None,
+        operation_type: str | None = None,
+    ) -> list[dict]:
+        """Search breweries with optional filters.
+
+        Args:
+            city: Filter by city (ciudad).
+            country: Filter by country (pais).
+            operation_type: Filter by operation type (tipo_operacion).
+
+        Returns:
+            list[dict]: Matching brewery records.
+        """
+        query = self.supabase.table("breweries").select("*")
+        if city is not None:
+            query = query.eq("ciudad", city)
+        if country is not None:
+            query = query.eq("pais", country)
+        if operation_type is not None:
+            query = query.eq("tipo_operacion", operation_type)
+        response = query.execute()
+        return response.data or []
+
+    def count(self) -> int:
+        """Count total breweries in the database.
+
+        Returns:
+            int: Total number of brewery records.
+        """
+        response = self.supabase.table("breweries").select("*", count="exact").execute()
+        return getattr(response, "count", 0) or 0

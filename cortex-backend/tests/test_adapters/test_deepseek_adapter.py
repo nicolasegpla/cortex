@@ -62,6 +62,73 @@ class TestDeepSeekAdapter:
                 call_kwargs = mock_instance.chat.completions.create.call_args.kwargs
                 assert call_kwargs["model"] == model
 
+    def test_deepseek_inherits_supports_tools_from_openai(self):
+        """DeepSeek inherits tool support from OpenAIAdapter."""
+        adapter = DeepSeekAdapter()
+        assert adapter.supports_tools() is True
+
+    def test_deepseek_inherits_build_tool_payload_from_openai(self):
+        """DeepSeek inherits build_tool_payload from OpenAIAdapter."""
+        from app.schemas.chat import ToolDefinition
+
+        adapter = DeepSeekAdapter()
+        tools = [
+            ToolDefinition(
+                name="search_breweries",
+                description="Search",
+                parameters={"type": "object", "properties": {}},
+            )
+        ]
+        payload = adapter.build_tool_payload(tools)
+        assert len(payload) == 1
+        assert payload[0]["function"]["name"] == "search_breweries"
+
+    @pytest.mark.asyncio
+    async def test_deepseek_stream_chat_with_tools_inherits_from_openai(self):
+        """DeepSeek can use stream_chat_with_tools inherited from OpenAIAdapter."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from app.schemas.chat import ToolDefinition, ToolCallResult
+
+        with patch("app.adapters.openai.openai.AsyncOpenAI") as mock_cls:
+            mock_instance = MagicMock()
+            mock_cls.return_value = mock_instance
+
+            mock_chunk = MagicMock()
+            func_mock = MagicMock()
+            func_mock.name = "count_breweries"
+            func_mock.arguments = "{}"
+            mock_chunk.choices = [
+                MagicMock(
+                    delta=MagicMock(
+                        content=None,
+                        tool_calls=[
+                            MagicMock(
+                                id="call_ds_1",
+                                function=func_mock,
+                            )
+                        ],
+                    ),
+                    finish_reason="tool_calls",
+                )
+            ]
+
+            async_iter = AsyncMockIterator([mock_chunk])
+            mock_instance.chat.completions.create = AsyncMock(return_value=async_iter)
+
+            adapter = DeepSeekAdapter()
+            tools = [ToolDefinition(name="count_breweries", description="Count", parameters={})]
+
+            results = []
+            async for item in adapter.stream_chat_with_tools(
+                "deepseek-chat", [], tools, "fake-key"
+            ):
+                results.append(item)
+
+            assert len(results) == 1
+            assert isinstance(results[0], ToolCallResult)
+            assert results[0].tool_call_id == "call_ds_1"
+            assert results[0].name == "count_breweries"
+
 
 class AsyncMockIterator:
     def __init__(self, items):

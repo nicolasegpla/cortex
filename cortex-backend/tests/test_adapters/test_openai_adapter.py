@@ -96,6 +96,164 @@ class TestOpenAIAdapter:
     def test_provider_display_name(self):
         assert OpenAIAdapter.provider_display_name == "OpenAI"
 
+    def test_supports_tools_returns_true(self):
+        """OpenAI adapter reports tool calling support."""
+        adapter = OpenAIAdapter()
+        assert adapter.supports_tools() is True
+
+    def test_build_tool_payload_returns_openai_format(self):
+        """build_tool_payload transforms ToolDefinition list to OpenAI tools JSON."""
+        from app.schemas.chat import ToolDefinition
+
+        adapter = OpenAIAdapter()
+        tools = [
+            ToolDefinition(
+                name="search_breweries",
+                description="Search breweries",
+                parameters={
+                    "type": "object",
+                    "properties": {"city": {"type": "string"}},
+                },
+            ),
+            ToolDefinition(
+                name="count_breweries",
+                description="Count breweries",
+                parameters={"type": "object", "properties": {}},
+            ),
+        ]
+
+        payload = adapter.build_tool_payload(tools)
+
+        assert len(payload) == 2
+        assert payload[0]["type"] == "function"
+        assert payload[0]["function"]["name"] == "search_breweries"
+        assert payload[0]["function"]["description"] == "Search breweries"
+        assert "parameters" in payload[0]["function"]
+        assert payload[1]["type"] == "function"
+        assert payload[1]["function"]["name"] == "count_breweries"
+
+    def test_build_tool_payload_empty_list(self):
+        """build_tool_payload with empty list returns empty list."""
+        adapter = OpenAIAdapter()
+        payload = adapter.build_tool_payload([])
+        assert payload == []
+
+
+    @pytest.mark.asyncio
+    async def test_stream_chat_with_tools_yields_text_deltas(self, mock_openai_client):
+        """stream_chat_with_tools yields text strings when LLM responds with text."""
+        mock_chunk = MagicMock()
+        mock_chunk.choices = [MagicMock(delta=MagicMock(content="Hello", tool_calls=None))]
+
+        async_iter = AsyncMockIterator([mock_chunk])
+        mock_openai_client.chat.completions.create = AsyncMock(return_value=async_iter)
+
+        from app.schemas.chat import ToolDefinition
+
+        adapter = OpenAIAdapter()
+        tools = [ToolDefinition(name="search_breweries", description="Search", parameters={})]
+        messages = [{"role": "user", "content": "Hi"}]
+
+        results = []
+        async for item in adapter.stream_chat_with_tools("gpt-4o", messages, tools, "fake-key"):
+            results.append(item)
+
+        assert results == ["Hello"]
+        call_kwargs = mock_openai_client.chat.completions.create.call_args.kwargs
+        assert call_kwargs["tools"] is not None
+        assert call_kwargs["stream"] is True
+
+    @pytest.mark.asyncio
+    async def test_stream_chat_with_tools_yields_tool_call_result(self, mock_openai_client):
+        """stream_chat_with_tools yields ToolCallResult when LLM requests a tool."""
+        from app.schemas.chat import ToolCallResult
+
+        mock_chunk = MagicMock()
+        func_mock = MagicMock()
+        func_mock.name = "search_breweries"
+        func_mock.arguments = '{"city": "Bogotá"}'
+        mock_chunk.choices = [
+            MagicMock(
+                delta=MagicMock(
+                    content=None,
+                    tool_calls=[
+                        MagicMock(
+                            id="call_123",
+                            function=func_mock,
+                        )
+                    ],
+                ),
+                finish_reason="tool_calls",
+            )
+        ]
+
+        async_iter = AsyncMockIterator([mock_chunk])
+        mock_openai_client.chat.completions.create = AsyncMock(return_value=async_iter)
+
+        from app.schemas.chat import ToolDefinition
+
+        adapter = OpenAIAdapter()
+        tools = [ToolDefinition(name="search_breweries", description="Search", parameters={})]
+        messages = [{"role": "user", "content": "Find breweries in Bogotá"}]
+
+        results = []
+        async for item in adapter.stream_chat_with_tools("gpt-4o", messages, tools, "fake-key"):
+            results.append(item)
+
+        assert len(results) == 1
+        assert isinstance(results[0], ToolCallResult)
+        assert results[0].tool_call_id == "call_123"
+        assert results[0].name == "search_breweries"
+        assert results[0].arguments == {"city": "Bogotá"}
+
+    @pytest.mark.asyncio
+    async def test_stream_chat_with_tools_mixed_deltas_and_tool_call(self, mock_openai_client):
+        """stream_chat_with_tools handles text then tool call in same stream."""
+        from app.schemas.chat import ToolCallResult
+
+        mock_text = MagicMock()
+        mock_text.choices = [MagicMock(delta=MagicMock(content="Let me check", tool_calls=None))]
+
+        mock_tool = MagicMock()
+        func_mock2 = MagicMock()
+        func_mock2.name = "count_breweries"
+        func_mock2.arguments = "{}"
+        mock_tool.choices = [
+            MagicMock(
+                delta=MagicMock(
+                    content=None,
+                    tool_calls=[
+                        MagicMock(
+                            id="call_456",
+                            function=func_mock2,
+                        )
+                    ],
+                ),
+                finish_reason="tool_calls",
+            )
+        ]
+
+        async_iter = AsyncMockIterator([mock_text, mock_tool])
+        mock_openai_client.chat.completions.create = AsyncMock(return_value=async_iter)
+
+        from app.schemas.chat import ToolDefinition
+
+        adapter = OpenAIAdapter()
+        tools = [
+            ToolDefinition(name="search_breweries", description="Search", parameters={}),
+            ToolDefinition(name="count_breweries", description="Count", parameters={}),
+        ]
+
+        results = []
+        async for item in adapter.stream_chat_with_tools("gpt-4o", [], tools, "fake-key"):
+            results.append(item)
+
+        assert len(results) == 2
+        assert results[0] == "Let me check"
+        assert isinstance(results[1], ToolCallResult)
+        assert results[1].name == "count_breweries"
+        assert results[1].arguments == {}
+
 
 # Helper class for mocking async iterables
 class AsyncMockIterator:

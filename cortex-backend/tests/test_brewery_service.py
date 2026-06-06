@@ -154,3 +154,75 @@ class TestBreweryService:
         result = service.delete(brewery_id)
 
         assert result is False
+
+    # --- search() and count() (Phase 3: chat-db-access) ---
+
+    def test_search_no_filters_returns_all(self, service, mock_supabase) -> None:
+        expected = [
+            {"id": str(uuid4()), "nombre_cerveceria": "Brewery 1"},
+            {"id": str(uuid4()), "nombre_cerveceria": "Brewery 2"},
+        ]
+        mock_supabase.table.return_value.select.return_value.execute.return_value.data = expected
+
+        result = service.search()
+
+        mock_supabase.table.assert_called_once_with("breweries")
+        mock_supabase.table.return_value.select.assert_called_once_with("*")
+        assert len(result) == 2
+
+    def test_search_with_city_filter_applies_eq(self, service, mock_supabase) -> None:
+        expected = [{"id": str(uuid4()), "ciudad": "Bogotá"}]
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.eq.return_value.execute.return_value.data = expected
+
+        result = service.search(city="Bogotá")
+
+        query_builder.eq.assert_called_once_with("ciudad", "Bogotá")
+        assert len(result) == 1
+
+    def test_search_with_all_filters_applies_multiple_eq(self, service, mock_supabase) -> None:
+        expected = [{"id": str(uuid4()), "ciudad": "Medellín"}]
+        query_builder = mock_supabase.table.return_value.select.return_value
+        # Chain of eq() calls — each returns self for chaining
+        query_builder.eq.return_value = query_builder
+        query_builder.execute.return_value.data = expected
+
+        result = service.search(city="Medellín", country="Colombia", operation_type="planta_propia")
+
+        assert query_builder.eq.call_count == 3
+        query_builder.eq.assert_any_call("ciudad", "Medellín")
+        query_builder.eq.assert_any_call("pais", "Colombia")
+        query_builder.eq.assert_any_call("tipo_operacion", "planta_propia")
+        assert len(result) == 1
+
+    def test_search_with_partial_filters(self, service, mock_supabase) -> None:
+        expected = [{"id": str(uuid4()), "pais": "Colombia"}]
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.eq.return_value = query_builder
+        query_builder.execute.return_value.data = expected
+
+        result = service.search(country="Colombia")
+
+        assert query_builder.eq.call_count == 1
+        query_builder.eq.assert_called_once_with("pais", "Colombia")
+
+    def test_count_returns_int(self, service, mock_supabase) -> None:
+        mock_response = MagicMock()
+        mock_response.count = 42
+        mock_supabase.table.return_value.select.return_value.execute.return_value = mock_response
+
+        result = service.count()
+
+        mock_supabase.table.assert_called_once_with("breweries")
+        mock_supabase.table.return_value.select.assert_called_once_with("*", count="exact")
+        assert result == 42
+        assert isinstance(result, int)
+
+    def test_count_zero_results(self, service, mock_supabase) -> None:
+        mock_response = MagicMock()
+        mock_response.count = 0
+        mock_supabase.table.return_value.select.return_value.execute.return_value = mock_response
+
+        result = service.count()
+
+        assert result == 0
