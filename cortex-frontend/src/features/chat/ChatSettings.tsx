@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { X } from '@/presentation/components/atoms/Icon/X';
+
 import { useCredentialsStore, type Provider } from './credentialsStore';
 
 import './ChatSettings.scss';
@@ -79,12 +81,22 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
                         <section
                             className="chat-settings__editor"
                             role="dialog"
-                            aria-modal="false"
+                            aria-modal="true"
                             aria-labelledby={`${selectedProviderInfo.id}-editor-title`}
                         >
-                            <h3 id={`${selectedProviderInfo.id}-editor-title`} className="chat-settings__editor-title">
-                                {selectedProviderInfo.name}
-                            </h3>
+                            <header className="chat-settings__editor-header">
+                                <h3 id={`${selectedProviderInfo.id}-editor-title`} className="chat-settings__editor-title">
+                                    {selectedProviderInfo.name}
+                                </h3>
+                                <button
+                                    type="button"
+                                    className="chat-settings__editor-close"
+                                    aria-label="Close editor"
+                                    onClick={() => setSelectedProvider(null)}
+                                >
+                                    <X width={18} height={18} />
+                                </button>
+                            </header>
 
                             <div className="chat-settings__form">
                                 <label>

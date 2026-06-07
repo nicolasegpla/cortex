@@ -33,18 +33,12 @@ describe('ConfigPage', () => {
     it('should render provider credential management on the config route', () => {
         render(<ConfigPage />);
 
-        expect(screen.getByText('Cortex workspace')).toBeInTheDocument();
-        expect(screen.getByText('Local configuration')).toBeInTheDocument();
-        expect(screen.getByText('Account')).toBeInTheDocument();
         expect(screen.getByText('Features')).toBeInTheDocument();
-        expect(screen.getByText('Profile')).toBeInTheDocument();
-        expect(screen.getByText('Preferences')).toBeInTheDocument();
-        expect(screen.getByText('Data sources')).toBeInTheDocument();
         expect(screen.getByText('Help & support')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Model providers' })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Profile' })).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Preferences' })).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Data sources' })).not.toBeInTheDocument();
+        expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+        expect(screen.queryByText('Preferences')).not.toBeInTheDocument();
+        expect(screen.queryByText('Data sources')).not.toBeInTheDocument();
         expect(screen.getByText('Settings')).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Model providers' })).toBeInTheDocument();
         expect(screen.getByText('Connect and manage the API keys Cortex uses to access your model providers.')).toBeInTheDocument();

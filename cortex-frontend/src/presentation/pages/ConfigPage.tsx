@@ -1,8 +1,4 @@
-import { Admin } from '@/presentation/components/atoms/Icon/Admin';
 import { Chat } from '@/presentation/components/atoms/Icon/Chat';
-import { ChevronLeft } from '@/presentation/components/atoms/Icon/ChevronLeft';
-import { Config } from '@/presentation/components/atoms/Icon/Config';
-import { Database } from '@/presentation/components/atoms/Icon/Database';
 import { X } from '@/presentation/components/atoms/Icon/X';
 import { ChatSettings } from '@/features/chat/ChatSettings';
 
@@ -16,18 +12,8 @@ type ConfigTab = (typeof CONFIG_TAB)[keyof typeof CONFIG_TAB];
 
 const navSections = [
     {
-        heading: 'Account',
-        items: [
-            { label: 'Profile', icon: Admin, placeholder: true },
-            { label: 'Preferences', icon: Config, placeholder: true },
-        ],
-    },
-    {
         heading: 'Features',
-        items: [
-            { label: 'Model providers', icon: Chat, tab: CONFIG_TAB.provider },
-            { label: 'Data sources', icon: Database, placeholder: true },
-        ],
+        items: [{ label: 'Model providers', icon: Chat, tab: CONFIG_TAB.provider }],
     },
 ] as const;
 
@@ -59,15 +45,6 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
 
             <div className="config-page__body">
                 <aside className="config-page__nav" aria-label="Settings sections">
-                    <div className="config-page__account-card" aria-hidden="true">
-                        <div className="config-page__account-avatar">CW</div>
-                        <div className="config-page__account-copy">
-                            <p className="config-page__account-name">Cortex workspace</p>
-                            <p className="config-page__account-meta">Local configuration</p>
-                        </div>
-                        <ChevronLeft className="config-page__account-chevron" width={16} height={16} />
-                    </div>
-
                     <div className="config-page__nav-groups">
                         {navSections.map((section) => (
                             <div key={section.heading} className="config-page__nav-group">

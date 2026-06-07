@@ -30,15 +30,17 @@
 
 .config-page__title {
     margin: 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     color: vars.$color-text-primary;
 }
 
 .config-page__description {
     margin: vars.$space-sm 0 0;
     max-width: 640px;
+    font-size: 1rem;
+    font-weight: 400;
     color: vars.$color-text-muted;
     line-height: 1.6;
 }
@@ -90,64 +92,9 @@
     flex-direction: column;
     gap: vars.$space-lg;
     padding: calc(vars.$space-xl * 2) vars.$space-lg vars.$space-lg;
-    background: vars.$color-surface-muted;
-    border-right: 1px solid vars.$color-border-divider;
-    overflow-y: auto;
-}
-
-.config-page__account-card {
-    display: flex;
-    align-items: center;
-    gap: vars.$space-md;
-    padding: vars.$space-sm;
-    border: 1px solid vars.$color-border-subtle;
-    border-radius: 18px;
     background: vars.$color-surface-card;
-    box-shadow: vars.$shadow-soft;
-}
-
-.config-page__account-avatar {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
-    border-radius: 14px;
-    background: vars.$color-surface-elevated;
-    color: vars.$color-text-primary;
-    font-size: 0.8125rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-}
-
-.config-page__account-copy {
-    min-width: 0;
-    flex: 1;
-}
-
-.config-page__account-name,
-.config-page__account-meta,
-.config-page__nav-heading {
-    margin: 0;
-}
-
-.config-page__account-name {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: vars.$color-text-primary;
-}
-
-.config-page__account-meta {
-    margin-top: 2px;
-    font-size: 0.8125rem;
-    color: vars.$color-text-muted;
-}
-
-.config-page__account-chevron {
-    flex-shrink: 0;
-    color: vars.$color-text-muted;
-    transform: rotate(-90deg);
+    border-right: 1px solid vars.$color-border-strong;
+    overflow-y: auto;
 }
 
 .config-page__nav-groups {
@@ -169,7 +116,7 @@
     margin-bottom: vars.$space-sm;
     padding: 0 vars.$space-sm;
     font-size: 0.75rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: vars.$color-text-muted;
@@ -190,10 +137,11 @@
     min-height: 44px;
     padding: 0 vars.$space-md;
     border: 1px solid transparent;
-    border-radius: 16px;
+    border-radius: 12px;
     background: transparent;
     color: vars.$color-text-muted;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 500;
     text-align: left;
     transition:
         background-color 150ms ease,
@@ -205,9 +153,14 @@
     flex-shrink: 0;
 }
 
-.config-page__nav-item span,
+.config-page__nav-item span {
+    font-size: 1rem;
+    font-weight: inherit;
+}
+
 .config-page__nav-footer span {
-    font-size: 0.9375rem;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 .config-page__nav-item:not(.config-page__nav-item--placeholder) {
@@ -220,10 +173,10 @@
 }
 
 .config-page__nav-item--active {
-    background: vars.$color-surface-card;
-    border-color: vars.$color-border-subtle;
+    background: vars.$color-surface-muted;
+    border-color: transparent;
     color: vars.$color-text-primary;
-    box-shadow: vars.$shadow-soft;
+    font-weight: 200;
 }
 
 .config-page__nav-item--placeholder {
