@@ -6,6 +6,17 @@ import { navigationConfig } from '@/presentation/config/navigation';
 
 const mockToggle = vi.fn();
 
+vi.mock('@/presentation/pages/ConfigPage', () => ({
+    ConfigPage: ({ onClose }: { onClose?: () => void }) => (
+        <div role="dialog" aria-label="Configuration">
+            <button type="button" onClick={onClose}>
+                Close settings
+            </button>
+            <span>Config modal content</span>
+        </div>
+    ),
+}));
+
 vi.mock('@/store/useSidebarStore', () => ({
     useSidebarStore: () => ({
         collapsed: false,
@@ -103,5 +114,43 @@ describe('AppShell', () => {
 
         const databasesLink = screen.getByRole('link', { name: /Databases/i });
         expect(databasesLink).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('should open settings modal from the config sidebar action', async () => {
+        const user = (await import('@testing-library/user-event')).default.setup();
+
+        render(
+            <MemoryRouter>
+                <Routes>
+                    <Route path="*" element={<AppShell />}>
+                        <Route index element={<div>Chat Content</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await user.click(screen.getByRole('button', { name: /config/i }));
+
+        expect(screen.getByRole('dialog', { name: /configuration/i })).toBeInTheDocument();
+        expect(screen.getByText('Config modal content')).toBeInTheDocument();
+    });
+
+    it('should close settings modal from the close button', async () => {
+        const user = (await import('@testing-library/user-event')).default.setup();
+
+        render(
+            <MemoryRouter>
+                <Routes>
+                    <Route path="*" element={<AppShell />}>
+                        <Route index element={<div>Chat Content</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await user.click(screen.getByRole('button', { name: /config/i }));
+        await user.click(screen.getByRole('button', { name: /close settings/i }));
+
+        expect(screen.queryByRole('dialog', { name: /configuration/i })).not.toBeInTheDocument();
     });
 });

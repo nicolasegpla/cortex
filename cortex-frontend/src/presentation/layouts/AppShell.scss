@@ -54,6 +54,29 @@
     overflow: hidden;
 }
 
+.app-shell__modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-xl);
+    background: rgba(6, 8, 12, 0.72);
+    backdrop-filter: blur(10px);
+    overflow-y: auto;
+}
+
+.app-shell__modal-dialog {
+    display: flex;
+    width: min(1080px, 100%);
+    height: 100%;
+    max-height: min(760px, calc(100vh - (var(--space-xl) * 2)));
+    min-height: 520px;
+    min-width: 0;
+    overflow: hidden;
+}
+
 // Sidebar styles (co-located in AppShell.scss for single-file layout)
 .sidebar {
     display: flex;
@@ -151,9 +174,14 @@
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-input);
+    border: 0;
+    width: 100%;
+    background: transparent;
+    text-align: left;
     color: var(--color-text-muted);
     font-size: 0.875rem;
     font-weight: 500;
+    cursor: pointer;
     transition:
         background-color 150ms ease,
         color 150ms ease;
@@ -207,5 +235,16 @@
             justify-content: flex-start;
             padding: var(--space-sm) var(--space-md);
         }
+    }
+
+    .app-shell__modal-overlay {
+        padding: var(--space-md);
+        align-items: flex-end;
+    }
+
+    .app-shell__modal-dialog {
+        width: 100%;
+        max-height: calc(100vh - (var(--space-md) * 2));
+        min-height: auto;
     }
 }

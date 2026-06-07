@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useChatStore, PROVIDER_MODELS } from './store';
 import { useCredentialsStore, type Provider } from './credentialsStore';
-import { ChatSettings } from './ChatSettings';
 
 import './ChatPage.scss';
 
@@ -32,7 +31,6 @@ export function ChatPage() {
     const validatedProviders = getValidatedProviders();
 
     const [input, setInput] = useState('');
-    const [showSettings, setShowSettings] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -132,25 +130,8 @@ export function ChatPage() {
                             </svg>
                         </button>
                     )}
-                    <button
-                        onClick={() => setShowSettings(!showSettings)}
-                        className="chat-page__icon-btn"
-                        aria-label="Settings"
-                        title="Settings"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m20.07-4.93l-4.24 4.24M7.17 14.83l-4.24 4.24m18.34 0l-4.24-4.24M7.17 9.17L2.93 4.93"/>
-                        </svg>
-                    </button>
                 </div>
             </div>
-
-            {showSettings && (
-                <div className="chat-page__settings-panel">
-                    <ChatSettings />
-                </div>
-            )}
 
             {/* Main content */}
             <div className="chat-page__content">
@@ -158,10 +139,10 @@ export function ChatPage() {
                     /* Empty state */
                     <div className="chat-page__empty">
                         <h1 className="chat-page__heading">What can I do for you?</h1>
-                        
+
                         {validatedProviders.length === 0 ? (
                             <p className="chat-page__hint">
-                                Add a provider credential in settings to begin chatting.
+                                Configure a provider from the Config menu before starting a conversation.
                             </p>
                         ) : (
                             <p className="chat-page__hint">
@@ -203,7 +184,11 @@ export function ChatPage() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Assign a task or ask anything"
+                        placeholder={
+                            validatedProviders.length === 0
+                                ? 'Configure a provider in Config to start chatting'
+                                : 'Assign a task or ask anything'
+                        }
                         rows={1}
                         disabled={isLoading || validatedProviders.length === 0}
                         className="chat-page__textarea"

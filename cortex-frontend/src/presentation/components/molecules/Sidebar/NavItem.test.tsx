@@ -1,6 +1,8 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+
+import { NAV_ITEM_ACTION, NAV_ITEM_KIND } from '@/presentation/config/navigation';
 
 import { NavItem } from './NavItem';
 
@@ -82,5 +84,26 @@ describe('NavItem', () => {
 
         const link = screen.getByRole('link', { name: /Chat/i });
         expect(link).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('should render an action button when configured as an action item', async () => {
+        const onAction = vi.fn();
+        const user = (await import('@testing-library/user-event')).default.setup();
+
+        render(
+            <MemoryRouter>
+                <NavItem
+                    label="Config"
+                    icon={TestIcon}
+                    kind={NAV_ITEM_KIND.action}
+                    action={NAV_ITEM_ACTION.openConfig}
+                    onAction={onAction}
+                />
+            </MemoryRouter>
+        );
+
+        await user.click(screen.getByRole('button', { name: /config/i }));
+
+        expect(onAction).toHaveBeenCalledWith(NAV_ITEM_ACTION.openConfig);
     });
 });

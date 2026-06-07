@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useCredentialsStore, type Provider } from './credentialsStore';
+
+import './ChatSettings.scss';
 
 const PROVIDERS: { id: Provider; name: string; defaultModel: string }[] = [
     { id: 'openai', name: 'OpenAI', defaultModel: 'gpt-4o' },
@@ -9,22 +11,22 @@ const PROVIDERS: { id: Provider; name: string; defaultModel: string }[] = [
     { id: 'deepseek', name: 'DeepSeek', defaultModel: 'deepseek-v4-flash' },
 ];
 
-export function ChatSettings() {
+interface ChatSettingsProps {
+    headingId?: string;
+}
+
+export function ChatSettings({ headingId = 'config-provider-settings-title' }: ChatSettingsProps) {
     const {
         providers,
         isLoading,
         error,
         fetchCredentials,
         saveCredential,
-        deleteCredential,
-        testCredential,
         clearError,
     } = useCredentialsStore();
 
+    const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
     const [apiKeys, setApiKeys] = useState<Record<Provider, string>>({});
-    const [labels, setLabels] = useState<Record<Provider, string>>({});
-    const [testing, setTesting] = useState<Record<Provider, boolean>>({});
-    const [testResults, setTestResults] = useState<Record<Provider, boolean | null>>({});
 
     useEffect(() => {
         fetchCredentials();
@@ -34,124 +36,110 @@ export function ChatSettings() {
         clearError();
         const key = apiKeys[provider]?.trim();
         if (!key) return;
-        await saveCredential(provider, key, labels[provider] || undefined);
+
+        await saveCredential(provider, key);
         setApiKeys((prev) => ({ ...prev, [provider]: '' }));
     };
 
-    const handleDelete = async (provider: Provider) => {
-        clearError();
-        if (window.confirm(`Delete credential for ${provider}?`)) {
-            await deleteCredential(provider);
-        }
-    };
-
-    const handleTest = async (provider: Provider) => {
-        const providerInfo = PROVIDERS.find((p) => p.id === provider);
-        if (!providerInfo) return;
-
-        setTesting((prev) => ({ ...prev, [provider]: true }));
-        setTestResults((prev) => ({ ...prev, [provider]: null }));
-
-        const key = apiKeys[provider]?.trim();
-        if (!key) {
-            setTesting((prev) => ({ ...prev, [provider]: false }));
-            return;
-        }
-
-        const result = await testCredential(provider, key, providerInfo.defaultModel);
-        setTestResults((prev) => ({ ...prev, [provider]: result }));
-        setTesting((prev) => ({ ...prev, [provider]: false }));
-    };
+    const selectedProviderInfo = selectedProvider
+        ? (PROVIDERS.find((provider) => provider.id === selectedProvider) ?? null)
+        : null;
+    const connectedProviders = PROVIDERS.filter((provider) => providers[provider.id]);
 
     return (
-        <div className="chat-settings">
-            <h2>Provider Credentials</h2>
-
+        <section className="chat-settings" aria-labelledby={headingId}>
             {isLoading && <div className="chat-settings__loading">Loading...</div>}
 
             {error && (
                 <div className="chat-settings__error" role="alert">
-                    {error}
-                    <button onClick={clearError}>Dismiss</button>
+                    <span>{error}</span>
+                    <button type="button" className="chat-settings__dismiss" onClick={clearError}>
+                        Dismiss
+                    </button>
                 </div>
             )}
 
-            <div className="chat-settings__providers">
-                {PROVIDERS.map((provider) => {
-                    const existing = providers[provider.id];
-                    const isTesting = testing[provider.id];
-                    const testResult = testResults[provider.id];
+            <div className="chat-settings__main">
+                <div className="chat-settings__catalog" role="list" aria-label="Available providers">
+                    {PROVIDERS.map((provider) => (
+                        <button
+                            key={provider.id}
+                            type="button"
+                            className={`chat-settings__catalog-item ${selectedProvider === provider.id ? 'chat-settings__catalog-item--active' : ''}`}
+                            onClick={() => setSelectedProvider((current) => (current === provider.id ? null : provider.id))}
+                            aria-pressed={selectedProvider === provider.id}
+                        >
+                            {provider.name}
+                        </button>
+                    ))}
+                </div>
 
-                    return (
-                        <div key={provider.id} className="chat-settings__provider">
-                            <div className="chat-settings__provider-header">
-                                <h3>{provider.name}</h3>
-                                {existing && (
-                                    <span className={`chat-settings__status chat-settings__status--${existing.validated_at ? 'ready' : 'saved'}`}>
-                                        {existing.validated_at ? 'Ready' : 'Saved'}
-                                    </span>
-                                )}
-                            </div>
+                {selectedProviderInfo && (
+                    <div className="chat-settings__editor-layer">
+                        <section
+                            className="chat-settings__editor"
+                            role="dialog"
+                            aria-modal="false"
+                            aria-labelledby={`${selectedProviderInfo.id}-editor-title`}
+                        >
+                            <h3 id={`${selectedProviderInfo.id}-editor-title`} className="chat-settings__editor-title">
+                                {selectedProviderInfo.name}
+                            </h3>
 
-                            {existing ? (
-                                <div className="chat-settings__existing">
-                                    <p>{existing.label || 'No label'}</p>
-                                    <button
-                                        onClick={() => handleDelete(provider.id)}
-                                        className="chat-settings__delete-btn"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="chat-settings__form">
+                            <div className="chat-settings__form">
+                                <label>
+                                    <span className="chat-settings__field-label">API key</span>
                                     <input
+                                        className="chat-settings__input"
                                         type="password"
-                                        placeholder="Enter API key"
-                                        value={apiKeys[provider.id] || ''}
-                                        onChange={(e) =>
+                                        value={apiKeys[selectedProviderInfo.id] || ''}
+                                        onChange={(event) => {
                                             setApiKeys((prev) => ({
                                                 ...prev,
-                                                [provider.id]: e.target.value,
-                                            }))
-                                        }
+                                                [selectedProviderInfo.id]: event.target.value,
+                                            }));
+                                        }}
                                     />
-                                    <input
-                                        type="text"
-                                        placeholder="Label (optional)"
-                                        value={labels[provider.id] || ''}
-                                        onChange={(e) =>
-                                            setLabels((prev) => ({
-                                                ...prev,
-                                                [provider.id]: e.target.value,
-                                            }))
-                                        }
-                                    />
-                                    <div className="chat-settings__actions">
-                                        <button
-                                            onClick={() => handleSave(provider.id)}
-                                            disabled={!apiKeys[provider.id]?.trim()}
-                                        >
-                                            Save
-                                        </button>
-                                        <button
-                                            onClick={() => handleTest(provider.id)}
-                                            disabled={!apiKeys[provider.id]?.trim() || isTesting}
-                                        >
-                                            {isTesting ? 'Testing...' : 'Test'}
-                                        </button>
-                                    </div>
-                                    {testResult !== null && (
-                                        <span className={`chat-settings__test-result chat-settings__test-result--${testResult ? 'success' : 'failure'}`}>
-                                            {testResult ? 'Valid' : 'Invalid'}
-                                        </span>
-                                    )}
+                                </label>
+                                <div className="chat-settings__actions">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSave(selectedProviderInfo.id)}
+                                        disabled={!apiKeys[selectedProviderInfo.id]?.trim()}
+                                        className="chat-settings__button chat-settings__button--primary"
+                                    >
+                                        Save
+                                    </button>
                                 </div>
-                            )}
-                        </div>
-                    );
-                })}
+                            </div>
+                        </section>
+                    </div>
+                )}
             </div>
-        </div>
+
+            {connectedProviders.length > 0 && (
+                <div className="chat-settings__summary" aria-labelledby="connected-providers-title">
+                    <div className="chat-settings__summary-header">
+                        <h4 id="connected-providers-title" className="chat-settings__summary-title">
+                            Connected providers
+                        </h4>
+                        <span className="chat-settings__summary-count">{connectedProviders.length}</span>
+                    </div>
+
+                    <div className="chat-settings__summary-list">
+                        {connectedProviders.map((provider) => (
+                            <button
+                                key={provider.id}
+                                type="button"
+                                className="chat-settings__summary-pill"
+                                onClick={() => setSelectedProvider(provider.id)}
+                            >
+                                {provider.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </section>
     );
 }

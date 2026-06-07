@@ -108,4 +108,14 @@ describe('Sidebar', () => {
         const sessionsLink = screen.getByRole('link', { name: /Sessions/i });
         expect(sessionsLink).not.toHaveAttribute('aria-current');
     });
+
+    it('should render config as an action button', () => {
+        render(
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('button', { name: /config/i })).toBeInTheDocument();
+    });
 });

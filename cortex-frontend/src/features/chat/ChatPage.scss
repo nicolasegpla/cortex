@@ -68,13 +68,6 @@
         }
     }
 
-    &__settings-panel {
-        padding: var(--space-lg);
-        border-bottom: 1px solid var(--color-border-divider);
-        background-color: var(--color-surface-primary);
-        flex-shrink: 0;
-    }
-
     &__content {
         display: flex;
         flex-direction: column;

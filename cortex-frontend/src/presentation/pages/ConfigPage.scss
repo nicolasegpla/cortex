@@ -1,0 +1,312 @@
+@use '@/presentation/styles/variables' as vars;
+
+.config-page {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    color: vars.$color-text-primary;
+    background: vars.$color-surface-card;
+    border: 1px solid vars.$color-border-subtle;
+    border-radius: 28px;
+    box-shadow: vars.$shadow-card-hover;
+    overflow: hidden;
+}
+
+.config-page--page {
+    min-height: 640px;
+}
+
+.config-page__eyebrow {
+    margin: 0 0 vars.$space-sm;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: vars.$color-text-muted;
+}
+
+.config-page__title {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: vars.$color-text-primary;
+}
+
+.config-page__description {
+    margin: vars.$space-sm 0 0;
+    max-width: 640px;
+    color: vars.$color-text-muted;
+    line-height: 1.6;
+}
+
+.config-page__close {
+    position: absolute;
+    top: vars.$space-xl;
+    right: vars.$space-xl;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid vars.$color-border-subtle;
+    border-radius: 999px;
+    background: transparent;
+    color: vars.$color-text-muted;
+    cursor: pointer;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        color 150ms ease,
+        transform 150ms ease;
+}
+
+.config-page__close:hover,
+.config-page__close:focus-visible {
+    background: vars.$color-surface-muted;
+    border-color: vars.$color-border-strong;
+    color: vars.$color-text-primary;
+    transform: translateY(-1px);
+}
+
+.config-page__close:focus-visible {
+    outline: 2px solid vars.$color-border-strong;
+    outline-offset: 2px;
+}
+
+.config-page__body {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.config-page__nav {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-lg;
+    padding: calc(vars.$space-xl * 2) vars.$space-lg vars.$space-lg;
+    background: vars.$color-surface-muted;
+    border-right: 1px solid vars.$color-border-divider;
+    overflow-y: auto;
+}
+
+.config-page__account-card {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-md;
+    padding: vars.$space-sm;
+    border: 1px solid vars.$color-border-subtle;
+    border-radius: 18px;
+    background: vars.$color-surface-card;
+    box-shadow: vars.$shadow-soft;
+}
+
+.config-page__account-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    background: vars.$color-surface-elevated;
+    color: vars.$color-text-primary;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.config-page__account-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.config-page__account-name,
+.config-page__account-meta,
+.config-page__nav-heading {
+    margin: 0;
+}
+
+.config-page__account-name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: vars.$color-text-primary;
+}
+
+.config-page__account-meta {
+    margin-top: 2px;
+    font-size: 0.8125rem;
+    color: vars.$color-text-muted;
+}
+
+.config-page__account-chevron {
+    flex-shrink: 0;
+    color: vars.$color-text-muted;
+    transform: rotate(-90deg);
+}
+
+.config-page__nav-groups {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.config-page__nav-group {
+    padding-bottom: vars.$space-lg;
+    border-bottom: 1px solid vars.$color-border-divider;
+}
+
+.config-page__nav-group + .config-page__nav-group {
+    padding-top: vars.$space-lg;
+}
+
+.config-page__nav-heading {
+    margin-bottom: vars.$space-sm;
+    padding: 0 vars.$space-sm;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: vars.$color-text-muted;
+}
+
+.config-page__nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.config-page__nav-item {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-sm;
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 vars.$space-md;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    background: transparent;
+    color: vars.$color-text-muted;
+    font-weight: 600;
+    text-align: left;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        color 150ms ease;
+}
+
+.config-page__nav-icon {
+    flex-shrink: 0;
+}
+
+.config-page__nav-item span,
+.config-page__nav-footer span {
+    font-size: 0.9375rem;
+}
+
+.config-page__nav-item:not(.config-page__nav-item--placeholder) {
+    cursor: pointer;
+}
+
+.config-page__nav-item:not(.config-page__nav-item--placeholder):hover {
+    background: vars.$color-surface-elevated;
+    color: vars.$color-text-primary;
+}
+
+.config-page__nav-item--active {
+    background: vars.$color-surface-card;
+    border-color: vars.$color-border-subtle;
+    color: vars.$color-text-primary;
+    box-shadow: vars.$shadow-soft;
+}
+
+.config-page__nav-item--placeholder {
+    opacity: 0.72;
+}
+
+.config-page__nav-footer {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-sm;
+    min-height: 44px;
+    padding: 0 vars.$space-sm;
+    border-top: 1px solid vars.$color-border-divider;
+    color: vars.$color-text-muted;
+}
+
+.config-page__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    padding: vars.$space-lg vars.$space-xl vars.$space-xl;
+    overflow: hidden;
+}
+
+.config-page__content-inner {
+    display: flex;
+    flex-direction: column;
+    width: min(960px, 100%);
+    height: 100%;
+    min-height: 0;
+    gap: vars.$space-xl;
+}
+
+.config-page__header {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .config-page {
+        border-radius: 24px 24px 0 0;
+    }
+
+    .config-page__header {
+        padding: vars.$space-lg;
+    }
+
+    .config-page__body {
+        grid-template-columns: 1fr;
+    }
+
+    .config-page__nav {
+        padding: vars.$space-xl vars.$space-lg vars.$space-md;
+        background: transparent;
+        border-right: 0;
+        border-bottom: 1px solid vars.$color-border-divider;
+    }
+
+    .config-page__nav-groups {
+        gap: vars.$space-md;
+    }
+
+    .config-page__nav-group {
+        padding-bottom: vars.$space-md;
+    }
+
+    .config-page__nav-group + .config-page__nav-group {
+        padding-top: 0;
+    }
+
+    .config-page__content {
+        padding: vars.$space-lg;
+    }
+
+    .config-page__close {
+        top: vars.$space-lg;
+        right: vars.$space-lg;
+    }
+
+    .config-page__content-inner {
+        width: 100%;
+    }
+}

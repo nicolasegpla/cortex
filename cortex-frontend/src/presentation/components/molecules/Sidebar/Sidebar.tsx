@@ -1,9 +1,15 @@
+import type { NavItemAction } from '@/presentation/config/navigation';
 import { ChevronLeft } from '@/presentation/components/atoms/Icon/ChevronLeft';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { navigationConfig } from '@/presentation/config/navigation';
 import { NavSection } from './NavSection';
 
-export function Sidebar() {
+interface SidebarProps {
+    activeAction?: NavItemAction | null;
+    onAction?: (action: NavItemAction) => void;
+}
+
+export function Sidebar({ activeAction = null, onAction }: SidebarProps) {
     const { collapsed, toggle } = useSidebarStore();
 
     return (
@@ -30,7 +36,7 @@ export function Sidebar() {
 
             <nav className="sidebar__nav" aria-label="Main">
                 {navigationConfig.map((section) => (
-                    <NavSection key={section.title} section={section} />
+                    <NavSection key={section.title} section={section} activeAction={activeAction} onAction={onAction} />
                 ))}
             </nav>
         </aside>

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 
 import { useChatStore } from './store';
 import { useCredentialsStore } from './credentialsStore';
@@ -24,6 +25,14 @@ vi.mock('./credentialsStore', async () => {
 
 const mockUseChatStore = vi.mocked(useChatStore);
 const mockUseCredentialsStore = vi.mocked(useCredentialsStore);
+
+function renderChatPage() {
+    return render(
+        <MemoryRouter>
+            <ChatPage />
+        </MemoryRouter>
+    );
+}
 
 describe('ChatPage', () => {
     const mockSendMessage = vi.fn();
@@ -63,10 +72,10 @@ describe('ChatPage', () => {
     });
 
     it('should render chat interface', () => {
-        render(<ChatPage />);
+        renderChatPage();
 
         expect(screen.getByText('What can I do for you?')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Assign a task or ask anything')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Configure a provider in Config to start chatting')).toBeInTheDocument();
         expect(screen.getByLabelText('Send message')).toBeInTheDocument();
     });
 
@@ -85,7 +94,7 @@ describe('ChatPage', () => {
             clearError: vi.fn(),
         });
 
-        render(<ChatPage />);
+        renderChatPage();
 
         expect(fetchCredentials).toHaveBeenCalled();
     });
@@ -109,7 +118,7 @@ describe('ChatPage', () => {
             _abortController: null,
         });
 
-        render(<ChatPage />);
+        renderChatPage();
 
         expect(screen.getByText('Hello')).toBeInTheDocument();
         expect(screen.getByText('Hi there!')).toBeInTheDocument();
@@ -133,7 +142,7 @@ describe('ChatPage', () => {
             clearError: vi.fn(),
         });
 
-        render(<ChatPage />);
+        renderChatPage();
 
         const inputs = screen.getAllByPlaceholderText('Assign a task or ask anything');
         await user.type(inputs[0], 'Test message');
@@ -162,7 +171,7 @@ describe('ChatPage', () => {
             _abortController: null,
         });
 
-        render(<ChatPage />);
+        renderChatPage();
 
         expect(screen.getByLabelText('Stop generating')).toBeInTheDocument();
     });
@@ -184,7 +193,7 @@ describe('ChatPage', () => {
             _abortController: null,
         });
 
-        render(<ChatPage />);
+        renderChatPage();
 
         const stopButtons = screen.getAllByLabelText('Stop generating');
         await user.click(stopButtons[0]);
@@ -208,7 +217,7 @@ describe('ChatPage', () => {
             _abortController: null,
         });
 
-        render(<ChatPage />);
+        renderChatPage();
 
         expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     });
@@ -243,7 +252,7 @@ describe('ChatPage', () => {
             clearError: vi.fn(),
         });
 
-        render(<ChatPage />);
+        renderChatPage();
 
         expect(screen.getAllByLabelText('Select provider')[0]).toBeInTheDocument();
         expect(screen.getAllByLabelText('Select model')[0]).toBeInTheDocument();
@@ -264,8 +273,15 @@ describe('ChatPage', () => {
             clearError: vi.fn(),
         });
 
-        render(<ChatPage />);
+        renderChatPage();
 
         expect(mockSetActiveProvider).toHaveBeenCalledWith('gemini');
+    });
+
+    it('should direct users to config when no credentials are available', () => {
+        renderChatPage();
+
+        expect(screen.getByText('Configure a provider from the Config menu before starting a conversation.')).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /open config/i })).not.toBeInTheDocument();
     });
 });

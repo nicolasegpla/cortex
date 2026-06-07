@@ -1,22 +1,28 @@
-import type { NavSection as NavSectionType } from '@/presentation/config/navigation';
+import { NAV_ITEM_ACTION, type NavItemAction, type NavSection as NavSectionType } from '@/presentation/config/navigation';
 import { NavItem } from './NavItem';
 
 interface NavSectionProps {
     section: NavSectionType;
+    activeAction?: NavItemAction | null;
+    onAction?: (action: NavItemAction) => void;
 }
 
-export function NavSection({ section }: NavSectionProps) {
+export function NavSection({ section, activeAction = null, onAction }: NavSectionProps) {
     return (
         <div className="sidebar__section">
             <span className="sidebar__section-title">{section.title}</span>
             <ul className="sidebar__section-list" role="list">
                 {section.items.map((item) => (
-                    <li key={item.to}>
+                    <li key={item.to ?? item.action ?? item.label}>
                         <NavItem
                             label={item.label}
                             to={item.to}
                             icon={item.icon}
+                            kind={item.kind}
+                            action={item.action}
                             end={item.end}
+                            active={item.action === NAV_ITEM_ACTION.openConfig && activeAction === item.action}
+                            onAction={onAction}
                         />
                     </li>
                 ))}

@@ -8,10 +8,25 @@ import { Admin } from '@/presentation/components/atoms/Icon/Admin';
 
 export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
+export const NAV_ITEM_KIND = {
+    route: 'route',
+    action: 'action',
+} as const;
+
+export type NavItemKind = (typeof NAV_ITEM_KIND)[keyof typeof NAV_ITEM_KIND];
+
+export const NAV_ITEM_ACTION = {
+    openConfig: 'open-config',
+} as const;
+
+export type NavItemAction = (typeof NAV_ITEM_ACTION)[keyof typeof NAV_ITEM_ACTION];
+
 export interface NavItem {
     label: string;
-    to: string;
     icon: IconComponent;
+    kind?: NavItemKind;
+    to?: string;
+    action?: NavItemAction;
     end?: boolean;
     requiredRole?: string;
 }
@@ -27,6 +42,7 @@ export const navigationConfig: NavSection[] = [
         items: [
             {
                 label: 'Chat',
+                kind: NAV_ITEM_KIND.route,
                 to: '/',
                 icon: Chat,
                 end: true,
@@ -38,11 +54,13 @@ export const navigationConfig: NavSection[] = [
         items: [
             {
                 label: 'Databases',
+                kind: NAV_ITEM_KIND.route,
                 to: '/databases',
                 icon: Database,
             },
             {
                 label: 'Sessions',
+                kind: NAV_ITEM_KIND.route,
                 to: '/sessions',
                 icon: Sessions,
             },
@@ -53,11 +71,13 @@ export const navigationConfig: NavSection[] = [
         items: [
             {
                 label: 'Config',
-                to: '/config',
+                kind: NAV_ITEM_KIND.action,
+                action: NAV_ITEM_ACTION.openConfig,
                 icon: Config,
             },
             {
                 label: 'Admin',
+                kind: NAV_ITEM_KIND.route,
                 to: '/admin',
                 icon: Admin,
                 requiredRole: 'super_admin',
