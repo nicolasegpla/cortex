@@ -4,8 +4,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.tools.breweries import register_brewery_tools
-from app.tools.registry import ToolRegistry
 
 
 @pytest.fixture
@@ -15,16 +13,9 @@ def client() -> TestClient:
 
 @pytest.fixture
 def mock_brewery_service():
-    """Create a mock BreweryService with search/count methods."""
+    """Create a mock BreweryService with search/inspect/count methods."""
     mock = MagicMock()
     mock.search.return_value = [{"nombre_cerveceria": "Test Brewery", "ciudad": "Bogotá"}]
+    mock.inspect.return_value = [{"nombre_cerveceria": "Inspect Brewery", "ciudad": "Medellín"}]
     mock.count.return_value = 42
     return mock
-
-
-@pytest.fixture
-def mock_tool_registry(mock_brewery_service):
-    """Create a ToolRegistry with mocked brewery tools registered."""
-    registry = ToolRegistry()
-    register_brewery_tools(registry, mock_brewery_service)
-    return registry

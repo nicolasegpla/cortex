@@ -17,9 +17,18 @@ class TestChatSchemas:
         assert msg.role == "user"
         assert msg.content == "hello"
 
+    def test_chat_message_system_role_valid(self):
+        msg = ChatMessage(role="system", content="You are a brewery assistant.")
+        assert msg.role == "system"
+
     def test_chat_message_invalid_role_raises(self):
         with pytest.raises(ValidationError):
-            ChatMessage(role="system", content="hello")
+            ChatMessage(role="unknown", content="hello")
+
+    @pytest.mark.parametrize("role", ["user", "assistant", "system"])
+    def test_chat_message_accepts_all_standard_roles(self, role):
+        msg = ChatMessage(role=role, content="hello")
+        assert msg.role == role
 
     def test_chat_request_valid(self):
         req = ChatRequest(

@@ -1,258 +1,182 @@
 # Chat DB Read-Only Access
 
-Current chat-to-database access is implemented through a server-side tool layer that is intentionally limited to read-only brewery queries. Future expansion can reach more tables, but EVERY new table must be exposed through the same read-only, whitelisted pattern. Raw SQL is not allowed.
+Current chat-to-database access is backend-first and read-only. The backend owns schema discovery, SQL validation, SQL execution, and final response delivery. The LLM is limited to two jobs: generate SQL from `(user_text, schema_context)` and synthesize a natural-language answer from grounded rows.
 
 ## Quick path
 
-1. Read this doc for the current architecture and extension rules.
-2. Check `cortex-backend/app/routers/chat.py` for the tool execution loop.
-3. Check `cortex-backend/app/tools/registry.py` and `cortex-backend/app/tools/breweries.py` for the current whitelist pattern.
-4. Extend one table at a time with strict TDD.
+1. Read this doc for the current SQL-only chat architecture.
+2. Check `cortex-backend/app/routers/chat.py` for the sole chat route.
+3. Check `cortex-backend/app/orchestrators/sql_orchestrator.py` for the pipeline.
+4. Check `cortex-backend/app/services/{schema_introspection,supabase_service}.py` for DB metadata and execution.
 
 ## Answer first
 
 | Topic | Current decision |
 | --- | --- |
-| Current scope | Breweries only |
-| Access mode | Read-only |
-| Query model | Server-side whitelisted tools |
-| SQL from chat | Forbidden |
-| Tool registration | Explicit, per tool |
-| Default for future tables | Not exposed until explicitly added |
-| Security posture | Read-only by default, least privilege, no arbitrary database execution |
+| Current scope | Read-only chat across the current domain tables |
+| Access mode | Read-only only |
+| Query model | Backend-first SQL orchestration |
+| SQL from chat | Allowed only through validated backend execution |
+| Fallback path | None |
+| Table coverage | `public.breweries`, `public.coffee_farms`, `public.animal_feed_producers`, `public.wine_producers` |
+| Security posture | Read-only by default, validated SQL, least privilege, backend-owned execution |
 
 ## What is implemented today
 
-The current MVP supports database-backed chat answers only for the `breweries` table.
+The backend now routes every chat request through a single SQL pipeline:
 
-Today the backend exposes exactly two approved tools:
-
-| Tool | Purpose | Backend path |
-| --- | --- | --- |
-| `search_breweries` | Search breweries by `city`, `country`, or `operation_type` | `cortex-backend/app/tools/definitions.py`, `cortex-backend/app/tools/breweries.py` |
-| `count_breweries` | Return the total brewery count | `cortex-backend/app/tools/definitions.py`, `cortex-backend/app/tools/breweries.py` |
+1. backend fetches schema metadata through `get_chat_schema_metadata()`
+2. LLM generates one read-only SQL query from `user_text + schema_context`
+3. backend validates the SQL
+4. backend executes it through `exec_sql`
+5. LLM synthesizes the final natural-language answer from grounded rows
 
 Important boundaries:
 
-- This is NOT generic database access.
-- This does NOT expose all Supabase tables.
-- This does NOT allow writes, updates, deletes, inserts, or raw query text from the model.
-- Tool calling is used only when `enable_tools=true` and the selected adapter supports tools.
+- This is NOT direct model-to-database execution.
+- This does NOT allow writes, updates, deletes, inserts, DDL, or multi-statement SQL.
+- This no longer uses tool-calling, planner fallback, or direct model fallback.
+- The backend remains the system of control; the LLM is a constrained component inside it.
 
-## How the chat-to-DB tool layer works
+## How the chat-to-DB SQL layer works
 
 ### Flow
 
-1. The client sends `POST /chat/stream` with chat messages and `enable_tools=true`.
-2. The backend resolves the provider adapter.
-3. If the adapter does not support tools, Cortex falls back to normal chat streaming.
-4. If the adapter supports tools, Cortex sends only the registered tool definitions to the model.
-5. The model may either:
-   - answer directly with text, or
-   - request one or more approved tool calls
-6. Cortex executes approved tool handlers on the server.
-7. Tool results are appended to the server-side conversation.
-8. Cortex performs a second tool-enabled model call to produce the final grounded answer.
-9. The frontend still receives a single SSE response stream.
+1. The client sends `POST /chat/stream`.
+2. The backend resolves the provider adapter and credential.
+3. `SqlOrchestrator` fetches schema metadata from Supabase through `get_chat_schema_metadata()`.
+4. `SqlPlanner` builds a schema-injected prompt and requests one read-only SQL statement.
+5. `SqlValidator` blocks unsafe SQL before execution.
+6. `SupabaseService.execute_raw()` executes the validated query through `exec_sql`.
+7. `NlSynthesizer` turns grounded rows into a natural-language answer.
+8. The frontend receives the answer through the existing SSE stream.
 
 ### Current backend roles
 
 | File | Responsibility |
 | --- | --- |
-| `cortex-backend/app/routers/chat.py` | Decides whether tools are enabled, runs the server-side tool loop, and re-streams the final answer |
-| `cortex-backend/app/tools/registry.py` | Holds the whitelist of allowed tools and blocks unknown tool names |
-| `cortex-backend/app/tools/definitions.py` | Defines the model-visible tool contracts and argument schemas |
-| `cortex-backend/app/tools/breweries.py` | Wires brewery tool handlers to `BreweryService` |
-| `cortex-backend/app/services/brewery_service.py` | Performs the actual read/query work against Supabase |
-| `cortex-backend/app/schemas/chat.py` | Defines `enable_tools`, `ToolDefinition`, and tool-call/result schemas |
+| `cortex-backend/app/routers/chat.py` | Receives chat requests and routes them to `SqlOrchestrator` |
+| `cortex-backend/app/orchestrators/sql_orchestrator.py` | Owns the full backend-first SQL pipeline |
+| `cortex-backend/app/planner/engine.py` | Calls the LLM to generate one SQL statement |
+| `cortex-backend/app/planner/prompt_builder.py` | Builds the schema-injected SQL prompt and global-search rules |
+| `cortex-backend/app/validators/sql_validator.py` | Blocks unsafe SQL before execution |
+| `cortex-backend/app/services/schema_introspection.py` | Formats schema metadata returned by Supabase RPC |
+| `cortex-backend/app/services/supabase_service.py` | Calls `get_chat_schema_metadata()` and `exec_sql` RPCs |
+| `cortex-backend/app/synthesizer/engine.py` | Calls the LLM to synthesize a grounded answer |
 
-## Why unrestricted SQL is forbidden
+## Why unrestricted SQL is still forbidden
 
-Unrestricted SQL from a model is forbidden because it breaks the current security model.
+The system now uses SQL, but NOT unrestricted SQL.
 
 | Risk | Why it is unacceptable |
 | --- | --- |
-| Writes or destructive changes | A prompt-injected model must never be able to mutate business data |
-| Table sprawl | The model would gain implicit access to tables that were never reviewed for chat exposure |
-| Sensitive field leakage | Raw SQL makes it easy to exfiltrate internal or private columns |
-| Unbounded query shape | Arbitrary joins, filters, or scans are hard to reason about and hard to test |
-| Weak reviewability | Reviewers cannot prove what the model may execute if the backend accepts free-form SQL |
+| Writes or destructive changes | A prompt-injected model must never mutate business data |
+| Unreviewable query shape | Arbitrary SQL with no guardrails is hard to reason about and test |
+| Sensitive field leakage | Free-form SQL can expose columns that were not intended for chat |
+| Multi-statement injection | Chained statements would bypass the read-only contract |
+| Unsafe cross-table unions | Heterogeneous `SELECT *` unions break at runtime and are not reviewable |
 
-The safe pattern is the opposite:
+The safe pattern is:
 
-- the backend defines the allowed operations
-- the model can choose only from those operations
-- every tool is readable in code, testable in isolation, and easy to review
+- backend provides schema context
+- LLM proposes one SQL candidate
+- backend validates and executes
+- backend returns only grounded results
 
 ## MVP scope
 
 ### In scope now
 
-- read-only brewery lookups
-- read-only brewery counts
-- server-side tool execution through a whitelist registry
-- tool-enabled chat only when explicitly requested
+- read-only SQL generation from natural-language chat
+- schema metadata fetched by backend from Supabase RPC
+- SQL execution through read-only RPC
+- natural-language synthesis from grounded result rows
+- global multi-table search across the current domain tables
 
 ### Out of scope now
 
-- access to all tables
-- dynamic table discovery
-- arbitrary SQL
 - write operations of any kind
-- automatic tool generation from schema
+- direct model execution against the DB
+- feature-flagged fallback chat paths
+- arbitrary unvalidated SQL
+- automatic schema mutation or table creation from chat
 
-## Read-only guardrails for every exposed table
-
-These rules are REQUIRED for breweries today and for every future table.
+## Required read-only guardrails
 
 ### Required guardrails
 
-- Expose tables through named tools, never through raw SQL text.
-- Keep tools read-only by default. No `insert`, `update`, `delete`, `upsert`, RPC writes, or schema changes.
-- Prefer narrow query tools over generic "query anything in this table" tools.
-- Define an explicit argument schema for every tool.
-- Keep handlers server-side only.
-- Route handlers through a service layer, not directly from adapter code.
-- Return only fields that are safe for chat exposure.
-- Add tests before implementation changes.
-- Do not register a tool until its read-only behavior and output contract are covered by tests.
+- Only one SQL statement per request.
+- No comments, no multi-statement payloads, no mutating keywords.
+- Tables must be schema-qualified with `public.`.
+- Schema metadata must come from backend-owned RPCs, not model guesses.
+- Global multi-table unions must use a common projection; heterogeneous `SELECT *` unions are rejected.
+- Execution must stay behind backend validation and RPC boundaries.
+- Changes must be implemented with strict TDD.
 
 ### Strong recommendations
 
-- Prefer projections over `select("*")` when exposing a table to chat for the first time.
+- Prefer explicit projections over `SELECT *` for multi-table/global search.
 - Keep result size bounded.
-- Keep filters explicit and typed.
-- Add a second tool only when the first tool no longer matches a real user question cleanly.
+- Log generated SQL for runtime debugging.
+- Add deterministic backend-built global search if prompt-only multi-table SQL remains fragile in production.
 
-## Extension checklist: add a new table safely
+## Extension checklist
 
-Use this checklist when expanding from breweries to another table.
+Use this checklist when expanding the current domain coverage.
 
 ### 1. Confirm the table is safe to expose
 
 - [ ] The table has a real chat use case.
 - [ ] The table can be exposed read-only.
-- [ ] The safe fields are known.
-- [ ] The unsafe fields are known and excluded.
-- [ ] The initial supported queries are narrow and explicit.
+- [ ] Safe fields are known.
+- [ ] Unsafe fields are known and excluded from prompts/results when needed.
 
-### 2. Add service-layer read methods
+### 2. Add schema metadata support
 
-Create or extend a service in `cortex-backend/app/services/` with only the read operations you intend to expose.
+- [ ] The table appears in `get_chat_schema_metadata()` output.
+- [ ] The schema formatter exposes the table with `public.<table_name>`.
 
-Rules:
+### 3. Keep the SQL contract safe
 
-- one method per approved query shape when possible
-- no write methods used by chat tools
-- keep query logic deterministic and reviewable
+- [ ] The planner prompt still constrains the LLM to one read-only SQL statement.
+- [ ] The validator still blocks mutation, comments, and unsafe structural patterns.
+- [ ] Multi-table queries use a common projection when needed.
 
-Example pattern:
+### 4. Verify synthesis remains grounded
 
-```python
-class CustomerService:
-    def search(self, city: str | None = None) -> list[dict]: ...
-    def count(self) -> int: ...
-```
-
-### 3. Define tool contracts
-
-Add tool definitions in `cortex-backend/app/tools/definitions.py`.
-
-Rules:
-
-- use explicit names like `search_customers` or `count_customers`
-- describe the real business intent
-- define a strict argument schema
-- do not add a generic `run_sql` or `query_table` tool
-
-### 4. Add table-specific handlers
-
-Create a tool module similar to `cortex-backend/app/tools/breweries.py`.
-
-Rules:
-
-- handlers accept structured arguments only
-- handlers call the service layer
-- handlers serialize only safe output
-
-Recommended shape:
-
-```python
-def make_search_handler(service: CustomerService):
-    def handler(arguments: dict) -> str:
-        results = service.search(city=arguments.get("city"))
-        return json.dumps(results)
-    return handler
-
-def register_customer_tools(registry: ToolRegistry, service: CustomerService) -> None:
-    registry.register(SEARCH_CUSTOMERS_TOOL, make_search_handler(service))
-```
-
-### 5. Register the tools explicitly
-
-Update the backend dependency wiring so the `ToolRegistry` registers the new table tools intentionally.
-
-Current pattern:
-
-- `cortex-backend/app/routers/chat.py` builds a fresh `ToolRegistry`
-- `register_brewery_tools(...)` adds the current whitelist
-
-Future pattern:
-
-- add a matching `register_<table>_tools(...)`
-- wire the required service dependency
-- register only the tools that passed security and test review
-
-### 6. Keep read-only as the default
-
-Before merging, verify all of these remain true:
-
-- [ ] No write path was added to the chat tool layer.
-- [ ] No raw SQL input from the model is executed.
-- [ ] Unknown tool names still fail in `ToolRegistry.execute()`.
-- [ ] The new table is exposed only through explicit whitelist registration.
-- [ ] The doc for this architecture still describes the new scope truthfully.
+- [ ] The final answer is built only from DB results.
+- [ ] Empty results produce a grounded “not found” style answer.
+- [ ] Execution failures do not fall back to hallucinated free-form answers.
 
 ## Strict TDD expectations
 
-This architecture must evolve under strict TDD, not doc-first optimism.
+This architecture must evolve under strict TDD.
 
 `RED -> GREEN -> REFACTOR`
 
-### Minimum test expectations for a new table exposure
+### Minimum test expectations
 
-- [ ] Schema tests for the new tool definitions or request/result structures when applicable
-- [ ] Registry tests proving the new tools are registered and executable
-- [ ] Service tests proving the read methods call Supabase as intended
-- [ ] Handler tests proving arguments map correctly to service calls and outputs are serialized correctly
-- [ ] Router/integration tests proving the tool path executes server-side and re-streams the grounded answer
-- [ ] Negative tests proving unknown tools or invalid cases do not create unsafe behavior
+- [ ] Planner tests for SQL extraction and prompt rules
+- [ ] Validator tests for safe and unsafe SQL
+- [ ] Schema introspection tests for RPC and output shape
+- [ ] Supabase service tests for metadata/execution RPC calls
+- [ ] Orchestrator tests for pipeline order, grounded failures, and synthesis
+- [ ] Router tests for SSE behavior and sole-path execution
 
-### Current examples in the repo
+## Possible future improvements
 
-| Test file | What it proves |
-| --- | --- |
-| `cortex-backend/tests/test_tools_registry.py` | Whitelist registration and unknown-tool blocking |
-| `cortex-backend/tests/test_tools_breweries.py` | Brewery handler wiring and output behavior |
-| `cortex-backend/tests/test_brewery_service.py` | Brewery read/query behavior against mocked Supabase |
-| `cortex-backend/tests/test_chat_router.py` | End-to-end server-side tool loop and fallback behavior |
-
-## Review checklist
-
-Use this before approving any expansion beyond breweries.
-
-- [ ] The doc still says exactly which tables are currently exposed.
-- [ ] The new tools are read-only.
-- [ ] No unrestricted SQL was introduced.
-- [ ] The output shape is intentionally constrained.
-- [ ] Tests were written first and cover both happy path and guardrails.
-- [ ] The registry remains an explicit whitelist, not dynamic discovery.
+- Build global multi-table search SQL in the backend with a deterministic common projection instead of relying only on prompt guidance.
+- Standardize one cross-table shape such as `source`, `record_id`, `display_name`, `city`, `country`, `contact_name`, `phone`, `email`, `search_text`.
+- Keep the LLM focused on intent interpretation and final answer synthesis while the backend assembles the safest global-search SQL.
 
 ## Related files
 
+- `README.md`
 - `docs/CORTEX.md`
 - `docs/README.md`
 - `cortex-backend/app/routers/chat.py`
-- `cortex-backend/app/tools/registry.py`
-- `cortex-backend/app/tools/definitions.py`
-- `cortex-backend/app/tools/breweries.py`
+- `cortex-backend/app/orchestrators/sql_orchestrator.py`
+- `cortex-backend/app/planner/prompt_builder.py`
+- `cortex-backend/app/validators/sql_validator.py`
+- `cortex-backend/app/services/schema_introspection.py`
+- `cortex-backend/app/services/supabase_service.py`

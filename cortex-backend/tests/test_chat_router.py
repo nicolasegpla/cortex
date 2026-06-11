@@ -1,8 +1,7 @@
-"""Tests for chat SSE streaming router."""
+"""Tests for chat SSE streaming router after SQL-orchestrator cutover."""
 
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
-from uuid import uuid4
+import logging
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import status
@@ -22,8 +21,33 @@ def create_mock_user_response(user_id: str, email: str, role: str = "operativo")
     return mock_response
 
 
-class TestChatRouter:
-    """Test chat streaming endpoint with mocked dependencies."""
+class TestConfigCutover:
+    """Config-level cutover assertions."""
+
+    def test_settings_has_no_sql_orchestrator_field(self):
+        """RED: Settings must not accept SQL_ORCHESTRATOR_ENABLED anymore."""
+        from app.core.config import Settings
+
+        assert "sql_orchestrator_enabled" not in Settings.model_fields
+
+    def test_settings_has_no_sql_orchestrator_property(self):
+        """TRIANGULATE: The SQL_ORCHESTRATOR_ENABLED property is gone."""
+        from app.core.config import Settings
+
+        settings = Settings()
+        assert not hasattr(settings, "SQL_ORCHESTRATOR_ENABLED")
+
+    def test_sql_orchestrator_env_is_ignored(self):
+        """TRIANGULATE: The alias no longer populates any field."""
+        from app.core.config import Settings
+
+        settings = Settings(SQL_ORCHESTRATOR_ENABLED="true")  # extra='ignore'
+        assert not hasattr(settings, "SQL_ORCHESTRATOR_ENABLED")
+        assert "sql_orchestrator_enabled" not in settings.model_dump()
+
+
+class TestChatRouterSolePath:
+    """Test chat streaming endpoint routes every request through SqlOrchestrator only."""
 
     @pytest.fixture
     def auth_token(self) -> str:
@@ -48,9 +72,8 @@ class TestChatRouter:
                         "admin@example.com",
                         "super_admin",
                     )
-                else:
-                    from supabase_auth.errors import AuthApiError
-                    raise AuthApiError("Invalid token", 401, "invalid_token")
+                from supabase_auth.errors import AuthApiError
+                raise AuthApiError("Invalid token", 401, "invalid_token")
 
             mock_client.auth.get_user = mock_get_user
             mock_service = MagicMock()
@@ -82,22 +105,100 @@ class TestChatRouter:
             yield mock_get
 
     @pytest.fixture
-    def client(self, mock_credential_service, mock_tool_registry):
-        """Create a TestClient with dependency overrides."""
+    def client(self, mock_credential_service):
+        """Create a TestClient with only the credential dependency overridden."""
         from app.main import create_app
-        from app.routers.chat import get_credential_service, get_tool_registry
+        from app.routers.chat import get_credential_service
 
         app = create_app()
         app.dependency_overrides[get_credential_service] = lambda: mock_credential_service
-        app.dependency_overrides[get_tool_registry] = lambda: mock_tool_registry
-        from fastapi.testclient import TestClient
         yield TestClient(app)
         app.dependency_overrides.clear()
 
-    def test_chat_stream_returns_sse_delta_events(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
+    @pytest.fixture
+    def mock_sql_orchestrator(self):
+        """Patch SqlOrchestrator in the chat router."""
+        mock_cls = MagicMock()
+        mock_instance = mock_cls.return_value
+        mock_instance.run = AsyncMock(return_value="There are 5 breweries.")
+        with patch("app.routers.chat.SqlOrchestrator", mock_cls):
+            yield mock_cls, mock_instance
+
+    def test_chat_stream_routes_to_sql_orchestrator(
+        self,
+        client: TestClient,
+        auth_token: str,
+        mock_sql_orchestrator,
     ):
-        """RED: POST /chat/stream returns SSE with event: delta chunks."""
+        """RED: Every request is handled by SqlOrchestrator.run()."""
+        mock_cls, mock_instance = mock_sql_orchestrator
+
+        response = client.post(
+            "/chat/stream",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "How many breweries?"}],
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
+        body = response.text
+        assert "event: delta" in body
+        assert "There are 5 breweries." in body
+        assert "event: done" in body
+
+        mock_cls.assert_called_once()
+        mock_instance.run.assert_awaited_once()
+        call_kwargs = mock_instance.run.await_args.kwargs
+        assert call_kwargs["user_text"] == "How many breweries?"
+        assert call_kwargs["model"] == "gpt-4o"
+        assert call_kwargs["api_key"] == "sk-test-key"
+        assert len(call_kwargs["request_id"]) == 6
+
+    def test_chat_stream_sole_path_for_all_providers(
+        self,
+        client: TestClient,
+        auth_token: str,
+        mock_registry_get_adapter,
+        mock_sql_orchestrator,
+    ):
+        """TRIANGULATE: SqlOrchestrator is the only path across providers."""
+        mock_cls, mock_instance = mock_sql_orchestrator
+
+        for provider in ("openai", "anthropic", "gemini", "deepseek"):
+            mock_cls.reset_mock()
+            mock_instance.reset_mock()
+            mock_registry_get_adapter.reset_mock()
+
+            response = client.post(
+                "/chat/stream",
+                headers={"Authorization": f"Bearer {auth_token}"},
+                json={
+                    "model": "model-id",
+                    "provider": provider,
+                    "messages": [{"role": "user", "content": "Hi"}],
+                },
+            )
+
+            assert response.status_code == status.HTTP_200_OK
+            mock_registry_get_adapter.assert_called_once_with(provider)
+            mock_instance.run.assert_awaited_once()
+
+    def test_chat_stream_ignores_enable_tools(
+        self,
+        client: TestClient,
+        auth_token: str,
+        mock_registry_get_adapter,
+        mock_sql_orchestrator,
+    ):
+        """TRIANGULATE: enable_tools no longer triggers tool-loop or system prompt injection."""
+        mock_cls, mock_instance = mock_sql_orchestrator
+        mock_adapter = mock_registry_get_adapter.return_value
+        mock_adapter.supports_tools.return_value = True
+
         response = client.post(
             "/chat/stream",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -105,64 +206,75 @@ class TestChatRouter:
                 "model": "gpt-4o",
                 "provider": "openai",
                 "messages": [{"role": "user", "content": "Hi"}],
+                "enable_tools": True,
             },
         )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
+        mock_instance.run.assert_awaited_once()
+        mock_adapter.stream_chat_with_tools.assert_not_called()
+        mock_adapter.supports_tools.assert_not_called()
 
-        # Parse SSE events
-        body = response.text
-        assert "event: delta" in body
-        assert "data: Hello" in body
-        assert "event: done" in body
-
-    def test_chat_stream_gemini_returns_sse_delta_events(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
+    def test_chat_stream_preserves_sse_contract(
+        self,
+        client: TestClient,
+        auth_token: str,
+        mock_sql_orchestrator,
     ):
-        """TRIANGULATE: POST /chat/stream with gemini provider returns SSE deltas."""
+        """TRIANGULATE: Multiline orchestrator answers are streamed as valid SSE."""
+        _, mock_instance = mock_sql_orchestrator
+        mock_instance.run = AsyncMock(
+            return_value="Line one\nLine two\nLine three"
+        )
+
         response = client.post(
             "/chat/stream",
             headers={"Authorization": f"Bearer {auth_token}"},
             json={
-                "model": "gemini-2.0-flash",
-                "provider": "gemini",
-                "messages": [{"role": "user", "content": "Hi"}],
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "What cities?"}],
             },
         )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
         body = response.text
         assert "event: delta" in body
-        assert "data: Hello" in body
+        assert "data: Line one" in body
+        assert "data: Line two" in body
+        assert "data: Line three" in body
         assert "event: done" in body
-        mock_registry_get_adapter.assert_called_once_with("gemini")
 
-    def test_chat_stream_deepseek_returns_sse_delta_events(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
+    def test_chat_stream_orchestrator_error_is_streamed(
+        self,
+        client: TestClient,
+        auth_token: str,
+        mock_sql_orchestrator,
     ):
-        """TRIANGULATE: POST /chat/stream with deepseek provider returns SSE deltas."""
+        """TRIANGULATE: Grounded orchestrator errors are returned as SSE deltas."""
+        _, mock_instance = mock_sql_orchestrator
+        mock_instance.run = AsyncMock(
+            return_value="SQL validation failed: unsafe keyword detected."
+        )
+
         response = client.post(
             "/chat/stream",
             headers={"Authorization": f"Bearer {auth_token}"},
             json={
-                "model": "deepseek-chat",
-                "provider": "deepseek",
-                "messages": [{"role": "user", "content": "Hi"}],
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "DROP everything"}],
             },
         )
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
         body = response.text
         assert "event: delta" in body
-        assert "data: Hello" in body
+        assert "SQL validation failed" in body
         assert "event: done" in body
-        mock_registry_get_adapter.assert_called_once_with("deepseek")
 
     def test_chat_stream_unauthorized_returns_401(self, client: TestClient) -> None:
-        """TRIANGULATE: no auth token returns 401."""
+        """Auth guard unchanged: no token returns 401."""
         response = client.post(
             "/chat/stream",
             json={
@@ -177,7 +289,7 @@ class TestChatRouter:
     def test_chat_stream_missing_credential_returns_400(
         self, client: TestClient, auth_token: str, mock_credential_service
     ):
-        """TRIANGULATE: missing credential returns 400 with error."""
+        """Missing credential still returns 400 before orchestration."""
         mock_credential_service.get_decrypted_key.return_value = None
 
         response = client.post(
@@ -192,17 +304,13 @@ class TestChatRouter:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
-        assert "credential" in data["detail"].lower() or "provider" in data["detail"].lower()
+        assert "credencial" in data["detail"].lower() or "proveedor" in data["detail"].lower()
 
-    def test_chat_stream_provider_error_returns_sse_error(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
+    def test_chat_stream_adapter_resolution_error_returns_400(
+        self, client: TestClient, auth_token: str, mock_registry_get_adapter
     ):
-        """TRIANGULATE: adapter error returns SSE event: error."""
-        async def error_stream(*args, **kwargs):
-            raise ValueError("Provider API error")
-            yield ""  # noqa: unreachable
-
-        mock_registry_get_adapter.return_value.stream_chat = error_stream
+        """TRIANGULATE: adapter resolution failure returns 400 before streaming."""
+        mock_registry_get_adapter.side_effect = ValueError("Provider API error")
 
         response = client.post(
             "/chat/stream",
@@ -214,14 +322,35 @@ class TestChatRouter:
             },
         )
 
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_chat_stream_unexpected_orchestrator_error_returns_sse_error(
+        self, client: TestClient, auth_token: str
+    ):
+        """TRIANGULATE: unexpected error inside the stream yields an SSE error event."""
+        with patch("app.routers.chat.SqlOrchestrator") as mock_cls:
+            mock_instance = mock_cls.return_value
+            mock_instance.run = AsyncMock(side_effect=RuntimeError("Boom"))
+
+            response = client.post(
+                "/chat/stream",
+                headers={"Authorization": f"Bearer {auth_token}"},
+                json={
+                    "model": "gpt-4o",
+                    "provider": "openai",
+                    "messages": [{"role": "user", "content": "Hi"}],
+                },
+            )
+
         assert response.status_code == status.HTTP_200_OK
         body = response.text
         assert "event: error" in body
+        assert "Boom" in body
 
     def test_chat_stream_invalid_provider_returns_422(
         self, client: TestClient, auth_token: str
     ):
-        """TRIANGULATE: invalid provider literal is rejected by schema validation (422)."""
+        """Invalid provider literal is rejected by schema validation."""
         response = client.post(
             "/chat/stream",
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -234,190 +363,88 @@ class TestChatRouter:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_chat_stream_invalid_model_returns_400(self, client: TestClient, auth_token: str):
-        """TRIANGULATE: invalid model in request is rejected by schema validation."""
-        response = client.post(
-            "/chat/stream",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "model": "gpt-4o",
-                "provider": "not-a-provider",  # Invalid literal
-                "messages": [{"role": "user", "content": "Hi"}],
-            },
-        )
-
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    def test_chat_stream_resolves_adapter_by_provider(
-        self, client: TestClient, auth_token: str, mock_registry_get_adapter, mock_credential_service
+    def test_chat_stream_logs_sql_orchestrator_path(
+        self,
+        client: TestClient,
+        auth_token: str,
+        mock_sql_orchestrator,
+        caplog,
     ):
-        """TRIANGULATE: correct adapter is resolved based on provider."""
-        response = client.post(
-            "/chat/stream",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "model": "claude-3-5-sonnet-20241022",
-                "provider": "anthropic",
-                "messages": [{"role": "user", "content": "Hi"}],
-            },
-        )
+        """TRIANGULATE: The chosen response path is logged as sql-orchestrator."""
+        _, mock_instance = mock_sql_orchestrator
+        mock_instance.run = AsyncMock(return_value="Answer")
+
+        with caplog.at_level(logging.INFO):
+            response = client.post(
+                "/chat/stream",
+                headers={"Authorization": f"Bearer {auth_token}"},
+                json={
+                    "model": "gpt-4o",
+                    "provider": "openai",
+                    "messages": [{"role": "user", "content": "Hi"}],
+                },
+            )
 
         assert response.status_code == status.HTTP_200_OK
-        mock_registry_get_adapter.assert_called_once_with("anthropic")
-        mock_credential_service.get_decrypted_key.assert_called_once()
-        call_args = mock_credential_service.get_decrypted_key.call_args
-        assert call_args[0][1] == "anthropic"
+        assert "response_path=sql-orchestrator" in caplog.text
+        assert "response_path=ai-planner" not in caplog.text
+        assert "response_path=model-direct" not in caplog.text
+        assert "response_path=model-tools" not in caplog.text
 
-    # --- Tool path tests (Phase 3: chat-db-access) ---
 
-    def test_chat_stream_with_tools_uses_tool_path(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
-    ):
-        """RED: When enable_tools=True and adapter supports tools, use stream_chat_with_tools."""
-        mock_adapter = mock_registry_get_adapter.return_value
-        mock_adapter.supports_tools.return_value = True
+class TestChatModuleCutover:
+    """Static assertions that the chat module no longer exposes old paths."""
 
-        called_with_tools = False
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "get_tool_registry",
+            "get_brewery_service",
+            "_run_ai_planner_pipeline",
+            "_build_system_prompt",
+            "_inject_system_prompt",
+            "PlannerEngine",
+            "SynthesizerEngine",
+            "execute_plan",
+            "ToolRegistry",
+            "BreweryService",
+        ],
+    )
+    def test_old_symbols_removed(self, name: str):
+        """RED: Deprecated router symbols are no longer importable."""
+        import app.routers.chat as chat_module
 
-        async def mock_stream_with_tools(*args, **kwargs):
-            nonlocal called_with_tools
-            called_with_tools = True
-            yield "Hello"
+        assert not hasattr(chat_module, name), f"{name} should have been removed"
 
-        mock_adapter.stream_chat_with_tools = mock_stream_with_tools
+    def test_tool_call_result_not_imported(self):
+        """TRIANGULATE: ToolCallResult is no longer used by the router."""
+        with pytest.raises(ImportError):
+            from app.routers.chat import ToolCallResult  # noqa: F401
 
-        response = client.post(
-            "/chat/stream",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "model": "gpt-4o",
-                "provider": "openai",
-                "messages": [{"role": "user", "content": "Hi"}],
-                "enable_tools": True,
-            },
-        )
 
-        assert response.status_code == status.HTTP_200_OK
-        assert called_with_tools is True
+class TestStreamSSEHelpers:
+    """Keep SSE formatting tests for shared helper functions."""
 
-    def test_chat_stream_with_tools_executes_tool_and_restreams(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter, mock_brewery_service
-    ):
-        """RED: Tool call results in tool execution and second stream with final answer."""
-        mock_adapter = mock_registry_get_adapter.return_value
-        mock_adapter.supports_tools.return_value = True
+    def test_stream_sse_multiline_payload(self):
+        """SSE multiline data must prefix each line with data: per spec."""
+        from app.routers.chat import _stream_sse
 
-        async def first_stream(*args, **kwargs):
-            from app.schemas.chat import ToolCallResult
-            yield ToolCallResult(tool_call_id="call_1", name="count_breweries", arguments={})
+        event = _stream_sse("delta", "line1\nline2\nline3")
+        lines = [l for l in event.split("\n") if l]
+        assert lines == ["event: delta", "data: line1", "data: line2", "data: line3"]
 
-        async def second_stream(*args, **kwargs):
-            yield "There are 42 breweries."
+    def test_stream_sse_empty_string(self):
+        """SSE empty data should still produce valid event."""
+        from app.routers.chat import _stream_sse
 
-        mock_adapter.stream_chat_with_tools.side_effect = [first_stream(), second_stream()]
+        event = _stream_sse("done", "")
+        lines = [l for l in event.split("\n") if l]
+        assert lines == ["event: done", "data: "]
 
-        response = client.post(
-            "/chat/stream",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "model": "gpt-4o",
-                "provider": "openai",
-                "messages": [{"role": "user", "content": "How many breweries?"}],
-                "enable_tools": True,
-            },
-        )
+    def test_stream_sse_single_line(self):
+        """SSE single line data works as before."""
+        from app.routers.chat import _stream_sse
 
-        assert response.status_code == status.HTTP_200_OK
-        body = response.text
-        assert "event: delta" in body
-        assert "There are 42 breweries." in body
-        assert "event: done" in body
-
-        # Verify tool was executed via mock service
-        mock_brewery_service.count.assert_called_once()
-
-    def test_chat_stream_enable_tools_false_uses_regular_path(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
-    ):
-        """TRIANGULATE: enable_tools=False uses regular stream_chat (backward compat)."""
-        mock_adapter = mock_registry_get_adapter.return_value
-        mock_adapter.supports_tools.return_value = True  # Even if adapter supports tools
-
-        response = client.post(
-            "/chat/stream",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "model": "gpt-4o",
-                "provider": "openai",
-                "messages": [{"role": "user", "content": "Hi"}],
-                "enable_tools": False,
-            },
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        body = response.text
-        assert "event: delta" in body
-        assert "data: Hello" in body
-        assert "event: done" in body
-
-    def test_chat_stream_unsupported_adapter_uses_regular_path(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter
-    ):
-        """TRIANGULATE: adapter without tool support falls back to stream_chat."""
-        mock_adapter = mock_registry_get_adapter.return_value
-        mock_adapter.supports_tools.return_value = False
-
-        response = client.post(
-            "/chat/stream",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "model": "gpt-4o",
-                "provider": "openai",
-                "messages": [{"role": "user", "content": "Hi"}],
-                "enable_tools": True,
-            },
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        body = response.text
-        assert "event: delta" in body
-        assert "data: Hello" in body
-        assert "event: done" in body
-
-    def test_chat_stream_with_tools_two_turn_loop(
-        self, client: TestClient, auth_token: str, mock_credential_service, mock_registry_get_adapter, mock_brewery_service
-    ):
-        """INTEGRATION: Two-turn loop — first tool_call, then final text. Both adapter calls made."""
-        mock_adapter = mock_registry_get_adapter.return_value
-        mock_adapter.supports_tools.return_value = True
-
-        async def first_stream(*args, **kwargs):
-            from app.schemas.chat import ToolCallResult
-            yield ToolCallResult(tool_call_id="call_1", name="search_breweries", arguments={"city": "Bogotá"})
-
-        async def second_stream(*args, **kwargs):
-            yield "Found Test Brewery in Bogotá."
-
-        mock_adapter.stream_chat_with_tools.side_effect = [first_stream(), second_stream()]
-
-        response = client.post(
-            "/chat/stream",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "model": "gpt-4o",
-                "provider": "openai",
-                "messages": [{"role": "user", "content": "Find breweries in Bogotá"}],
-                "enable_tools": True,
-            },
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        body = response.text
-        assert "Found Test Brewery in Bogotá." in body
-        assert "event: done" in body
-
-        # Both adapter calls were made
-        assert mock_adapter.stream_chat_with_tools.call_count == 2
-
-        # Tool was executed via mock service
-        mock_brewery_service.search.assert_called_once_with(city="Bogotá", country=None, operation_type=None)
+        event = _stream_sse("delta", "hello")
+        lines = [l for l in event.split("\n") if l]
+        assert lines == ["event: delta", "data: hello"]

@@ -23,9 +23,9 @@ The system MUST present chat as the primary authenticated workspace and SHALL ke
 
 ### Requirement: Backend-Mediated Multi-Provider Chat
 
-The system MUST send all chat traffic through the Cortex backend and SHALL support V1 provider selection for OpenAI, Anthropic, Gemini, and DeepSeek through the selected direct provider adapter. The chat request MAY ask for tool-backed answers, but database-backed behavior in the initial implementation MUST be limited to brewery queries through approved server-side tools.
+The system MUST send all chat traffic through the Cortex backend and SHALL support V1 provider selection for OpenAI, Anthropic, Gemini, and DeepSeek through the selected direct provider adapter. The chat request MAY ask for tool-backed answers, and database-backed behavior MUST be available for any registered entity through approved server-side tools and the generic response engine.
 
-(Previously: chat routing covered provider streaming only and had no defined tool-backed answer path.)
+(Previously: Database-backed behavior was limited at the spec level to brewery queries only.)
 
 #### Scenario: Stream a provider response
 - GIVEN the user has a valid credential for a selected supported provider
@@ -38,11 +38,11 @@ The system MUST send all chat traffic through the Cortex backend and SHALL suppo
 - WHEN a message is sent
 - THEN the browser never sends the provider credential or vendor-bound request directly to an external LLM provider
 
-#### Scenario: Use brewery-only database-backed answers
-- GIVEN a user asks a brewery data question in a tool-enabled session
+#### Scenario: Use registered-entity database-backed answers
+- GIVEN a user asks a factual question for a registered entity in a tool-enabled session
 - WHEN tool-backed behavior is available
-- THEN Cortex may answer using approved brewery tools only
-- AND the request does not expand to unrestricted SQL or other entity domains
+- THEN Cortex may answer using that entity's approved tools and registry metadata
+- AND the request does not expand to unrestricted SQL or unregistered entities
 
 ### Requirement: Conversation Status and Phase-1 Session Behavior
 
