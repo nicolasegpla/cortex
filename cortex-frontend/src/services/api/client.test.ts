@@ -86,17 +86,17 @@ describe('apiClient.stream', () => {
     });
 
     it('should throw on non-ok response', async () => {
-        const mockResponse = new Response('Unauthorized', {
+        const mockResponse = new Response('No autorizado', {
             status: 401,
             statusText: 'Unauthorized',
         });
 
         globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('Unauthorized');
+        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('No autorizado');
     });
 
-    it('should throw Unauthorized error on 401 and trigger logout', async () => {
+    it('should throw unauthorized error on 401 and trigger logout', async () => {
         const mockResponse = new Response(null, {
             status: 401,
             statusText: 'Unauthorized',
@@ -104,6 +104,6 @@ describe('apiClient.stream', () => {
 
         globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('Unauthorized');
+        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('No autorizado');
     });
 });

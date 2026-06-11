@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { X } from '@/presentation/components/atoms/Icon/X';
 
 import { useCredentialsStore, type Provider } from './credentialsStore';
+import { useChatStore } from './store';
 
 import './ChatSettings.scss';
 
@@ -26,6 +27,7 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
         saveCredential,
         clearError,
     } = useCredentialsStore();
+    const { setActiveProvider, setActiveModel } = useChatStore();
 
     const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
     const [apiKeys, setApiKeys] = useState<Record<Provider, string>>({});
@@ -40,6 +42,11 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
         if (!key) return;
 
         await saveCredential(provider, key);
+        const providerInfo = PROVIDERS.find((item) => item.id === provider);
+        setActiveProvider(provider);
+        if (providerInfo) {
+            setActiveModel(providerInfo.defaultModel);
+        }
         setApiKeys((prev) => ({ ...prev, [provider]: '' }));
     };
 
@@ -50,19 +57,19 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
 
     return (
         <section className="chat-settings" aria-labelledby={headingId}>
-            {isLoading && <div className="chat-settings__loading">Loading...</div>}
+            {isLoading && <div className="chat-settings__loading">Cargando...</div>}
 
             {error && (
                 <div className="chat-settings__error" role="alert">
                     <span>{error}</span>
                     <button type="button" className="chat-settings__dismiss" onClick={clearError}>
-                        Dismiss
+                        Cerrar
                     </button>
                 </div>
             )}
 
             <div className="chat-settings__main">
-                <div className="chat-settings__catalog" role="list" aria-label="Available providers">
+                <div className="chat-settings__catalog" role="list" aria-label="Proveedores disponibles">
                     {PROVIDERS.map((provider) => (
                         <button
                             key={provider.id}
@@ -91,7 +98,7 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
                                 <button
                                     type="button"
                                     className="chat-settings__editor-close"
-                                    aria-label="Close editor"
+                                    aria-label="Cerrar editor"
                                     onClick={() => setSelectedProvider(null)}
                                 >
                                     <X width={18} height={18} />
@@ -120,7 +127,7 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
                                         disabled={!apiKeys[selectedProviderInfo.id]?.trim()}
                                         className="chat-settings__button chat-settings__button--primary"
                                     >
-                                        Save
+                                        Guardar
                                     </button>
                                 </div>
                             </div>
@@ -133,7 +140,7 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
                 <div className="chat-settings__summary" aria-labelledby="connected-providers-title">
                     <div className="chat-settings__summary-header">
                         <h4 id="connected-providers-title" className="chat-settings__summary-title">
-                            Connected providers
+                            Proveedores conectados
                         </h4>
                         <span className="chat-settings__summary-count">{connectedProviders.length}</span>
                     </div>

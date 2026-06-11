@@ -28,12 +28,12 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
     if (response.status === 401) {
         useAuthStore.getState().logout();
         window.location.href = '/login';
-        throw new Error('Unauthorized');
+        throw new Error('No autorizado');
     }
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(error.message || `HTTP ${response.status}`);
+        throw new Error(error.detail || error.message || `HTTP ${response.status}`);
     }
 
     return response.json() as Promise<T>;
@@ -58,7 +58,7 @@ async function streamRequest(endpoint: string, body: unknown): Promise<ReadableS
     if (response.status === 401) {
         useAuthStore.getState().logout();
         window.location.href = '/login';
-        throw new Error('Unauthorized');
+        throw new Error('No autorizado');
     }
 
     if (!response.ok) {
@@ -67,7 +67,7 @@ async function streamRequest(endpoint: string, body: unknown): Promise<ReadableS
     }
 
     if (!response.body) {
-        throw new Error('Response body is null');
+        throw new Error('El cuerpo de la respuesta es nulo');
     }
 
     return response.body;

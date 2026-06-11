@@ -7,6 +7,34 @@ import { supabaseClient } from '@/services/supabase/client';
 
 type AuthMode = 'login' | 'register';
 
+function translateAuthError(message: string) {
+    const normalized = message.toLowerCase();
+
+    if (
+        normalized.includes('supabase client not configured') ||
+        normalized.includes('supabase no está configurado')
+    ) {
+        return 'Supabase no está configurado.';
+    }
+
+    if (
+        normalized.includes('invalid login credentials') ||
+        normalized.includes('invalid email or password')
+    ) {
+        return 'Email o contraseña incorrectos.';
+    }
+
+    if (normalized.includes('user already registered') || normalized.includes('already registered')) {
+        return 'Este usuario ya está registrado.';
+    }
+
+    if (normalized.includes('authentication failed')) {
+        return 'No se pudo iniciar sesión.';
+    }
+
+    return message;
+}
+
 export function LoginPage() {
     const navigate = useNavigate();
     const { login, setLoading } = useAuthStore();
@@ -26,7 +54,7 @@ export function LoginPage() {
 
         try {
             if (!supabaseClient) {
-                throw new Error('Supabase client not configured');
+                throw new Error('Supabase no está configurado');
             }
 
             if (mode === 'login') {
@@ -62,7 +90,7 @@ export function LoginPage() {
                 }
 
                 if (!data.session) {
-                    setConfirmationMessage('Check your email to confirm your account.');
+                    setConfirmationMessage('Revisá tu email para confirmar tu cuenta.');
                 } else if (data.user && data.session) {
                     const role = data.user.user_metadata?.role || 'operativo';
                     login(
@@ -74,7 +102,7 @@ export function LoginPage() {
                 }
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Authentication failed');
+            setError(err instanceof Error ? translateAuthError(err.message) : 'No se pudo iniciar sesión.');
         } finally {
             setIsLoading(false);
             setLoading(false);
@@ -92,14 +120,14 @@ export function LoginPage() {
     return (
         <section aria-labelledby="auth-title">
             <div className="page-card page-card--narrow">
-                <p className="page-card__eyebrow">Authentication</p>
+                <p className="page-card__eyebrow">Autenticación</p>
                 <h2 id="auth-title" className="page-card__title">
-                    {isLogin ? 'Sign in to CORTEX' : 'Create account'}
+                    {isLogin ? 'Iniciá sesión en Cortex' : 'Crear cuenta'}
                 </h2>
                 <p className="page-card__description">
                     {isLogin
-                        ? 'Enter your credentials to access the brewery management system.'
-                        : 'Sign up to get started with the brewery management system.'}
+                        ? 'Ingresá tus credenciales para acceder al sistema de gestión cervecera.'
+                        : 'Registrate para empezar a usar el sistema de gestión cervecera.'}
                 </p>
 
                 {error && (
@@ -125,10 +153,10 @@ export function LoginPage() {
                         required
                     />
                     <Input
-                        label="Password"
+                        label="Contraseña"
                         name="password"
                         type="password"
-                        placeholder="Enter your password"
+                        placeholder="Ingresá tu contraseña"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -136,11 +164,11 @@ export function LoginPage() {
                     <Button type="submit" disabled={isLoading}>
                         {isLoading
                             ? isLogin
-                                ? 'Signing in...'
-                                : 'Signing up...'
+                                ? 'Iniciando sesión...'
+                                : 'Creando cuenta...'
                             : isLogin
-                                ? 'Continue'
-                                : 'Sign up'}
+                                ? 'Continuar'
+                                : 'Crear cuenta'}
                     </Button>
                 </form>
 
@@ -151,8 +179,8 @@ export function LoginPage() {
                         className="auth-mode-toggle__button"
                     >
                         {isLogin
-                            ? 'Create account'
-                            : 'Already have an account? Sign in'}
+                            ? 'Crear cuenta'
+                            : '¿Ya tenés una cuenta? Iniciá sesión'}
                     </button>
                 </div>
             </div>

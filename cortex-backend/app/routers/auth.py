@@ -15,7 +15,7 @@ def get_supabase_client():
     if not settings.supabase_url or not settings.supabase_service_key:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Supabase not configured",
+            detail="Supabase no está configurado",
         )
     return SupabaseService().get_client()
 
@@ -33,13 +33,13 @@ def login(payload: LoginRequest) -> TokenResponse:
     except AuthApiError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="Email o contraseña incorrectos",
         ) from exc
 
     if not response.session:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed",
+            detail="No se pudo iniciar sesión",
         )
 
     return TokenResponse(
@@ -63,11 +63,11 @@ def register(payload: RegisterRequest) -> RegisterResponse:
         if "already registered" in str(exc).lower() or "already exists" in str(exc).lower():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="User already registered",
+                detail="El usuario ya está registrado",
             ) from exc
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
+            detail=f"No se pudo completar el registro: {exc}",
         ) from exc
 
     user = response.user
@@ -79,9 +79,9 @@ def register(payload: RegisterRequest) -> RegisterResponse:
         role=user.user_metadata.get("role", "operativo"),
         requires_confirmation=requires_confirmation,
         message=(
-            "Registration successful. Please check your email to confirm your account."
+            "Registro exitoso. Revisá tu email para confirmar tu cuenta."
             if requires_confirmation
-            else "Registration successful."
+            else "Registro exitoso."
         ),
     )
 
@@ -107,4 +107,4 @@ def logout() -> dict[str, str]:
         # Ignore sign-out errors; local state is what matters
         pass
 
-    return {"message": "Logged out successfully"}
+    return {"message": "Sesión cerrada correctamente"}

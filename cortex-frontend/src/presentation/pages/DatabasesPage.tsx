@@ -14,7 +14,7 @@ interface DatabaseCard {
 const databases: DatabaseCard[] = [
     {
         id: 'breweries',
-        name: 'Breweries',
+        name: 'Cervecerías',
         description: 'Cervecerías y productores de cerveza artesanal',
         count: null,
         route: '/breweries',
@@ -22,7 +22,7 @@ const databases: DatabaseCard[] = [
     },
     {
         id: 'coffee-farms',
-        name: 'Coffee Farms',
+        name: 'Fincas de café',
         description: 'Fincas de café y productores',
         count: null,
         route: '/coffee-farms',
@@ -30,7 +30,7 @@ const databases: DatabaseCard[] = [
     },
     {
         id: 'wine-producers',
-        name: 'Wine Producers',
+        name: 'Productores de vino',
         description: 'Vinícolas y productores de vino',
         count: null,
         route: '/wine-producers',
@@ -38,7 +38,7 @@ const databases: DatabaseCard[] = [
     },
     {
         id: 'animal-feed',
-        name: 'Animal Feed',
+        name: 'Alimentos para animales',
         description: 'Productores de piensos y alimentos para animales',
         count: null,
         route: '/animal-feed-producers',
@@ -51,7 +51,7 @@ export function DatabasesPage() {
         <div className="databases-page">
             <div className="databases-page__header">
                 <div className="databases-page__header-left">
-                    <h1 className="databases-page__title">Databases</h1>
+                    <h1 className="databases-page__title">Bases de datos</h1>
                     <p className="databases-page__subtitle">
                         Gestiona las bases de datos de productores
                     </p>
@@ -83,7 +83,7 @@ export function DatabasesPage() {
                                 </svg>
                             </div>
                             {db.status === 'coming-soon' && (
-                                <span className="database-card__badge">Coming Soon</span>
+                                <span className="database-card__badge">Próximamente</span>
                             )}
                         </div>
                         <h3 className="database-card__title">{db.name}</h3>

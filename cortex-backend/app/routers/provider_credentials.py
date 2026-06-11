@@ -19,7 +19,7 @@ def get_credential_service() -> ProviderCredentialService:
     if not supabase:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Supabase not configured",
+            detail="Supabase no está configurado",
         )
     encryption = EncryptionService()
     return ProviderCredentialService(supabase=supabase, encryption=encryption)
@@ -69,7 +69,7 @@ def delete_credential(
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No credential found for provider '{provider}'",
+            detail=f"No se encontró una credencial para el proveedor '{provider}'",
         )
 
 

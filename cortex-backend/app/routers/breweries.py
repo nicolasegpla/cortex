@@ -19,7 +19,7 @@ def get_brewery_service() -> BreweryService:
     if not client:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Supabase client not configured",
+            detail="Supabase no está configurado",
         )
     return BreweryService(client)
 
@@ -63,7 +63,7 @@ def get_brewery(
     if not brewery:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Brewery not found",
+            detail="No se encontró la cervecería",
         )
     return brewery
 
@@ -83,7 +83,7 @@ def update_brewery(
     if not brewery:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Brewery not found",
+            detail="No se encontró la cervecería",
         )
     return brewery
 
@@ -102,5 +102,5 @@ def delete_brewery(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Brewery not found",
+            detail="No se encontró la cervecería",
         )

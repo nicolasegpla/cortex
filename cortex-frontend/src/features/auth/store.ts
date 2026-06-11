@@ -112,7 +112,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     register: async (email: string, password: string, role: string = 'operativo') => {
         if (!supabaseClient) {
-            throw new Error('Supabase client not configured');
+            throw new Error('Supabase no está configurado');
         }
 
         const { data, error } = await supabaseClient.auth.signUp({

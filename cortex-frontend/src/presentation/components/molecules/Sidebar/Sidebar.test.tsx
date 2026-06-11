@@ -55,7 +55,7 @@ describe('Sidebar', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByRole('button', { name: /collapse sidebar/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /contraer barra lateral/i })).toBeInTheDocument();
     });
 
     it('should call toggle when collapse button is clicked', async () => {
@@ -68,7 +68,7 @@ describe('Sidebar', () => {
             </MemoryRouter>
         );
 
-        const toggleButton = screen.getByRole('button', { name: /collapse sidebar/i });
+        const toggleButton = screen.getByRole('button', { name: /contraer barra lateral/i });
         await user.click(toggleButton);
 
         expect(mockStore.toggle).toHaveBeenCalledTimes(1);
@@ -94,7 +94,7 @@ describe('Sidebar', () => {
             </MemoryRouter>
         );
 
-        const databasesLink = screen.getByRole('link', { name: /Databases/i });
+        const databasesLink = screen.getByRole('link', { name: /Bases de datos/i });
         expect(databasesLink).toHaveAttribute('aria-current', 'page');
     });
 
@@ -105,7 +105,7 @@ describe('Sidebar', () => {
             </MemoryRouter>
         );
 
-        const sessionsLink = screen.getByRole('link', { name: /Sessions/i });
+        const sessionsLink = screen.getByRole('link', { name: /Sesiones/i });
         expect(sessionsLink).not.toHaveAttribute('aria-current');
     });
 

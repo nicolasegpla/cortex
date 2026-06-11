@@ -38,7 +38,7 @@ export interface NavSection {
 
 export const navigationConfig: NavSection[] = [
     {
-        title: 'Workspace',
+        title: 'Espacio de trabajo',
         items: [
             {
                 label: 'Chat',
@@ -50,16 +50,16 @@ export const navigationConfig: NavSection[] = [
         ],
     },
     {
-        title: 'Data',
+        title: 'Datos',
         items: [
             {
-                label: 'Databases',
+                label: 'Bases de datos',
                 kind: NAV_ITEM_KIND.route,
                 to: '/databases',
                 icon: Database,
             },
             {
-                label: 'Sessions',
+                label: 'Sesiones',
                 kind: NAV_ITEM_KIND.route,
                 to: '/sessions',
                 icon: Sessions,
@@ -67,16 +67,16 @@ export const navigationConfig: NavSection[] = [
         ],
     },
     {
-        title: 'System',
+        title: 'Sistema',
         items: [
             {
-                label: 'Config',
+                label: 'Configuración',
                 kind: NAV_ITEM_KIND.action,
                 action: NAV_ITEM_ACTION.openConfig,
                 icon: Config,
             },
             {
-                label: 'Admin',
+                label: 'Administración',
                 kind: NAV_ITEM_KIND.route,
                 to: '/admin',
                 icon: Admin,

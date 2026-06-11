@@ -63,7 +63,7 @@ class TestJWTVerification:
             with pytest.raises(Exception) as exc_info:
                 verify_token("invalid-token")
 
-        assert "401" in str(exc_info.value) or "Invalid" in str(exc_info.value)
+        assert "401" in str(exc_info.value) or "inválidas" in str(exc_info.value)
 
     def test_verify_token_with_expired_token_raises_401(self) -> None:
         from app.core.security import verify_token
@@ -81,7 +81,7 @@ class TestJWTVerification:
             with pytest.raises(Exception) as exc_info:
                 verify_token("expired-token")
 
-        assert "401" in str(exc_info.value) or "Invalid" in str(exc_info.value)
+        assert "401" in str(exc_info.value) or "inválidas" in str(exc_info.value)
 
     def test_verify_token_with_missing_client_raises_401(self) -> None:
         from app.core.security import verify_token
@@ -133,7 +133,7 @@ class TestCurrentUserDependency:
         with pytest.raises(Exception) as exc_info:
             get_current_user(None)
 
-        assert "401" in str(exc_info.value) or "credentials" in str(exc_info.value)
+        assert "401" in str(exc_info.value) or "autenticación" in str(exc_info.value)
 
     def test_get_current_user_without_role_defaults_to_operativo(self) -> None:
         from app.core.security import User, get_current_user
@@ -187,7 +187,7 @@ class TestRequireRoleDependency:
         with pytest.raises(Exception) as exc_info:
             checker(user)
 
-        assert "403" in str(exc_info.value) or "permission" in str(exc_info.value)
+        assert "403" in str(exc_info.value) or "permisos" in str(exc_info.value)
 
     def test_require_role_with_multiple_allowed_roles_matches_any(self) -> None:
         from app.core.security import User, require_role

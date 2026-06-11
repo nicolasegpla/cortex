@@ -160,6 +160,7 @@ class TestProviderCredentialsRouter:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json()["detail"] == "No se encontró una credencial para el proveedor 'openai'"
 
     def test_test_credential_returns_200(self, client: TestClient, auth_token: str, mock_credential_service) -> None:
         """RED: POST /provider-credentials/test validates a credential."""

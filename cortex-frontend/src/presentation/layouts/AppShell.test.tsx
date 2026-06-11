@@ -106,13 +106,13 @@ describe('AppShell', () => {
                 <Routes>
                     <Route path="*" element={<AppShell />}>
                         <Route index element={<div>Chat</div>} />
-                        <Route path="databases" element={<div>Databases</div>} />
+                        <Route path="databases" element={<div>Bases de datos</div>} />
                     </Route>
                 </Routes>
             </MemoryRouter>
         );
 
-        const databasesLink = screen.getByRole('link', { name: /Databases/i });
+        const databasesLink = screen.getByRole('link', { name: /Bases de datos/i });
         expect(databasesLink).toHaveAttribute('aria-current', 'page');
     });
 

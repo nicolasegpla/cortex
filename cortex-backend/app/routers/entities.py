@@ -26,4 +26,4 @@ def update_entity(entity_id: str, payload: EntityUpdate) -> EntityResponse:
 @router.delete('/{entity_id}', status_code=status.HTTP_501_NOT_IMPLEMENTED)
 def delete_entity(entity_id: str) -> dict[str, str]:
     # TODO: delete entities in Supabase.
-    return {'detail': f'Entity {entity_id} not implemented'}
+    return {'detail': f'La entidad {entity_id} todavía no está implementada'}

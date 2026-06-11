@@ -1,12 +1,12 @@
 export function SessionsPage() {
     return (
         <section aria-labelledby="sessions-title" className="page-card">
-            <p className="page-card__eyebrow">Coming Soon</p>
+            <p className="page-card__eyebrow">Próximamente</p>
             <h2 id="sessions-title" className="page-card__title">
-                Sessions
+                Sesiones
             </h2>
             <p className="page-card__description">
-                Session management interface is under development.
+                La interfaz de gestión de sesiones está en desarrollo.
             </p>
         </section>
     );

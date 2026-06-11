@@ -41,7 +41,7 @@ def verify_token(token: str | None) -> dict:
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail="Credenciales de autenticación inválidas",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -51,7 +51,7 @@ def verify_token(token: str | None) -> dict:
     if not client:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Supabase client not configured",
+            detail="Supabase no está configurado",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -63,7 +63,7 @@ def verify_token(token: str | None) -> dict:
         if not user_response or not user_response.user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication credentials",
+                detail="Credenciales de autenticación inválidas",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
@@ -78,7 +78,7 @@ def verify_token(token: str | None) -> dict:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid authentication credentials: {exc}",
+            detail=f"Credenciales de autenticación inválidas: {exc}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -105,7 +105,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials: missing user ID",
+            detail="Credenciales de autenticación inválidas: falta el ID de usuario",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -126,7 +126,7 @@ def require_role(allowed_roles: list[str]):
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail="No tenés permisos suficientes",
             )
         return current_user
 

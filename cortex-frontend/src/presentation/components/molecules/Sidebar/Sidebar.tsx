@@ -15,7 +15,7 @@ export function Sidebar({ activeAction = null, onAction }: SidebarProps) {
     return (
         <aside
             className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}
-            aria-label="Main navigation"
+            aria-label="Navegación principal"
             data-testid="sidebar"
         >
             <div className="sidebar__header">
@@ -23,8 +23,8 @@ export function Sidebar({ activeAction = null, onAction }: SidebarProps) {
                     type="button"
                     onClick={toggle}
                     className="sidebar__toggle"
-                    aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                    title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                    aria-label={collapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
+                    title={collapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
                 >
                     <ChevronLeft
                         width={20}
@@ -34,7 +34,7 @@ export function Sidebar({ activeAction = null, onAction }: SidebarProps) {
                 </button>
             </div>
 
-            <nav className="sidebar__nav" aria-label="Main">
+            <nav className="sidebar__nav" aria-label="Principal">
                 {navigationConfig.map((section) => (
                     <NavSection key={section.title} section={section} activeAction={activeAction} onAction={onAction} />
                 ))}

@@ -100,7 +100,7 @@ class TestAuthEndpoints:
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["requires_confirmation"] is True
-        assert "check your email" in data["message"].lower()
+        assert "revisá tu email" in data["message"].lower()
 
     def test_register_duplicate_email_returns_409(self, client: TestClient) -> None:
         with patch("app.routers.auth.get_supabase_client") as mock_get_client:

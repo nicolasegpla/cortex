@@ -85,7 +85,7 @@ export const router = createBrowserRouter([
                 path: 'admin',
                 element: (
                     <RequireRole allowedRoles={['super_admin']}>
-                        <div>Admin Panel</div>
+                        <div>Panel de administración</div>
                     </RequireRole>
                 ),
             },

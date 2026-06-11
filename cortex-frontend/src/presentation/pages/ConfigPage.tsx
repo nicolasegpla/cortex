@@ -12,8 +12,8 @@ type ConfigTab = (typeof CONFIG_TAB)[keyof typeof CONFIG_TAB];
 
 const navSections = [
     {
-        heading: 'Features',
-        items: [{ label: 'Model providers', icon: Chat, tab: CONFIG_TAB.provider }],
+        heading: 'Funciones',
+        items: [{ label: 'Proveedores de modelos', icon: Chat, tab: CONFIG_TAB.provider }],
     },
 ] as const;
 
@@ -36,7 +36,7 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                 <button
                     type="button"
                     className="config-page__close"
-                    aria-label="Close settings"
+                    aria-label="Cerrar configuración"
                     onClick={onClose}
                 >
                     <X width={18} height={18} />
@@ -44,7 +44,7 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
             )}
 
             <div className="config-page__body">
-                <aside className="config-page__nav" aria-label="Settings sections">
+                <aside className="config-page__nav" aria-label="Secciones de configuración">
                     <div className="config-page__nav-groups">
                         {navSections.map((section) => (
                             <div key={section.heading} className="config-page__nav-group">
@@ -81,19 +81,19 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
 
                     <div className="config-page__nav-footer" aria-hidden="true">
                         <Chat className="config-page__nav-icon" width={16} height={16} />
-                        <span>Help & support</span>
+                        <span>Ayuda y soporte</span>
                     </div>
                 </aside>
 
                 <div className="config-page__content">
                     <div className="config-page__content-inner">
                         <header className="config-page__header">
-                            <p className="config-page__eyebrow">Settings</p>
+                            <p className="config-page__eyebrow">Configuración</p>
                             <h1 id="config-title" className="config-page__title">
-                                Model providers
+                                Proveedores de modelos
                             </h1>
                             <p className="config-page__description">
-                                Connect and manage the API keys Cortex uses to access your model providers.
+                                Conectá y administrá las API keys que Cortex usa para acceder a tus proveedores de modelos.
                             </p>
                         </header>
 

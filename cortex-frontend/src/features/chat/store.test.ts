@@ -37,6 +37,7 @@ describe('useChatStore', () => {
             error: null,
             activeProvider: 'openai',
             activeModel: 'gpt-4o',
+            hydrated: false,
         });
         vi.clearAllMocks();
     });
@@ -74,6 +75,25 @@ describe('useChatStore', () => {
                 messages: [{ role: 'user', content: 'Hi there' }],
                 provider: 'openai',
                 enable_tools: true,
+            });
+        });
+
+        it('should preserve multiline SSE payloads in a single event', async () => {
+            const sseChunks = [
+                'event: delta\ndata: Nombre: Cerveza A\ndata: Ciudad: Bogotá\ndata: Oportunidades: ninguna\n\n',
+                'event: done\ndata: \n\n',
+            ];
+
+            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('dame informacion de cerveceria 2');
+
+            const state = useChatStore.getState();
+            expect(state.messages).toHaveLength(2);
+            expect(state.messages[1]).toEqual({
+                role: 'assistant',
+                content: 'Nombre: Cerveza A\nCiudad: Bogotá\nOportunidades: ninguna',
             });
         });
 
@@ -264,6 +284,28 @@ describe('useChatStore', () => {
             const saved = JSON.parse(localStorage.getItem('cortex-chat-preferences') || '{}');
             expect(saved.state.activeProvider).toBe('deepseek');
             expect(saved.state.activeModel).toBe('deepseek-v4-pro');
+        });
+    });
+
+    describe('hydrate', () => {
+        it('should mark the store as hydrated and keep a valid selection', () => {
+            const { hydrate } = useChatStore.getState();
+
+            hydrate('deepseek', 'deepseek-v4-pro');
+
+            expect(useChatStore.getState().hydrated).toBe(true);
+            expect(useChatStore.getState().activeProvider).toBe('deepseek');
+            expect(useChatStore.getState().activeModel).toBe('deepseek-v4-pro');
+        });
+
+        it('should sanitize an invalid persisted model during hydration', () => {
+            const { hydrate } = useChatStore.getState();
+
+            hydrate('deepseek', 'gpt-4o');
+
+            expect(useChatStore.getState().hydrated).toBe(true);
+            expect(useChatStore.getState().activeProvider).toBe('deepseek');
+            expect(useChatStore.getState().activeModel).toBe('deepseek-v4-flash');
         });
     });
 

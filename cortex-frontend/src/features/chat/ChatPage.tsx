@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useChatStore, PROVIDER_MODELS } from './store';
 import { useCredentialsStore, type Provider } from './credentialsStore';
+import { MarkdownContent } from './MarkdownContent';
 
 import './ChatPage.scss';
 
@@ -19,6 +20,7 @@ export function ChatPage() {
         error,
         activeProvider,
         activeModel,
+        hydrated,
         sendMessage,
         abort,
         clearMessages,
@@ -49,10 +51,11 @@ export function ChatPage() {
     }, [fetchCredentials]);
 
     useEffect(() => {
+        if (!hydrated) return;
         if (validatedProviders.length === 0) return;
         if (validatedProviders.includes(activeProvider)) return;
         setActiveProvider(validatedProviders[0]);
-    }, [activeProvider, setActiveProvider, validatedProviders]);
+    }, [activeProvider, hydrated, setActiveProvider, validatedProviders]);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -94,7 +97,7 @@ export function ChatPage() {
                                 value={activeProvider}
                                 onChange={(e) => setActiveProvider(e.target.value as Provider)}
                                 className="chat-page__select"
-                                aria-label="Select provider"
+                                aria-label="Seleccionar proveedor"
                             >
                                 {validatedProviders.map((provider) => (
                                     <option key={provider} value={provider}>
@@ -106,7 +109,7 @@ export function ChatPage() {
                                 value={activeModel}
                                 onChange={(e) => setActiveModel(e.target.value)}
                                 className="chat-page__select"
-                                aria-label="Select model"
+                                aria-label="Seleccionar modelo"
                             >
                                 {PROVIDER_MODELS[activeProvider]?.map((model) => (
                                     <option key={model.id} value={model.id}>
@@ -122,8 +125,8 @@ export function ChatPage() {
                         <button
                             onClick={clearMessages}
                             className="chat-page__icon-btn"
-                            aria-label="Clear conversation"
-                            title="Clear conversation"
+                            aria-label="Limpiar conversación"
+                            title="Limpiar conversación"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14"/>
@@ -138,15 +141,15 @@ export function ChatPage() {
                 {!hasMessages ? (
                     /* Empty state */
                     <div className="chat-page__empty">
-                        <h1 className="chat-page__heading">What can I do for you?</h1>
+                        <h1 className="chat-page__heading">¿En qué te puedo ayudar?</h1>
 
                         {validatedProviders.length === 0 ? (
                             <p className="chat-page__hint">
-                                Configure a provider from the Config menu before starting a conversation.
+                                Configurá un proveedor desde Configuración antes de iniciar una conversación.
                             </p>
                         ) : (
                             <p className="chat-page__hint">
-                                Start a conversation by typing below.
+                                Empezá una conversación escribiendo abajo.
                             </p>
                         )}
                     </div>
@@ -163,10 +166,10 @@ export function ChatPage() {
                                 </div>
                                 <div className="chat-page__message-body">
                                     <div className="chat-page__message-role">
-                                        {msg.role === 'user' ? 'You' : 'Assistant'}
+                                        {msg.role === 'user' ? 'Vos' : 'Asistente'}
                                     </div>
                                     <div className="chat-page__message-content">
-                                        {msg.content || '\u00A0'}
+                                        <MarkdownContent content={msg.content} role={msg.role as 'user' | 'assistant'} />
                                     </div>
                                 </div>
                             </div>
@@ -186,8 +189,8 @@ export function ChatPage() {
                         onKeyDown={handleKeyDown}
                         placeholder={
                             validatedProviders.length === 0
-                                ? 'Configure a provider in Config to start chatting'
-                                : 'Assign a task or ask anything'
+                                ? 'Configurá un proveedor en Configuración para empezar a chatear'
+                                : 'Asigná una tarea o preguntá lo que necesites'
                         }
                         rows={1}
                         disabled={isLoading || validatedProviders.length === 0}
@@ -198,8 +201,8 @@ export function ChatPage() {
                             <button
                                 onClick={abort}
                                 className="chat-page__stop-btn"
-                                title="Stop generating"
-                                aria-label="Stop generating"
+                                title="Detener generación"
+                                aria-label="Detener generación"
                             >
                                 <div className="chat-page__stop-icon" />
                             </button>
@@ -208,8 +211,8 @@ export function ChatPage() {
                                 onClick={() => handleSubmit()}
                                 disabled={!input.trim() || validatedProviders.length === 0}
                                 className="chat-page__send-btn"
-                                title="Send message"
-                                aria-label="Send message"
+                                title="Enviar mensaje"
+                                aria-label="Enviar mensaje"
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="22" y1="2" x2="11" y2="13"/>

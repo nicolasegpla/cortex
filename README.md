@@ -18,7 +18,7 @@ Phase 1 intentionally includes only the reusable base needed to start the first 
 - React 19 + Vite + TypeScript + SCSS frontend shell
 - FastAPI modular monolith backend shell
 - External Supabase integration points for auth, data, and storage
-- Server-side chat tool execution for approved read-only brewery queries
+- Backend-first read-only chat orchestration with SQL generation + NL synthesis
 - Strict TDD setup for frontend and backend
 - Docker development workflow with dedicated images
 
@@ -36,10 +36,16 @@ Phase 1 intentionally includes only the reusable base needed to start the first 
 | Frontend | React 19, Vite, TypeScript, SCSS, pnpm |
 | Backend | FastAPI modular monolith |
 | Data platform | Supabase Cloud |
-| Chat DB access | Server-side whitelisted tools, read-only, breweries only today |
+| Chat DB access | Backend-first read-only SQL orchestration across domain tables |
 | Package manager | pnpm for frontend |
 | Testing rule | Strict TDD |
 | Local orchestration | Docker Compose |
+
+## Possible future improvements
+
+- Harden global multi-table search by moving from prompt-only `UNION ALL` guidance to backend-built deterministic SQL with a fixed common projection.
+- Use one shared cross-table result contract for global search, for example: `source`, `record_id`, `display_name`, `city`, `country`, `contact_name`, `phone`, `email`, `search_text`.
+- Keep the LLM focused on intent interpretation and final response synthesis while the backend assembles the safest possible global-search query.
 
 ## Strict TDD
 

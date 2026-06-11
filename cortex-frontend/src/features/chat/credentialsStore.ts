@@ -44,7 +44,7 @@ export const useCredentialsStore = create<CredentialsState>((set, get) => ({
             }
             set({ providers, isLoading: false });
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to fetch credentials';
+            const message = err instanceof Error ? err.message : 'No se pudieron obtener las credenciales';
             set({ error: message, isLoading: false });
         }
     },
@@ -62,7 +62,7 @@ export const useCredentialsStore = create<CredentialsState>((set, get) => ({
                 isLoading: false,
             }));
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to save credential';
+            const message = err instanceof Error ? err.message : 'No se pudo guardar la credencial';
             set({ error: message, isLoading: false });
         }
     },
@@ -77,7 +77,7 @@ export const useCredentialsStore = create<CredentialsState>((set, get) => ({
                 return { providers: next, isLoading: false };
             });
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to delete credential';
+            const message = err instanceof Error ? err.message : 'No se pudo eliminar la credencial';
             set({ error: message, isLoading: false });
         }
     },

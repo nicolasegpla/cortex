@@ -55,11 +55,11 @@ describe('LoginPage', () => {
             </BrowserRouter>
         );
 
-        expect(screen.getByRole('heading', { name: /sign in to cortex/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /iniciá sesión en cortex/i })).toBeInTheDocument();
         expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument();
-        expect(screen.getByText(/enter your credentials to access the brewery management system/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /continuar/i })).toBeInTheDocument();
+        expect(screen.getByText(/ingresá tus credenciales para acceder al sistema de gestión cervecera/i)).toBeInTheDocument();
     });
 
     it('should toggle to registration mode', async () => {
@@ -69,15 +69,15 @@ describe('LoginPage', () => {
             </BrowserRouter>
         );
 
-        expect(screen.getByRole('heading', { name: /sign in to cortex/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /iniciá sesión en cortex/i })).toBeInTheDocument();
 
-        const toggleButton = screen.getByRole('button', { name: /create account/i });
+        const toggleButton = screen.getByRole('button', { name: /^crear cuenta$/i });
         await user.click(toggleButton);
 
-        expect(screen.getByRole('heading', { name: /create account/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /^crear cuenta$/i })).toBeInTheDocument();
         expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /sign up/i })).toBeInTheDocument();
+        expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^crear cuenta$/i })).toBeInTheDocument();
     });
 
     it('should login successfully and redirect', async () => {
@@ -96,8 +96,8 @@ describe('LoginPage', () => {
         );
 
         const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/password/i);
-        const submitButton = screen.getByRole('button', { name: /continue/i });
+        const passwordInput = screen.getByLabelText(/contraseña/i);
+        const submitButton = screen.getByRole('button', { name: /continuar/i });
 
         await user.type(emailInput, 'test@example.com');
         await user.type(passwordInput, 'password123');
@@ -128,15 +128,15 @@ describe('LoginPage', () => {
         );
 
         const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/password/i);
-        const submitButton = screen.getByRole('button', { name: /continue/i });
+        const passwordInput = screen.getByLabelText(/contraseña/i);
+        const submitButton = screen.getByRole('button', { name: /continuar/i });
 
         await user.type(emailInput, 'wrong@example.com');
         await user.type(passwordInput, 'wrongpass');
         await user.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByRole('alert')).toHaveTextContent('Invalid login credentials');
+            expect(screen.getByRole('alert')).toHaveTextContent('Email o contraseña incorrectos.');
         });
     });
 
@@ -156,11 +156,11 @@ describe('LoginPage', () => {
         );
 
         // Toggle to register mode
-        await user.click(screen.getByRole('button', { name: /create account/i }));
+        await user.click(screen.getByRole('button', { name: /^crear cuenta$/i }));
 
         const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/password/i);
-        const submitButton = screen.getByRole('button', { name: /sign up/i });
+        const passwordInput = screen.getByLabelText(/contraseña/i);
+        const submitButton = screen.getByRole('button', { name: /^crear cuenta$/i });
 
         await user.type(emailInput, 'new@example.com');
         await user.type(passwordInput, 'password123');
@@ -175,7 +175,7 @@ describe('LoginPage', () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText(/check your email to confirm your account/i)).toBeInTheDocument();
+            expect(screen.getByText(/revisá tu email para confirmar tu cuenta/i)).toBeInTheDocument();
         });
     });
 
@@ -195,11 +195,11 @@ describe('LoginPage', () => {
         );
 
         // Toggle to register mode
-        await user.click(screen.getByRole('button', { name: /create account/i }));
+        await user.click(screen.getByRole('button', { name: /^crear cuenta$/i }));
 
         const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/password/i);
-        const submitButton = screen.getByRole('button', { name: /sign up/i });
+        const passwordInput = screen.getByLabelText(/contraseña/i);
+        const submitButton = screen.getByRole('button', { name: /^crear cuenta$/i });
 
         await user.type(emailInput, 'new@example.com');
         await user.type(passwordInput, 'password123');

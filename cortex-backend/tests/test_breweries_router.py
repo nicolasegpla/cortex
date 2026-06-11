@@ -154,6 +154,7 @@ class TestBreweriesRouter:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json()["detail"] == "No se encontró la cervecería"
 
     def test_update_brewery_returns_200(self, client: TestClient, admin_token: str, sample_brewery_id: UUID, sample_brewery: dict, monkeypatch) -> None:
         def mock_update(_self, brewery_id, payload):
@@ -187,6 +188,7 @@ class TestBreweriesRouter:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json()["detail"] == "No se encontró la cervecería"
 
     def test_delete_brewery_returns_204(self, client: TestClient, admin_token: str, monkeypatch) -> None:
         monkeypatch.setattr(
@@ -211,6 +213,7 @@ class TestBreweriesRouter:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json()["detail"] == "No se encontró la cervecería"
 
     def test_create_brewery_without_auth_returns_401(self, client: TestClient) -> None:
         response = client.post("/breweries", json={"nombre_cerveceria": "Test"})

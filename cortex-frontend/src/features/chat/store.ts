@@ -50,6 +50,7 @@ interface ChatState {
     error: string | null;
     activeProvider: Provider;
     activeModel: string;
+    hydrated: boolean;
     _abortController: AbortController | null;
 
     sendMessage: (text: string) => Promise<void>;
@@ -57,6 +58,7 @@ interface ChatState {
     clearMessages: () => void;
     setActiveProvider: (provider: Provider) => void;
     setActiveModel: (model: string) => void;
+    hydrate: (provider: Provider, model: string) => void;
     clearError: () => void;
 }
 
@@ -82,7 +84,7 @@ async function* readSSEChunks(stream: ReadableStream<Uint8Array>): AsyncGenerato
                 if (line.startsWith('event: ')) {
                     currentEvent = line.slice(7);
                 } else if (line.startsWith('data: ')) {
-                    currentData = line.slice(6);
+                    currentData += `${currentData ? '\n' : ''}${line.slice(6)}`;
                 } else if (line === '' && currentEvent) {
                     yield { event: currentEvent, data: currentData };
                     currentEvent = '';
@@ -100,7 +102,7 @@ async function* readSSEChunks(stream: ReadableStream<Uint8Array>): AsyncGenerato
                 if (line.startsWith('event: ')) {
                     currentEvent = line.slice(7);
                 } else if (line.startsWith('data: ')) {
-                    currentData = line.slice(6);
+                    currentData += `${currentData ? '\n' : ''}${line.slice(6)}`;
                 } else if (line === '' && currentEvent) {
                     yield { event: currentEvent, data: currentData };
                 }
@@ -127,6 +129,7 @@ export const useChatStore = create<ChatState>()(
         error: null,
         activeProvider: 'openai',
         activeModel: DEFAULT_MODELS['openai'],
+        hydrated: false,
         _abortController: null,
 
         sendMessage: async (text) => {
@@ -165,7 +168,7 @@ export const useChatStore = create<ChatState>()(
                         });
                     } else if (chunk.event === 'error') {
                         set({
-                            error: chunk.data || 'Streaming error',
+                            error: chunk.data || 'Error de streaming',
                             isLoading: false,
                             messages: [
                                 ...messages,
@@ -186,7 +189,7 @@ export const useChatStore = create<ChatState>()(
                     ],
                 });
             } catch (err) {
-                const message = err instanceof Error ? err.message : 'Failed to send message';
+                const message = err instanceof Error ? err.message : 'No se pudo enviar el mensaje';
                 set({
                     error: message,
                     isLoading: false,
@@ -226,6 +229,15 @@ export const useChatStore = create<ChatState>()(
 
         setActiveModel: (model) => set({ activeModel: model }),
 
+        hydrate: (provider, model) => {
+            const selection = sanitizePersistedSelection(provider, model);
+            set({
+                activeProvider: selection.activeProvider,
+                activeModel: selection.activeModel,
+                hydrated: true,
+            });
+        },
+
         clearError: () => set({ error: null }),
     }), {
         name: 'cortex-chat-preferences',
@@ -236,9 +248,7 @@ export const useChatStore = create<ChatState>()(
         onRehydrateStorage: () => (state) => {
             if (!state) return;
 
-            const selection = sanitizePersistedSelection(state.activeProvider, state.activeModel);
-            state.activeProvider = selection.activeProvider;
-            state.activeModel = selection.activeModel;
+            state.hydrate(state.activeProvider, state.activeModel);
         },
     })
 );
