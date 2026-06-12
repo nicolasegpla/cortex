@@ -124,6 +124,7 @@ export function AnimalFeedProducerList() {
                                         <td>{producer.oportunidades || '-'}</td>
                                         <td>
                                             <div className="animal-feed-producer-list__actions">
+                                                <button className="animal-feed-producer-list__edit-button">Editar</button>
                                                 <button
                                                     className="animal-feed-producer-list__delete-button"
                                                     onClick={() => handleDelete(producer.id)}
