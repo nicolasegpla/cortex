@@ -53,15 +53,6 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                                     {section.items.map((item) => {
                                         const Icon = item.icon;
 
-                                        if (item.placeholder) {
-                                            return (
-                                                <div key={item.label} className="config-page__nav-item config-page__nav-item--placeholder" aria-hidden="true">
-                                                    <Icon className="config-page__nav-icon" width={16} height={16} />
-                                                    <span>{item.label}</span>
-                                                </div>
-                                            );
-                                        }
-
                                         return (
                                             <button
                                                 key={item.label}

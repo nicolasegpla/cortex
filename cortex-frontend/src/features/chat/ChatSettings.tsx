@@ -30,7 +30,7 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
     const { setActiveProvider, setActiveModel } = useChatStore();
 
     const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-    const [apiKeys, setApiKeys] = useState<Record<Provider, string>>({});
+    const [apiKeys, setApiKeys] = useState<Partial<Record<Provider, string>>>({});
 
     useEffect(() => {
         fetchCredentials();

@@ -12,7 +12,7 @@ export interface CredentialInfo {
 }
 
 interface CredentialsState {
-    providers: Record<Provider, CredentialInfo | undefined>;
+    providers: Partial<Record<Provider, CredentialInfo>>;
     isLoading: boolean;
     error: string | null;
 
@@ -33,7 +33,7 @@ export const useCredentialsStore = create<CredentialsState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const credentials = await apiClient.get<Array<{ id: string; provider: Provider; label: string | null; validated_at: string | null }>>('/provider-credentials');
-            const providers: Record<Provider, CredentialInfo | undefined> = {};
+            const providers: Partial<Record<Provider, CredentialInfo>> = {};
             for (const cred of credentials) {
                 providers[cred.provider] = {
                     id: cred.id,
