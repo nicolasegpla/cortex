@@ -36,4 +36,18 @@ describe('DatabasesPage', () => {
         expect(within(animalFeedCard).queryByText('Próximamente')).not.toBeInTheDocument();
         expect(within(animalFeedCard).getByText('Ver tabla →')).toBeInTheDocument();
     });
+
+    it('renders the wine-producers database card as active and routes to /wine-producers', () => {
+        render(
+            <MemoryRouter>
+                <DatabasesPage />
+            </MemoryRouter>
+        );
+
+        const wineCard = screen.getByRole('link', { name: /Productores de vino/i });
+        expect(wineCard).toBeInTheDocument();
+        expect(wineCard).toHaveAttribute('href', '/wine-producers');
+        expect(within(wineCard).queryByText('Próximamente')).not.toBeInTheDocument();
+        expect(within(wineCard).getByText('Ver tabla →')).toBeInTheDocument();
+    });
 });

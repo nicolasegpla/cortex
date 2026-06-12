@@ -38,6 +38,12 @@ describe('WineProducerCreate', () => {
         expect(screen.getByRole('button', { name: 'Crear Productor' })).toBeInTheDocument();
     });
 
+    it('marks nombre_comercial as required via HTML5 validation', () => {
+        render(<WineProducerCreate />);
+
+        expect(screen.getByLabelText(/Nombre Comercial/i)).toBeRequired();
+    });
+
     it('submits a normalized payload and redirects on success', async () => {
         const user = userEvent.setup();
         const fetchSpy = vi.fn().mockResolvedValue(
