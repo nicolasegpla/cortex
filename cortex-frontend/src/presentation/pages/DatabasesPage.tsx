@@ -34,7 +34,7 @@ const databases: DatabaseCard[] = [
         description: 'Vinícolas y productores de vino',
         count: null,
         route: '/wine-producers',
-        status: 'coming-soon',
+        status: 'active',
     },
     {
         id: 'animal-feed',
