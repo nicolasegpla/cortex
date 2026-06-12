@@ -75,9 +75,9 @@ describe('ChatPage', () => {
     it('should render chat interface', () => {
         renderChatPage();
 
-        expect(screen.getByText('What can I do for you?')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Configure a provider in Config to start chatting')).toBeInTheDocument();
-        expect(screen.getByLabelText('Send message')).toBeInTheDocument();
+        expect(screen.getByText('¿En qué te puedo ayudar?')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Configurá un proveedor en Configuración para empezar a chatear')).toBeInTheDocument();
+        expect(screen.getByLabelText('Enviar mensaje')).toBeInTheDocument();
     });
 
     it('should fetch credentials on mount', () => {
@@ -207,10 +207,10 @@ describe('ChatPage', () => {
 
         renderChatPage();
 
-        const inputs = screen.getAllByPlaceholderText('Assign a task or ask anything');
+        const inputs = screen.getAllByPlaceholderText('Asigná una tarea o preguntá lo que necesites');
         await user.type(inputs[0], 'Test message');
 
-        const sendButtons = screen.getAllByLabelText('Send message');
+        const sendButtons = screen.getAllByLabelText('Enviar mensaje');
         await user.click(sendButtons[0]);
 
         await waitFor(() => {
@@ -237,7 +237,7 @@ describe('ChatPage', () => {
 
         renderChatPage();
 
-        expect(screen.getByLabelText('Stop generating')).toBeInTheDocument();
+        expect(screen.getByLabelText('Detener generación')).toBeInTheDocument();
     });
 
     it('should call abort on stop button', async () => {
@@ -260,7 +260,7 @@ describe('ChatPage', () => {
 
         renderChatPage();
 
-        const stopButtons = screen.getAllByLabelText('Stop generating');
+        const stopButtons = screen.getAllByLabelText('Detener generación');
         await user.click(stopButtons[0]);
 
         expect(mockAbort).toHaveBeenCalled();
@@ -321,8 +321,8 @@ describe('ChatPage', () => {
 
         renderChatPage();
 
-        expect(screen.getAllByLabelText('Select provider')[0]).toBeInTheDocument();
-        expect(screen.getAllByLabelText('Select model')[0]).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Seleccionar proveedor')[0]).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Seleccionar modelo')[0]).toBeInTheDocument();
     });
 
     it('should switch to first validated provider when active provider is unavailable', () => {
@@ -383,7 +383,7 @@ describe('ChatPage', () => {
     it('should direct users to config when no credentials are available', () => {
         renderChatPage();
 
-        expect(screen.getByText('Configure a provider from the Config menu before starting a conversation.')).toBeInTheDocument();
+        expect(screen.getByText('Configurá un proveedor desde Configuración antes de iniciar una conversación.')).toBeInTheDocument();
         expect(screen.queryByRole('link', { name: /open config/i })).not.toBeInTheDocument();
     });
 });

@@ -82,7 +82,7 @@ describe('ChatSettings', () => {
 
         render(<ChatSettings />);
 
-        const summaryHeading = screen.getByRole('heading', { name: 'Connected providers' });
+        const summaryHeading = screen.getByRole('heading', { name: 'Proveedores conectados' });
         expect(summaryHeading).toBeInTheDocument();
 
         const summary = summaryHeading.closest('.chat-settings__summary');
@@ -99,7 +99,7 @@ describe('ChatSettings', () => {
 
         const dialog = screen.getByRole('dialog', { name: 'Anthropic' });
         expect(within(dialog).getByLabelText('API key')).toBeInTheDocument();
-        expect(within(dialog).getByRole('button', { name: 'Save' })).toBeInTheDocument();
+        expect(within(dialog).getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
     });
 
     it('should allow saving a credential', async () => {
@@ -114,7 +114,7 @@ describe('ChatSettings', () => {
         const apiKeyInput = within(dialog).getByLabelText('API key');
         await user.type(apiKeyInput, 'sk-test-key-123');
 
-        const saveButton = within(dialog).getByRole('button', { name: 'Save' });
+        const saveButton = within(dialog).getByRole('button', { name: 'Guardar' });
         await user.click(saveButton);
 
         await waitFor(() => {
@@ -157,6 +157,6 @@ describe('ChatSettings', () => {
 
         render(<ChatSettings />);
 
-        expect(screen.getByText('Loading...')).toBeInTheDocument();
+        expect(screen.getByText('Cargando...')).toBeInTheDocument();
     });
 });

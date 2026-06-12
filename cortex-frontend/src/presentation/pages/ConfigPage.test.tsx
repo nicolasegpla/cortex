@@ -33,14 +33,14 @@ describe('ConfigPage', () => {
     it('should render provider credential management on the config route', () => {
         render(<ConfigPage />);
 
-        expect(screen.getByText('Features')).toBeInTheDocument();
-        expect(screen.getByText('Help & support')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Model providers' })).toBeInTheDocument();
-        expect(screen.queryByText('Profile')).not.toBeInTheDocument();
-        expect(screen.queryByText('Preferences')).not.toBeInTheDocument();
-        expect(screen.queryByText('Data sources')).not.toBeInTheDocument();
-        expect(screen.getByText('Settings')).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Model providers' })).toBeInTheDocument();
-        expect(screen.getByText('Connect and manage the API keys Cortex uses to access your model providers.')).toBeInTheDocument();
+        expect(screen.getByText('Funciones')).toBeInTheDocument();
+        expect(screen.getByText('Ayuda y soporte')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Proveedores de modelos' })).toBeInTheDocument();
+        expect(screen.queryByText('Perfil')).not.toBeInTheDocument();
+        expect(screen.queryByText('Preferencias')).not.toBeInTheDocument();
+        expect(screen.queryByText('Fuentes de datos')).not.toBeInTheDocument();
+        expect(screen.getByText('Configuración')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Proveedores de modelos' })).toBeInTheDocument();
+        expect(screen.getByText('Conectá y administrá las API keys que Cortex usa para acceder a tus proveedores de modelos.')).toBeInTheDocument();
     });
 });
