@@ -42,7 +42,7 @@ const databases: DatabaseCard[] = [
         description: 'Productores de piensos y alimentos para animales',
         count: null,
         route: '/animal-feed-producers',
-        status: 'coming-soon',
+        status: 'active',
     },
 ];
 

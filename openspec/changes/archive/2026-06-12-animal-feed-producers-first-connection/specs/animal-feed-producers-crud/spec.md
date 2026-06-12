@@ -1,0 +1,73 @@
+# animal-feed-producers-crud Specification
+
+## Purpose
+
+Provide the first manual connection for `animal_feed_producers`, aligned with the coffee-farms first-connection slice: authenticated backend CRUD plus frontend list/create access. Advanced parity remains deferred.
+
+## Requirements
+
+### Requirement: Authenticated animal feed producer CRUD API
+
+The system MUST expose authenticated `POST /animal-feed-producers`, `GET /animal-feed-producers`, `GET /animal-feed-producers/{id}`, `PUT /animal-feed-producers/{id}`, and `DELETE /animal-feed-producers/{id}` operations backed by `public.animal_feed_producers`. Delete access SHALL reuse the existing privileged delete guard pattern already used by manual CRUD routers.
+
+#### Scenario: Create and retrieve a producer
+- GIVEN an authenticated user and a valid producer payload
+- WHEN the user creates a record and requests it by id
+- THEN the API returns `201 Created` and `200 OK`
+- AND the record includes persisted id and timestamps
+
+#### Scenario: Non-privileged delete is rejected
+- GIVEN an authenticated user without the privileged delete role
+- WHEN the user deletes an existing producer
+- THEN the API returns `403 Forbidden`
+
+### Requirement: Animal feed producer schema MUST match the existing migration
+
+The system MUST require `razon_social`, support nullable text fields for the remaining columns, accept `especies_manejadas` and `productos_fabricados` as text arrays, and return `created_at` and `updated_at`. The system SHALL NOT require enum-style validation for free-text columns that have no DB constraint.
+
+#### Scenario: Valid text arrays are accepted
+- GIVEN a payload with `razon_social` and comma-derived array values
+- WHEN the payload is submitted to create or update a producer
+- THEN the API accepts the payload and returns the stored arrays
+
+#### Scenario: Missing required business name is rejected
+- GIVEN a payload without `razon_social`
+- WHEN the client submits the payload
+- THEN the API returns a validation error and does not persist the record
+
+### Requirement: Manual animal feed producer list access
+
+The system MUST expose an authenticated `/animal-feed-producers` page and mark the animal-feed card as active from the databases page. The list page MUST load records from the API and handle empty and failed loads.
+
+#### Scenario: Active database card opens the list page
+- GIVEN an authenticated user on the databases page
+- WHEN the user selects “Alimentos para animales”
+- THEN the card behaves as an active link to `/animal-feed-producers`
+
+#### Scenario: Empty or failed load surfaces usable feedback
+- GIVEN the list page requests producer data
+- WHEN the API returns no rows or the request fails
+- THEN the page shows an empty state or an error state instead of a broken table
+
+### Requirement: Manual animal feed producer creation flow
+
+The system MUST expose an authenticated `/animal-feed-producers/new` form for the initial manual slice. The form MUST require `razon_social`, normalize comma-separated values for `especies_manejadas` and `productos_fabricados`, submit supported fields to the API, and redirect to `/animal-feed-producers` after successful creation.
+
+#### Scenario: Successful create redirects to list
+- GIVEN an authenticated user completes a valid form
+- WHEN the user submits the producer form
+- THEN the frontend sends a create request and redirects to `/animal-feed-producers` on success
+
+#### Scenario: Create failure keeps the user on the form
+- GIVEN the create request fails
+- WHEN the user submits the producer form
+- THEN the page shows an error message and preserves the workflow on `/animal-feed-producers/new`
+
+### Requirement: Advanced parity remains deferred for the first connection
+
+The system MAY defer `search`, `inspect`, `count`, and a dedicated edit UI in this first connection, and verification for this change SHALL NOT require those capabilities.
+
+#### Scenario: Acceptance excludes deferred flows
+- GIVEN the first animal feed producer connection is under review
+- WHEN completion is evaluated for this change
+- THEN CRUD API, list access, create flow, routing, and card activation are sufficient for acceptance

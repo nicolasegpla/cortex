@@ -12,6 +12,7 @@ import { BreweryList } from '@/features/breweries/BreweryList';
 import { BreweryCreate } from '@/features/breweries/BreweryCreate';
 import { CoffeeFarmList, CoffeeFarmCreate } from '@/features/coffee-farms';
 import { ChatPage } from '@/features/chat/ChatPage';
+import { AnimalFeedProducerList, AnimalFeedProducerCreate } from '@/features/animal-feed-producers';
 
 export const router = createBrowserRouter([
     {
@@ -71,6 +72,22 @@ export const router = createBrowserRouter([
                 element: (
                     <ProtectedRoute>
                         <CoffeeFarmCreate />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'animal-feed-producers',
+                element: (
+                    <ProtectedRoute>
+                        <AnimalFeedProducerList />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'animal-feed-producers/new',
+                element: (
+                    <ProtectedRoute>
+                        <AnimalFeedProducerCreate />
                     </ProtectedRoute>
                 ),
             },
