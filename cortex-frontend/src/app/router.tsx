@@ -10,6 +10,7 @@ import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { RequireRole } from '@/features/auth/RequireRole';
 import { BreweryList } from '@/features/breweries/BreweryList';
 import { BreweryCreate } from '@/features/breweries/BreweryCreate';
+import { CoffeeFarmList, CoffeeFarmCreate } from '@/features/coffee-farms';
 import { ChatPage } from '@/features/chat/ChatPage';
 
 export const router = createBrowserRouter([
@@ -54,6 +55,22 @@ export const router = createBrowserRouter([
                 element: (
                     <ProtectedRoute>
                         <BreweryCreate />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'coffee-farms',
+                element: (
+                    <ProtectedRoute>
+                        <CoffeeFarmList />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'coffee-farms/new',
+                element: (
+                    <ProtectedRoute>
+                        <CoffeeFarmCreate />
                     </ProtectedRoute>
                 ),
             },

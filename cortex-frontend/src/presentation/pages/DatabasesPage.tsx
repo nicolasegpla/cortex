@@ -26,7 +26,7 @@ const databases: DatabaseCard[] = [
         description: 'Fincas de café y productores',
         count: null,
         route: '/coffee-farms',
-        status: 'coming-soon',
+        status: 'active',
     },
     {
         id: 'wine-producers',
