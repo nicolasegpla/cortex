@@ -1,12 +1,17 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Input } from '@/presentation/components/atoms';
-import { parseArray } from '@/shared/arrayUtils';
+import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { apiClient } from '@/services/api/client';
 
-export function CoffeeFarmCreate() {
+import type { CoffeeFarm } from './CoffeeFarmList';
+
+export function CoffeeFarmEdit() {
+    const { id } = useParams();
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
@@ -40,6 +45,27 @@ export function CoffeeFarmCreate() {
         oportunidades: '',
     });
 
+    useEffect(() => {
+        const loadFarm = async () => {
+            if (!id) {
+                setNotFound(true);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const farm = await apiClient.get<CoffeeFarm>(`/coffee-farms/${id}`);
+                setFormData(transformForForm(farm));
+            } catch (err) {
+                setNotFound(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadFarm();
+    }, [id]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -47,6 +73,8 @@ export function CoffeeFarmCreate() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!id) return;
+
         setError('');
         setSaving(true);
 
@@ -61,18 +89,32 @@ export function CoffeeFarmCreate() {
                 puntaje_cafe: formData.puntaje_cafe || null,
             };
 
-            await apiClient.post('/coffee-farms', payload);
+            await apiClient.put(`/coffee-farms/${id}`, payload);
             navigate('/coffee-farms');
         } catch (err) {
-            setError('Error al crear la finca de café');
+            setError('Error al guardar los cambios');
         } finally {
             setSaving(false);
         }
     };
 
+    if (loading) {
+        return <div className="coffee-farm-edit">Cargando finca de café...</div>;
+    }
+
+    if (notFound) {
+        return (
+            <div className="coffee-farm-edit">
+                <h2>Registro no encontrado</h2>
+                <p>La finca de café solicitada no existe o no está disponible.</p>
+                <Link to="/coffee-farms">Volver a fincas de café</Link>
+            </div>
+        );
+    }
+
     return (
-        <div className="coffee-farm-create">
-            <h2>Crear Finca de Café</h2>
+        <div className="coffee-farm-edit">
+            <h2>Editar Finca de Café</h2>
 
             {error && (
                 <div className="error" role="alert">{error}</div>
@@ -280,9 +322,36 @@ export function CoffeeFarmCreate() {
                 </fieldset>
 
                 <Button type="submit" disabled={saving}>
-                    {saving ? 'Creando...' : 'Crear Finca de Café'}
+                    {saving ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
             </form>
         </div>
     );
+}
+
+function transformForForm(farm: CoffeeFarm) {
+    return {
+        nombre_finca: farm.nombre_finca ?? '',
+        razon_social: farm.razon_social ?? '',
+        nit: farm.nit ?? '',
+        marca: farm.marca ?? '',
+        direccion: farm.direccion ?? '',
+        departamento: farm.departamento ?? '',
+        ciudad: farm.ciudad ?? '',
+        pais: farm.pais ?? '',
+        nombre_contacto: farm.nombre_contacto ?? '',
+        celular: farm.celular ?? '',
+        correo: farm.correo ?? '',
+        tipo_actividad: farm.tipo_actividad ?? '',
+        hectareas_totales: farm.hectareas_totales ?? '',
+        hectareas_cafe: farm.hectareas_cafe ?? '',
+        numero_arboles: farm.numero_arboles != null ? String(farm.numero_arboles) : '',
+        variedades_sembradas: joinArray(farm.variedades_sembradas),
+        tipo_proceso: farm.tipo_proceso ?? '',
+        puntaje_cafe: farm.puntaje_cafe ?? '',
+        nivel_tecnificacion: farm.nivel_tecnificacion ?? '',
+        equipos: joinArray(farm.equipos),
+        observaciones: farm.observaciones ?? '',
+        oportunidades: farm.oportunidades ?? '',
+    };
 }

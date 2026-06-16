@@ -118,6 +118,30 @@ describe('CoffeeFarmList', () => {
         });
     });
 
+    it('renders an edit link for each coffee farm', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        const editLinks = screen.getAllByRole('link', { name: 'Editar' });
+        expect(editLinks).toHaveLength(2);
+        expect(editLinks[0]).toHaveAttribute('href', '/coffee-farms/farm-1/edit');
+        expect(editLinks[1]).toHaveAttribute('href', '/coffee-farms/farm-2/edit');
+    });
+
     it('removes a coffee farm after confirming deletion', async () => {
         const user = userEvent.setup();
         vi.spyOn(window, 'confirm').mockReturnValue(true);
