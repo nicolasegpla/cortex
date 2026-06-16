@@ -1,12 +1,17 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Input } from '@/presentation/components/atoms';
-import { parseArray } from '@/shared/arrayUtils';
+import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { apiClient } from '@/services/api/client';
 
-export function BreweryCreate() {
+import type { Brewery } from './BreweryList';
+
+export function BreweryEdit() {
+    const { id } = useParams();
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
@@ -46,9 +51,30 @@ export function BreweryCreate() {
         oportunidades: '',
     });
 
+    useEffect(() => {
+        const loadBrewery = async () => {
+            if (!id) {
+                setNotFound(true);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const brewery = await apiClient.get<Brewery>(`/breweries/${id}`);
+                setFormData(transformForForm(brewery));
+            } catch (err) {
+                setNotFound(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadBrewery();
+    }, [id]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
-        
+
         if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked;
             setFormData((prev) => ({ ...prev, [name]: checked }));
@@ -59,6 +85,8 @@ export function BreweryCreate() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!id) return;
+
         setError('');
         setSaving(true);
 
@@ -72,19 +100,33 @@ export function BreweryCreate() {
                 formatos_venta: parseArray(formData.formatos_venta),
                 litros_mes: formData.litros_mes ? parseInt(formData.litros_mes, 10) : null,
             };
-            
-            await apiClient.post('/breweries', payload);
+
+            await apiClient.put(`/breweries/${id}`, payload);
             navigate('/breweries');
         } catch (err) {
-            setError('Error al crear la cervecería');
+            setError('Error al guardar los cambios');
         } finally {
             setSaving(false);
         }
     };
 
+    if (loading) {
+        return <div className="brewery-edit">Cargando cervecería...</div>;
+    }
+
+    if (notFound) {
+        return (
+            <div className="brewery-edit">
+                <h2>Registro no encontrado</h2>
+                <p>La cervecería solicitada no existe o no está disponible.</p>
+                <Link to="/breweries">Volver a cervecerías</Link>
+            </div>
+        );
+    }
+
     return (
-        <div className="brewery-create">
-            <h2>Crear Cervecería</h2>
+        <div className="brewery-edit">
+            <h2>Editar Cervecería</h2>
 
             {error && (
                 <div className="error" role="alert">{error}</div>
@@ -309,9 +351,40 @@ export function BreweryCreate() {
                 </fieldset>
 
                 <Button type="submit" disabled={saving}>
-                    {saving ? 'Creando...' : 'Crear Cervecería'}
+                    {saving ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
             </form>
         </div>
     );
+}
+
+function transformForForm(brewery: Brewery) {
+    return {
+        nombre_cerveceria: brewery.nombre_cerveceria ?? '',
+        razon_social: brewery.razon_social ?? '',
+        nit: brewery.nit ?? '',
+        direccion: brewery.direccion ?? '',
+        ciudad: brewery.ciudad ?? '',
+        pais: brewery.pais ?? '',
+        nombre_contacto: brewery.nombre_contacto ?? '',
+        nombre_cervecero: brewery.nombre_cervecero ?? '',
+        celular_1: brewery.celular_1 ?? '',
+        celular_2: brewery.celular_2 ?? '',
+        correo: brewery.correo ?? '',
+        maltas_utilizadas: joinArray(brewery.maltas_utilizadas),
+        lupulos_utilizados: joinArray(brewery.lupulos_utilizados),
+        levaduras_utilizadas: joinArray(brewery.levaduras_utilizadas),
+        utiliza_otros_productos: brewery.utiliza_otros_productos ?? false,
+        estilos_cerveza: joinArray(brewery.estilos_cerveza),
+        tipo_operacion: brewery.tipo_operacion ?? '',
+        marca_equipo: brewery.marca_equipo ?? '',
+        capacidad_brewhouse: brewery.capacidad_brewhouse ?? '',
+        capacidad_fermentacion: brewery.capacidad_fermentacion ?? '',
+        litros_mes: brewery.litros_mes != null ? String(brewery.litros_mes) : '',
+        calidad_equipo: brewery.calidad_equipo ?? '',
+        formatos_venta: joinArray(brewery.formatos_venta),
+        donde_vende: brewery.donde_vende ?? '',
+        observaciones: brewery.observaciones ?? '',
+        oportunidades: brewery.oportunidades ?? '',
+    };
 }

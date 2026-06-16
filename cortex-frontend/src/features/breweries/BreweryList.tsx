@@ -5,7 +5,7 @@ import { apiClient } from '@/services/api/client';
 
 import './BreweryList.scss';
 
-interface Brewery {
+export interface Brewery {
     id: string;
     nombre_cerveceria: string;
     razon_social: string | null;
@@ -175,7 +175,12 @@ export function BreweryList() {
                                         <td>{brewery.oportunidades || '-'}</td>
                                         <td>
                                             <div className="brewery-list__actions">
-                                                <button className="brewery-list__edit-button">Editar</button>
+                                                <Link
+                                                    to={`/breweries/${brewery.id}/edit`}
+                                                    className="brewery-list__edit-button"
+                                                >
+                                                    Editar
+                                                </Link>
                                                 <button 
                                                 className="brewery-list__delete-button"
                                                 onClick={() => handleDelete(brewery.id)}
