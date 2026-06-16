@@ -75,9 +75,9 @@ The system MUST expose an authenticated `/coffee-farms/new` form for the initial
 
 ### Requirement: Advanced parity remains deferred
 
-The system MAY defer `search`, `inspect`, `count`, and a dedicated edit form in this first connection, and verification for this change SHALL NOT require those capabilities.
+The system MAY defer `search`, `inspect`, and `count` in this first connection, but SHALL include a dedicated authenticated edit form with route entry, prefilled data, update submission, and return-to-list behavior. Verification for this change MUST require edit-flow coverage.
 
-#### Scenario: Initial parity target excludes advanced flows
-- GIVEN the first coffee farm connection is under implementation
-- WHEN the change is reviewed for completion
-- THEN CRUD API, list access, create flow, routing, and activation are sufficient for acceptance
+#### Scenario: Acceptance includes the edit flow
+- GIVEN the coffee farm connection is reviewed after this change
+- WHEN completion is evaluated
+- THEN CRUD API, list access, create flow, and edit flow are required for acceptance

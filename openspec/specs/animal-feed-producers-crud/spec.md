@@ -65,9 +65,9 @@ The system MUST expose an authenticated `/animal-feed-producers/new` form for th
 
 ### Requirement: Advanced parity remains deferred for the first connection
 
-The system MAY defer `search`, `inspect`, `count`, and a dedicated edit UI in this first connection, and verification for this change SHALL NOT require those capabilities.
+The system MAY defer `search`, `inspect`, and `count` in this first connection, but SHALL include a dedicated authenticated edit UI with route entry, prefilled data, update submission, and return-to-list behavior. Verification for this change MUST require edit-flow coverage.
 
-#### Scenario: Acceptance excludes deferred flows
-- GIVEN the first animal feed producer connection is under review
-- WHEN completion is evaluated for this change
-- THEN CRUD API, list access, create flow, routing, and card activation are sufficient for acceptance
+#### Scenario: Acceptance includes the edit flow
+- GIVEN the animal feed producer connection is reviewed after this change
+- WHEN completion is evaluated
+- THEN CRUD API, list access, create flow, and edit flow are required for acceptance
