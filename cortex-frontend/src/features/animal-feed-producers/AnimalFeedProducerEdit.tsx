@@ -1,12 +1,17 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Input } from '@/presentation/components/atoms';
-import { parseArray } from '@/shared/arrayUtils';
+import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { apiClient } from '@/services/api/client';
 
-export function AnimalFeedProducerCreate() {
+import type { AnimalFeedProducer } from './AnimalFeedProducerList';
+
+export function AnimalFeedProducerEdit() {
+    const { id } = useParams();
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
@@ -31,6 +36,27 @@ export function AnimalFeedProducerCreate() {
         oportunidades: '',
     });
 
+    useEffect(() => {
+        const loadProducer = async () => {
+            if (!id) {
+                setNotFound(true);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const producer = await apiClient.get<AnimalFeedProducer>(`/animal-feed-producers/${id}`);
+                setFormData(transformForForm(producer));
+            } catch (err) {
+                setNotFound(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadProducer();
+    }, [id]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -38,6 +64,8 @@ export function AnimalFeedProducerCreate() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!id) return;
+
         setError('');
         setSaving(true);
 
@@ -48,18 +76,32 @@ export function AnimalFeedProducerCreate() {
                 productos_fabricados: parseArray(formData.productos_fabricados),
             };
 
-            await apiClient.post('/animal-feed-producers', payload);
+            await apiClient.put(`/animal-feed-producers/${id}`, payload);
             navigate('/animal-feed-producers');
         } catch (err) {
-            setError('Error al crear el productor de alimentos para animales');
+            setError('Error al guardar los cambios');
         } finally {
             setSaving(false);
         }
     };
 
+    if (loading) {
+        return <div className="animal-feed-producer-edit">Cargando productor de alimentos para animales...</div>;
+    }
+
+    if (notFound) {
+        return (
+            <div className="animal-feed-producer-edit">
+                <h2>Registro no encontrado</h2>
+                <p>El productor de alimentos para animales solicitado no existe o no está disponible.</p>
+                <Link to="/animal-feed-producers">Volver a productores</Link>
+            </div>
+        );
+    }
+
     return (
-        <div className="animal-feed-producer-create">
-            <h2>Crear Productor de Alimentos para Animales</h2>
+        <div className="animal-feed-producer-edit">
+            <h2>Editar Productor de Alimentos para Animales</h2>
 
             {error && (
                 <div className="error" role="alert">{error}</div>
@@ -183,9 +225,28 @@ export function AnimalFeedProducerCreate() {
                 </fieldset>
 
                 <Button type="submit" disabled={saving}>
-                    {saving ? 'Creando...' : 'Crear Productor'}
+                    {saving ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
             </form>
         </div>
     );
+}
+
+function transformForForm(producer: AnimalFeedProducer) {
+    return {
+        razon_social: producer.razon_social ?? '',
+        marca: producer.marca ?? '',
+        nit: producer.nit ?? '',
+        direccion: producer.direccion ?? '',
+        departamento: producer.departamento ?? '',
+        ciudad: producer.ciudad ?? '',
+        pais: producer.pais ?? '',
+        nombre_contacto: producer.nombre_contacto ?? '',
+        celular: producer.celular ?? '',
+        correo: producer.correo ?? '',
+        especies_manejadas: joinArray(producer.especies_manejadas),
+        productos_fabricados: joinArray(producer.productos_fabricados),
+        observaciones: producer.observaciones ?? '',
+        oportunidades: producer.oportunidades ?? '',
+    };
 }

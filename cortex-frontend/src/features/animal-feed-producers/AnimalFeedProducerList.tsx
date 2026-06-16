@@ -5,7 +5,7 @@ import { apiClient } from '@/services/api/client';
 
 import './AnimalFeedProducerList.scss';
 
-interface AnimalFeedProducer {
+export interface AnimalFeedProducer {
     id: string;
     razon_social: string;
     marca: string | null;
@@ -124,7 +124,12 @@ export function AnimalFeedProducerList() {
                                         <td>{producer.oportunidades || '-'}</td>
                                         <td>
                                             <div className="animal-feed-producer-list__actions">
-                                                <button className="animal-feed-producer-list__edit-button">Editar</button>
+                                                <Link
+                                                    to={`/animal-feed-producers/${producer.id}/edit`}
+                                                    className="animal-feed-producer-list__edit-button"
+                                                >
+                                                    Editar
+                                                </Link>
                                                 <button
                                                     className="animal-feed-producer-list__delete-button"
                                                     onClick={() => handleDelete(producer.id)}
