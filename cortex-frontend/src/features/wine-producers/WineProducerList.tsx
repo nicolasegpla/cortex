@@ -5,7 +5,7 @@ import { apiClient } from '@/services/api/client';
 
 import './WineProducerList.scss';
 
-interface WineProducer {
+export interface WineProducer {
     id: string;
     nombre_comercial: string;
     razon_social: string | null;
@@ -145,7 +145,12 @@ export function WineProducerList() {
                                         <td>{producer.oportunidades || '-'}</td>
                                         <td>
                                             <div className="wine-producer-list__actions">
-                                                <button className="wine-producer-list__edit-button">Editar</button>
+                                                <Link
+                                                    to={`/wine-producers/${producer.id}/edit`}
+                                                    className="wine-producer-list__edit-button"
+                                                >
+                                                    Editar
+                                                </Link>
                                                 <button
                                                     className="wine-producer-list__delete-button"
                                                     onClick={() => handleDelete(producer.id)}

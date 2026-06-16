@@ -117,6 +117,30 @@ describe('WineProducerList', () => {
         });
     });
 
+    it('renders an edit link for each wine producer', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <WineProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        });
+
+        const editLinks = screen.getAllByRole('link', { name: 'Editar' });
+        expect(editLinks).toHaveLength(2);
+        expect(editLinks[0]).toHaveAttribute('href', '/wine-producers/producer-1/edit');
+        expect(editLinks[1]).toHaveAttribute('href', '/wine-producers/producer-2/edit');
+    });
+
     it('removes a producer after confirming deletion', async () => {
         const user = userEvent.setup();
         vi.spyOn(window, 'confirm').mockReturnValue(true);

@@ -1,12 +1,17 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Input } from '@/presentation/components/atoms';
-import { parseArray } from '@/shared/arrayUtils';
+import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { apiClient } from '@/services/api/client';
 
-export function WineProducerCreate() {
+import type { WineProducer } from './WineProducerList';
+
+export function WineProducerEdit() {
+    const { id } = useParams();
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
@@ -39,6 +44,27 @@ export function WineProducerCreate() {
         oportunidades: '',
     });
 
+    useEffect(() => {
+        const loadProducer = async () => {
+            if (!id) {
+                setNotFound(true);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const producer = await apiClient.get<WineProducer>(`/wine-producers/${id}`);
+                setFormData(transformForForm(producer));
+            } catch (err) {
+                setNotFound(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadProducer();
+    }, [id]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -46,6 +72,8 @@ export function WineProducerCreate() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!id) return;
+
         setError('');
         setSaving(true);
 
@@ -62,18 +90,32 @@ export function WineProducerCreate() {
                 clarificantes_utilizados: parseArray(formData.clarificantes_utilizados),
             };
 
-            await apiClient.post('/wine-producers', payload);
+            await apiClient.put(`/wine-producers/${id}`, payload);
             navigate('/wine-producers');
         } catch (err) {
-            setError('Error al crear el productor de vino');
+            setError('Error al guardar los cambios');
         } finally {
             setSaving(false);
         }
     };
 
+    if (loading) {
+        return <div className="wine-producer-edit">Cargando productor de vino...</div>;
+    }
+
+    if (notFound) {
+        return (
+            <div className="wine-producer-edit">
+                <h2>Registro no encontrado</h2>
+                <p>El productor de vino solicitado no existe o no está disponible.</p>
+                <Link to="/wine-producers">Volver a productores de vino</Link>
+            </div>
+        );
+    }
+
     return (
-        <div className="wine-producer-create">
-            <h2>Crear Productor de Vino</h2>
+        <div className="wine-producer-edit">
+            <h2>Editar Productor de Vino</h2>
 
             {error && (
                 <div className="error" role="alert">{error}</div>
@@ -249,9 +291,35 @@ export function WineProducerCreate() {
                 </fieldset>
 
                 <Button type="submit" disabled={saving}>
-                    {saving ? 'Creando...' : 'Crear Productor'}
+                    {saving ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
             </form>
         </div>
     );
+}
+
+function transformForForm(producer: WineProducer) {
+    return {
+        nombre_comercial: producer.nombre_comercial ?? '',
+        razon_social: producer.razon_social ?? '',
+        nit: producer.nit ?? '',
+        direccion: producer.direccion ?? '',
+        ciudad: producer.ciudad ?? '',
+        pais: producer.pais ?? '',
+        nombre_contacto: producer.nombre_contacto ?? '',
+        celular: producer.celular ?? '',
+        correo: producer.correo ?? '',
+        levaduras_utilizadas: joinArray(producer.levaduras_utilizadas),
+        nutrientes_utilizados: joinArray(producer.nutrientes_utilizados),
+        conservantes_utilizados: joinArray(producer.conservantes_utilizados),
+        clarificantes_utilizados: joinArray(producer.clarificantes_utilizados),
+        marcas: joinArray(producer.marcas),
+        tipo_uva: joinArray(producer.tipo_uva),
+        tipo_vino: joinArray(producer.tipo_vino),
+        botellas_utilizadas: joinArray(producer.botellas_utilizadas),
+        produccion_anual: producer.produccion_anual ?? '',
+        fuente_azucar: producer.fuente_azucar ?? '',
+        observaciones: producer.observaciones ?? '',
+        oportunidades: producer.oportunidades ?? '',
+    };
 }
