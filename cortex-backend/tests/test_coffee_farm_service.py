@@ -24,12 +24,14 @@ class TestCoffeeFarmService:
     def test_create_coffee_farm_calls_supabase_insert(self, service, mock_supabase) -> None:
         payload = CoffeeFarmCreate(
             nombre_finca="Finca Primavera",
+            marca="Café Primavera",
             hectareas_totales=Decimal("12.50"),
             tipo_actividad="Productor",
         )
         expected_data = {
             "id": str(uuid4()),
             "nombre_finca": "Finca Primavera",
+            "marca": "Café Primavera",
             "hectareas_totales": Decimal("12.50"),
             "tipo_actividad": "Productor",
         }
@@ -43,6 +45,7 @@ class TestCoffeeFarmService:
         mock_supabase.table.return_value.insert.assert_called_once_with(
             {
                 "nombre_finca": "Finca Primavera",
+                "marca": "Café Primavera",
                 "hectareas_totales": 12.5,
                 "tipo_actividad": "Productor",
             }
@@ -95,11 +98,13 @@ class TestCoffeeFarmService:
         coffee_farm_id = uuid4()
         payload = CoffeeFarmUpdate(
             nombre_finca="Finca Actualizada",
+            marca="Café Oro",
             puntaje_cafe=Decimal("87.5"),
         )
         expected_data = {
             "id": str(coffee_farm_id),
             "nombre_finca": "Finca Actualizada",
+            "marca": "Café Oro",
             "puntaje_cafe": Decimal("87.5"),
         }
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
@@ -111,6 +116,7 @@ class TestCoffeeFarmService:
         mock_supabase.table.return_value.update.assert_called_once_with(
             {
                 "nombre_finca": "Finca Actualizada",
+                "marca": "Café Oro",
                 "puntaje_cafe": 87.5,
             }
         )

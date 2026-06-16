@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS public.coffee_farms (
     nombre_finca TEXT NOT NULL,
     razon_social TEXT,
     nit TEXT,
+    marca TEXT,
     direccion TEXT,
     departamento TEXT,
     ciudad TEXT,
@@ -24,6 +25,9 @@ CREATE TABLE IF NOT EXISTS public.coffee_farms (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Idempotent guard for deployments created before the `marca` column was added
+ALTER TABLE public.coffee_farms ADD COLUMN IF NOT EXISTS marca TEXT;
 
 CREATE INDEX idx_coffee_farms_nit ON public.coffee_farms(nit);
 CREATE INDEX idx_coffee_farms_ciudad ON public.coffee_farms(ciudad);

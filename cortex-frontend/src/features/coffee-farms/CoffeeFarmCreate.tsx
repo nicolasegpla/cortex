@@ -13,6 +13,7 @@ export function CoffeeFarmCreate() {
         nombre_finca: '',
         razon_social: '',
         nit: '',
+        marca: '',
         // Ubicación
         direccion: '',
         departamento: '',
@@ -101,6 +102,12 @@ export function CoffeeFarmCreate() {
                         label="NIT"
                         name="nit"
                         value={formData.nit}
+                        onChange={handleChange}
+                    />
+                    <Input
+                        label="Marca"
+                        name="marca"
+                        value={formData.marca}
                         onChange={handleChange}
                     />
                 </fieldset>

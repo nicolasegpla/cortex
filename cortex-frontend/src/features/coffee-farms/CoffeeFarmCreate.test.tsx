@@ -33,6 +33,7 @@ describe('CoffeeFarmCreate', () => {
 
         expect(screen.getByRole('heading', { name: 'Crear Finca de Café' })).toBeInTheDocument();
         expect(screen.getByLabelText(/Nombre de la Finca/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Marca/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/Variedades Sembradas/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/Equipos/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Crear Finca de Café' })).toBeInTheDocument();
@@ -51,6 +52,7 @@ describe('CoffeeFarmCreate', () => {
         render(<CoffeeFarmCreate />);
 
         await user.type(screen.getByLabelText(/Nombre de la Finca/i), 'Finca Esperanza');
+        await user.type(screen.getByLabelText(/Marca/i), 'Café Primavera');
         await user.type(screen.getByLabelText(/Ciudad/i), 'Pitalito');
         await user.type(screen.getByLabelText(/Variedades Sembradas/i), 'Castillo, Caturra');
         await user.type(screen.getByLabelText(/Equipos/i), 'Secadero, Despulpadora');
@@ -68,6 +70,7 @@ describe('CoffeeFarmCreate', () => {
         });
 
         const requestBody = JSON.parse(fetchSpy.mock.calls[0][1].body);
+        expect(requestBody.marca).toBe('Café Primavera');
         expect(requestBody.variedades_sembradas).toEqual(['Castillo', 'Caturra']);
         expect(requestBody.equipos).toEqual(['Secadero', 'Despulpadora']);
 

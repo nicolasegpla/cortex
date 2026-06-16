@@ -10,6 +10,7 @@ interface CoffeeFarm {
     nombre_finca: string;
     razon_social: string | null;
     nit: string | null;
+    marca: string | null;
     direccion: string | null;
     departamento: string | null;
     ciudad: string | null;
@@ -103,6 +104,7 @@ export function CoffeeFarmList() {
                                     <th>Nombre</th>
                                     <th>Razón Social</th>
                                     <th>NIT</th>
+                                    <th>Marca</th>
                                     <th>Dirección</th>
                                     <th>Departamento</th>
                                     <th>Ciudad</th>
@@ -130,6 +132,7 @@ export function CoffeeFarmList() {
                                         <td>{farm.nombre_finca}</td>
                                         <td>{farm.razon_social || '-'}</td>
                                         <td>{farm.nit || '-'}</td>
+                                        <td>{farm.marca || '-'}</td>
                                         <td>{farm.direccion || '-'}</td>
                                         <td>{farm.departamento || '-'}</td>
                                         <td>{farm.ciudad || '-'}</td>

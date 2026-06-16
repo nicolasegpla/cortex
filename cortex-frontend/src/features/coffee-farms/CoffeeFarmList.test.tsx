@@ -11,6 +11,7 @@ const mockFarms = [
         nombre_finca: 'Finca Primavera',
         razon_social: 'Primavera S.A.',
         nit: '900123',
+        marca: 'Café Primavera',
         direccion: 'Vereda Alto',
         departamento: 'Huila',
         ciudad: 'Pitalito',

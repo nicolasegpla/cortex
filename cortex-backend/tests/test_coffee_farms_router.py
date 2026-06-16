@@ -70,6 +70,8 @@ class TestCoffeeFarmsRouter:
             "id": str(sample_coffee_farm_id),
             "nombre_finca": "Finca Primavera",
             "razon_social": "Primavera S.A.",
+            "marca": "Café Primavera",
+            "nit": "123456789",
             "ciudad": "Pitalito",
             "departamento": "Huila",
             "pais": "Colombia",
@@ -89,6 +91,7 @@ class TestCoffeeFarmsRouter:
             return {
                 "id": str(uuid4()),
                 "nombre_finca": payload.nombre_finca,
+                "marca": payload.marca,
                 "ciudad": payload.ciudad,
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -99,12 +102,13 @@ class TestCoffeeFarmsRouter:
         response = client.post(
             "/coffee-farms",
             headers={"Authorization": f"Bearer {admin_token}"},
-            json={"nombre_finca": "Finca Nueva", "ciudad": "Popayán"},
+            json={"nombre_finca": "Finca Nueva", "marca": "Café Nueva", "ciudad": "Popayán"},
         )
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["nombre_finca"] == "Finca Nueva"
+        assert data["marca"] == "Café Nueva"
 
     def test_list_coffee_farms_returns_200(
         self, client: TestClient, admin_token: str, monkeypatch
@@ -112,8 +116,8 @@ class TestCoffeeFarmsRouter:
         def mock_list_all(_self):
             now = datetime.now(timezone.utc).isoformat()
             return [
-                {"id": str(uuid4()), "nombre_finca": "Finca 1", "created_at": now, "updated_at": now},
-                {"id": str(uuid4()), "nombre_finca": "Finca 2", "created_at": now, "updated_at": now},
+                {"id": str(uuid4()), "nombre_finca": "Finca 1", "marca": "Café Uno", "created_at": now, "updated_at": now},
+                {"id": str(uuid4()), "nombre_finca": "Finca 2", "marca": "Café Dos", "created_at": now, "updated_at": now},
             ]
 
         monkeypatch.setattr("app.services.coffee_farm_service.CoffeeFarmService.list_all", mock_list_all)
@@ -126,6 +130,7 @@ class TestCoffeeFarmsRouter:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) == 2
+        assert data[0]["marca"] == "Café Uno"
 
     def test_get_coffee_farm_by_id_returns_200(
         self, client: TestClient, admin_token: str, sample_coffee_farm_id: UUID, sample_coffee_farm: dict, monkeypatch
@@ -145,6 +150,7 @@ class TestCoffeeFarmsRouter:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["nombre_finca"] == "Finca Primavera"
+        assert data["marca"] == "Café Primavera"
         assert data["variedades_sembradas"] == ["Castillo", "Caturra"]
 
     def test_get_coffee_farm_by_id_nonexistent_returns_404(
