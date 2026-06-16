@@ -5,7 +5,7 @@ import { apiClient } from '@/services/api/client';
 
 import './CoffeeFarmList.scss';
 
-interface CoffeeFarm {
+export interface CoffeeFarm {
     id: string;
     nombre_finca: string;
     razon_social: string | null;
@@ -153,7 +153,12 @@ export function CoffeeFarmList() {
                                         <td>{farm.oportunidades || '-'}</td>
                                         <td>
                                             <div className="coffee-farm-list__actions">
-                                                <button className="coffee-farm-list__edit-button">Editar</button>
+                                                <Link
+                                                    to={`/coffee-farms/${farm.id}/edit`}
+                                                    className="coffee-farm-list__edit-button"
+                                                >
+                                                    Editar
+                                                </Link>
                                                 <button
                                                     className="coffee-farm-list__delete-button"
                                                     onClick={() => handleDelete(farm.id)}
