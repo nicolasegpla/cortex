@@ -148,4 +148,28 @@ describe('AnimalFeedProducerList', () => {
 
         expect(screen.getByText('Alimentos del Campo')).toBeInTheDocument();
     });
+
+    it('renders an edit link for each producer', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
+        });
+
+        const editLinks = screen.getAllByRole('link', { name: 'Editar' });
+        expect(editLinks).toHaveLength(2);
+        expect(editLinks[0]).toHaveAttribute('href', '/animal-feed-producers/producer-1/edit');
+        expect(editLinks[1]).toHaveAttribute('href', '/animal-feed-producers/producer-2/edit');
+    });
 });
