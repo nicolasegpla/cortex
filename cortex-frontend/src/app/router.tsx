@@ -8,12 +8,11 @@ import { SessionsPage } from '@/presentation/pages/SessionsPage';
 import { ConfigPage } from '@/presentation/pages/ConfigPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { RequireRole } from '@/features/auth/RequireRole';
-import { BreweryList } from '@/features/breweries/BreweryList';
-import { BreweryCreate } from '@/features/breweries/BreweryCreate';
-import { CoffeeFarmList, CoffeeFarmCreate } from '@/features/coffee-farms';
+import { BreweryList, BreweryCreate, BreweryEdit } from '@/features/breweries';
+import { CoffeeFarmList, CoffeeFarmCreate, CoffeeFarmEdit } from '@/features/coffee-farms';
 import { ChatPage } from '@/features/chat/ChatPage';
-import { AnimalFeedProducerList, AnimalFeedProducerCreate } from '@/features/animal-feed-producers';
-import { WineProducerList, WineProducerCreate } from '@/features/wine-producers';
+import { AnimalFeedProducerList, AnimalFeedProducerCreate, AnimalFeedProducerEdit } from '@/features/animal-feed-producers';
+import { WineProducerList, WineProducerCreate, WineProducerEdit } from '@/features/wine-producers';
 
 export const router = createBrowserRouter([
     {
@@ -61,6 +60,14 @@ export const router = createBrowserRouter([
                 ),
             },
             {
+                path: 'breweries/:id/edit',
+                element: (
+                    <ProtectedRoute>
+                        <BreweryEdit />
+                    </ProtectedRoute>
+                ),
+            },
+            {
                 path: 'coffee-farms',
                 element: (
                     <ProtectedRoute>
@@ -73,6 +80,14 @@ export const router = createBrowserRouter([
                 element: (
                     <ProtectedRoute>
                         <CoffeeFarmCreate />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'coffee-farms/:id/edit',
+                element: (
+                    <ProtectedRoute>
+                        <CoffeeFarmEdit />
                     </ProtectedRoute>
                 ),
             },
@@ -93,6 +108,14 @@ export const router = createBrowserRouter([
                 ),
             },
             {
+                path: 'animal-feed-producers/:id/edit',
+                element: (
+                    <ProtectedRoute>
+                        <AnimalFeedProducerEdit />
+                    </ProtectedRoute>
+                ),
+            },
+            {
                 path: 'wine-producers',
                 element: (
                     <ProtectedRoute>
@@ -105,6 +128,14 @@ export const router = createBrowserRouter([
                 element: (
                     <ProtectedRoute>
                         <WineProducerCreate />
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: 'wine-producers/:id/edit',
+                element: (
+                    <ProtectedRoute>
+                        <WineProducerEdit />
                     </ProtectedRoute>
                 ),
             },
