@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
-import { AdminPage } from '@/presentation/pages/AdminPage';
+import { UserManagement } from '@/features/user-management/UserManagement';
 
 const mockCreateUser = vi.fn();
 const mockListUsers = vi.fn();
@@ -17,7 +17,7 @@ vi.mock('@/services/adminUserApi', () => ({
     },
 }));
 
-describe('AdminPage', () => {
+describe('UserManagement', () => {
     const user = userEvent.setup();
 
     beforeEach(() => {
@@ -29,18 +29,14 @@ describe('AdminPage', () => {
         vi.restoreAllMocks();
     });
 
-    it('renders user creation form and empty directory', async () => {
+    it('renders title, create-user button, and empty directory', async () => {
         render(
             <MemoryRouter>
-                <AdminPage />
+                <UserManagement />
             </MemoryRouter>
         );
 
         expect(screen.getByRole('heading', { name: /administración de usuarios/i })).toBeInTheDocument();
-        expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/confirmar contraseña/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/^rol$/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /crear usuario/i })).toBeInTheDocument();
 
         await waitFor(() => {
@@ -53,7 +49,7 @@ describe('AdminPage', () => {
 
         render(
             <MemoryRouter>
-                <AdminPage />
+                <UserManagement />
             </MemoryRouter>
         );
 
@@ -64,7 +60,7 @@ describe('AdminPage', () => {
         expect(screen.queryByText(/no hay usuarios registrados/i)).not.toBeInTheDocument();
     });
 
-    it('renders the user directory returned by the API', async () => {
+    it('renders the user directory returned by the API in a table', async () => {
         mockListUsers.mockResolvedValueOnce([
             { id: 'user-1', email: 'one@example.com', role: 'operativo' },
             { id: 'user-2', email: 'two@example.com', role: 'super_admin' },
@@ -72,7 +68,7 @@ describe('AdminPage', () => {
 
         render(
             <MemoryRouter>
-                <AdminPage />
+                <UserManagement />
             </MemoryRouter>
         );
 
@@ -82,6 +78,78 @@ describe('AdminPage', () => {
 
         expect(screen.getByText('two@example.com')).toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /eliminar/i })).toHaveLength(2);
+        expect(screen.getByRole('table')).toBeInTheDocument();
+    });
+
+    it('opens and closes the create-user modal', async () => {
+        render(
+            <MemoryRouter>
+                <UserManagement />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/confirmar contraseña/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/^rol$/i)).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: /cancelar/i }));
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
+    });
+
+    it('closes the create-user modal when Escape is pressed', async () => {
+        render(
+            <MemoryRouter>
+                <UserManagement />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+        expect(screen.getByRole('dialog', { name: /crear usuario/i })).toBeInTheDocument();
+
+        await user.keyboard('{Escape}');
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog', { name: /crear usuario/i })).not.toBeInTheDocument();
+        });
+    });
+
+    it('closes the create-user modal when the backdrop is clicked', async () => {
+        render(
+            <MemoryRouter>
+                <UserManagement />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+        const dialog = screen.getByRole('dialog', { name: /crear usuario/i });
+        expect(dialog).toBeInTheDocument();
+
+        const layer = dialog.parentElement;
+        expect(layer).toHaveClass('user-management__modal-layer');
+        await user.click(layer!);
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog', { name: /crear usuario/i })).not.toBeInTheDocument();
+        });
     });
 
     it('creates a user and refreshes the list', async () => {
@@ -90,7 +158,7 @@ describe('AdminPage', () => {
 
         render(
             <MemoryRouter>
-                <AdminPage />
+                <UserManagement />
             </MemoryRouter>
         );
 
@@ -98,11 +166,14 @@ describe('AdminPage', () => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
         });
 
-        const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/^contraseña$/i);
-        const confirmInput = screen.getByLabelText(/confirmar contraseña/i);
-        const roleInput = screen.getByLabelText(/^rol$/i);
-        const submitButton = screen.getByRole('button', { name: /crear usuario/i });
+        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+
+        const dialog = screen.getByRole('dialog');
+        const emailInput = within(dialog).getByLabelText(/email/i);
+        const passwordInput = within(dialog).getByLabelText(/^contraseña$/i);
+        const confirmInput = within(dialog).getByLabelText(/confirmar contraseña/i);
+        const roleInput = within(dialog).getByLabelText(/^rol$/i);
+        const submitButton = within(dialog).getByRole('button', { name: /crear usuario/i });
 
         await user.type(emailInput, 'new@example.com');
         await user.type(passwordInput, 'secret123');
@@ -121,8 +192,10 @@ describe('AdminPage', () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText('new@example.com')).toBeInTheDocument();
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         });
+
+        expect(screen.getByText('new@example.com')).toBeInTheDocument();
     });
 
     it('shows an error message when creation fails', async () => {
@@ -131,7 +204,7 @@ describe('AdminPage', () => {
 
         render(
             <MemoryRouter>
-                <AdminPage />
+                <UserManagement />
             </MemoryRouter>
         );
 
@@ -139,10 +212,13 @@ describe('AdminPage', () => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
         });
 
-        const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/^contraseña$/i);
-        const confirmInput = screen.getByLabelText(/confirmar contraseña/i);
-        const submitButton = screen.getByRole('button', { name: /crear usuario/i });
+        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+
+        const dialog = screen.getByRole('dialog');
+        const emailInput = within(dialog).getByLabelText(/email/i);
+        const passwordInput = within(dialog).getByLabelText(/^contraseña$/i);
+        const confirmInput = within(dialog).getByLabelText(/confirmar contraseña/i);
+        const submitButton = within(dialog).getByRole('button', { name: /crear usuario/i });
 
         await user.type(emailInput, 'new@example.com');
         await user.type(passwordInput, 'secret123');
@@ -166,7 +242,7 @@ describe('AdminPage', () => {
 
         render(
             <MemoryRouter>
-                <AdminPage />
+                <UserManagement />
             </MemoryRouter>
         );
 

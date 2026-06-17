@@ -4,7 +4,6 @@ import { Chat } from '@/presentation/components/atoms/Icon/Chat';
 import { Database } from '@/presentation/components/atoms/Icon/Database';
 import { Sessions } from '@/presentation/components/atoms/Icon/Sessions';
 import { Config } from '@/presentation/components/atoms/Icon/Config';
-import { Admin } from '@/presentation/components/atoms/Icon/Admin';
 
 export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -74,13 +73,6 @@ export const navigationConfig: NavSection[] = [
                 kind: NAV_ITEM_KIND.action,
                 action: NAV_ITEM_ACTION.openConfig,
                 icon: Config,
-            },
-            {
-                label: 'Administración',
-                kind: NAV_ITEM_KIND.route,
-                to: '/admin',
-                icon: Admin,
-                requiredRole: 'super_admin',
             },
         ],
     },

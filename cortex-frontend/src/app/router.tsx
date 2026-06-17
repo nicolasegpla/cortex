@@ -1,9 +1,8 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import { AppShell } from '@/presentation/layouts/AppShell';
 import { DashboardPage } from '@/presentation/pages/DashboardPage';
 import { LoginPage } from '@/presentation/pages/LoginPage';
-import { AdminPage } from '@/presentation/pages/AdminPage';
 import { DatabasesPage } from '@/presentation/pages/DatabasesPage';
 import { SessionsPage } from '@/presentation/pages/SessionsPage';
 import { ConfigPage } from '@/presentation/pages/ConfigPage';
@@ -164,7 +163,7 @@ export const appRoutes = [
                 path: 'admin',
                 element: (
                     <RequireRole allowedRoles={['super_admin']}>
-                        <AdminPage />
+                        <Navigate to="/config" replace />
                     </RequireRole>
                 ),
             },
