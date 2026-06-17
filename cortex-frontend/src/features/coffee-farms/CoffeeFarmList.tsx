@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useDeleteRecord } from '@/hooks/useDeleteRecord';
+import { DeleteConfirmationModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
 import './CoffeeFarmList.scss';
@@ -38,6 +40,11 @@ export function CoffeeFarmList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
+        useDeleteRecord('/coffee-farms', (id) => {
+            setFarms((prev) => prev.filter((farm) => farm.id !== id));
+        });
+
     useEffect(() => {
         loadFarms();
     }, []);
@@ -54,17 +61,8 @@ export function CoffeeFarmList() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('¿Estás seguro de que deseas eliminar esta finca de café?')) {
-            return;
-        }
-        try {
-            await apiClient.delete(`/coffee-farms/${id}`);
-            setFarms((prev) => prev.filter((farm) => farm.id !== id));
-        } catch (err) {
-            setError('Error al eliminar la finca de café');
-        }
-    };
+    const selectedFarm = farms.find((farm) => farm.id === itemId);
+    const itemLabel = selectedFarm ? `la finca de café ${selectedFarm.nombre_finca}` : 'este registro';
 
     const formatValue = (value: string | number | null) => {
         if (value === null || value === undefined) return '-';
@@ -161,7 +159,7 @@ export function CoffeeFarmList() {
                                                 </Link>
                                                 <button
                                                     className="coffee-farm-list__delete-button"
-                                                    onClick={() => handleDelete(farm.id)}
+                                                    onClick={() => openModal(farm.id)}
                                                 >
                                                     Eliminar
                                                 </button>
@@ -174,6 +172,16 @@ export function CoffeeFarmList() {
                     </div>
                 </div>
             )}
+
+            <DeleteConfirmationModal
+                isOpen={isOpen}
+                isDeleting={isDeleting}
+                error={deleteError}
+                success={success}
+                itemLabel={itemLabel}
+                onConfirm={confirmDelete}
+                onCancel={cancelDelete}
+            />
         </div>
     );
 }

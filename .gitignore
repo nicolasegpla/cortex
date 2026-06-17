@@ -36,4 +36,5 @@ htmlcov/
 
 # Misc
 *.sqlite3
+*.tsbuildinfo
 .atl/.skill-registry.cache.json

@@ -1,4 +1,5 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -51,10 +52,12 @@ describe('BreweryList', () => {
 
     beforeEach(() => {
         originalFetch = globalThis.fetch;
+        vi.useFakeTimers({ shouldAdvanceTime: true });
     });
 
     afterEach(() => {
         globalThis.fetch = originalFetch;
+        vi.useRealTimers();
         vi.restoreAllMocks();
         cleanup();
     });
@@ -81,5 +84,122 @@ describe('BreweryList', () => {
         expect(editLinks).toHaveLength(2);
         expect(editLinks[0]).toHaveAttribute('href', '/breweries/brewery-1/edit');
         expect(editLinks[1]).toHaveAttribute('href', '/breweries/brewery-2/edit');
+    });
+
+    it('removes a brewery after confirming deletion in the modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockBreweries), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
+
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Eliminado correctamente')).toBeInTheDocument();
+        });
+
+        act(() => {
+            vi.advanceTimersByTime(2000);
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByText('Cervecería Artesanal')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByText('Brew House')).toBeInTheDocument();
+    });
+
+    it('does not delete the brewery when the modal is cancelled before confirming', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }));
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows an explicit error in the modal when deletion is rejected', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockBreweries), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ detail: 'No tiene permiso para eliminar' }), {
+                    status: 403,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent('No tiene permiso para eliminar');
+        });
+
+        expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
     });
 });
