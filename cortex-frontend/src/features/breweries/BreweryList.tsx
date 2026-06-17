@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useDeleteRecord } from '@/hooks/useDeleteRecord';
+import { DeleteConfirmationModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
 import './BreweryList.scss';
@@ -42,6 +44,11 @@ export function BreweryList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
+        useDeleteRecord('/breweries', (id) => {
+            setBreweries((prev) => prev.filter((b) => b.id !== id));
+        });
+
     useEffect(() => {
         loadBreweries();
     }, []);
@@ -58,17 +65,8 @@ export function BreweryList() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('¿Estás seguro de que deseas eliminar esta cervecería?')) {
-            return;
-        }
-        try {
-            await apiClient.delete(`/breweries/${id}`);
-            setBreweries((prev) => prev.filter((b) => b.id !== id));
-        } catch (err) {
-            setError('Error al eliminar la cervecería');
-        }
-    };
+    const selectedBrewery = breweries.find((b) => b.id === itemId);
+    const itemLabel = selectedBrewery ? `la cervecería ${selectedBrewery.nombre_cerveceria}` : 'este registro';
 
     const formatTipoOperacion = (tipo: string | null) => {
         if (!tipo) return '-';
@@ -181,9 +179,9 @@ export function BreweryList() {
                                                 >
                                                     Editar
                                                 </Link>
-                                                <button 
+                                                <button
                                                 className="brewery-list__delete-button"
-                                                onClick={() => handleDelete(brewery.id)}
+                                                onClick={() => openModal(brewery.id)}
                                             >
                                                 Eliminar
                                             </button>
@@ -196,6 +194,16 @@ export function BreweryList() {
                     </div>
                 </div>
             )}
+
+            <DeleteConfirmationModal
+                isOpen={isOpen}
+                isDeleting={isDeleting}
+                error={deleteError}
+                success={success}
+                itemLabel={itemLabel}
+                onConfirm={confirmDelete}
+                onCancel={cancelDelete}
+            />
         </div>
     );
 }

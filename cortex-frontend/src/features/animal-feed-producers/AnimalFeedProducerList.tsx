@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useDeleteRecord } from '@/hooks/useDeleteRecord';
+import { DeleteConfirmationModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
 import './AnimalFeedProducerList.scss';
@@ -30,6 +32,11 @@ export function AnimalFeedProducerList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
+        useDeleteRecord('/animal-feed-producers', (id) => {
+            setProducers((prev) => prev.filter((producer) => producer.id !== id));
+        });
+
     useEffect(() => {
         loadProducers();
     }, []);
@@ -46,17 +53,8 @@ export function AnimalFeedProducerList() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('¿Estás seguro de que deseas eliminar este productor de alimentos para animales?')) {
-            return;
-        }
-        try {
-            await apiClient.delete(`/animal-feed-producers/${id}`);
-            setProducers((prev) => prev.filter((producer) => producer.id !== id));
-        } catch (err) {
-            setError('Error al eliminar el productor de alimentos para animales');
-        }
-    };
+    const selectedProducer = producers.find((producer) => producer.id === itemId);
+    const itemLabel = selectedProducer ? `el productor ${selectedProducer.razon_social}` : 'este registro';
 
     const formatArray = (arr: string[] | null) => {
         if (!arr || arr.length === 0) return '-';
@@ -132,7 +130,7 @@ export function AnimalFeedProducerList() {
                                                 </Link>
                                                 <button
                                                     className="animal-feed-producer-list__delete-button"
-                                                    onClick={() => handleDelete(producer.id)}
+                                                    onClick={() => openModal(producer.id)}
                                                 >
                                                     Eliminar
                                                 </button>
@@ -145,6 +143,16 @@ export function AnimalFeedProducerList() {
                     </div>
                 </div>
             )}
+
+            <DeleteConfirmationModal
+                isOpen={isOpen}
+                isDeleting={isDeleting}
+                error={deleteError}
+                success={success}
+                itemLabel={itemLabel}
+                onConfirm={confirmDelete}
+                onCancel={cancelDelete}
+            />
         </div>
     );
 }

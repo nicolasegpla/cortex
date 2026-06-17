@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -40,10 +40,12 @@ describe('AnimalFeedProducerList', () => {
 
     beforeEach(() => {
         originalFetch = globalThis.fetch;
+        vi.useFakeTimers({ shouldAdvanceTime: true });
     });
 
     afterEach(() => {
         globalThis.fetch = originalFetch;
+        vi.useRealTimers();
         vi.restoreAllMocks();
         cleanup();
     });
@@ -110,9 +112,53 @@ describe('AnimalFeedProducerList', () => {
         });
     });
 
-    it('removes a producer after confirming deletion', async () => {
-        const user = userEvent.setup();
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
+    it('removes a producer after confirming deletion in the modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockProducers), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
+
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Eliminado correctamente')).toBeInTheDocument();
+        });
+
+        act(() => {
+            vi.advanceTimersByTime(2000);
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByText('Nutrición Animal S.A.')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByText('Alimentos del Campo')).toBeInTheDocument();
+    });
+
+    it('shows an explicit error in the modal when deletion is rejected', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
         globalThis.fetch = vi
             .fn()
@@ -123,8 +169,8 @@ describe('AnimalFeedProducerList', () => {
                 })
             )
             .mockResolvedValueOnce(
-                new Response(JSON.stringify({}), {
-                    status: 200,
+                new Response(JSON.stringify({ detail: 'No tiene permiso para eliminar' }), {
+                    status: 403,
                     headers: { 'Content-Type': 'application/json' },
                 })
             );
@@ -139,14 +185,14 @@ describe('AnimalFeedProducerList', () => {
             expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
         });
 
-        const deleteButton = screen.getAllByRole('button', { name: 'Eliminar' })[0];
-        await user.click(deleteButton);
+        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
-            expect(screen.queryByText('Nutrición Animal S.A.')).not.toBeInTheDocument();
+            expect(screen.getByRole('alert')).toHaveTextContent('No tiene permiso para eliminar');
         });
 
-        expect(screen.getByText('Alimentos del Campo')).toBeInTheDocument();
+        expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
     });
 
     it('renders an edit link for each producer', async () => {

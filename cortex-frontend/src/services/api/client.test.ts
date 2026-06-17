@@ -4,6 +4,40 @@ import { apiClient } from './client';
 
 const API_BASE_URL = 'http://localhost:8000';
 
+describe('apiClient.delete', () => {
+    let originalFetch: typeof globalThis.fetch;
+
+    beforeEach(() => {
+        originalFetch = globalThis.fetch;
+    });
+
+    afterEach(() => {
+        globalThis.fetch = originalFetch;
+        vi.clearAllMocks();
+    });
+
+    it('resolves without parsing JSON for 204 No Content', async () => {
+        const response = new Response(null, { status: 204 });
+        const jsonSpy = vi.spyOn(response, 'json');
+
+        globalThis.fetch = vi.fn().mockResolvedValue(response);
+
+        await expect(apiClient.delete('/breweries/1')).resolves.toBeUndefined();
+        expect(jsonSpy).not.toHaveBeenCalled();
+    });
+
+    it('throws an error with the server detail when delete fails', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ detail: 'No tiene permiso para eliminar' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        await expect(apiClient.delete('/breweries/1')).rejects.toThrow('No tiene permiso para eliminar');
+    });
+});
+
 describe('apiClient.stream', () => {
     let originalFetch: typeof globalThis.fetch;
 

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useDeleteRecord } from '@/hooks/useDeleteRecord';
+import { DeleteConfirmationModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
 import './WineProducerList.scss';
@@ -37,6 +39,11 @@ export function WineProducerList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
+        useDeleteRecord('/wine-producers', (id) => {
+            setProducers((prev) => prev.filter((producer) => producer.id !== id));
+        });
+
     useEffect(() => {
         loadProducers();
     }, []);
@@ -53,17 +60,8 @@ export function WineProducerList() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('¿Estás seguro de que deseas eliminar este productor de vino?')) {
-            return;
-        }
-        try {
-            await apiClient.delete(`/wine-producers/${id}`);
-            setProducers((prev) => prev.filter((producer) => producer.id !== id));
-        } catch (err) {
-            setError('Error al eliminar el productor de vino');
-        }
-    };
+    const selectedProducer = producers.find((producer) => producer.id === itemId);
+    const itemLabel = selectedProducer ? `el productor ${selectedProducer.nombre_comercial}` : 'este registro';
 
     const formatArray = (arr: string[] | null) => {
         if (!arr || arr.length === 0) return '-';
@@ -153,7 +151,7 @@ export function WineProducerList() {
                                                 </Link>
                                                 <button
                                                     className="wine-producer-list__delete-button"
-                                                    onClick={() => handleDelete(producer.id)}
+                                                    onClick={() => openModal(producer.id)}
                                                 >
                                                     Eliminar
                                                 </button>
@@ -166,6 +164,16 @@ export function WineProducerList() {
                     </div>
                 </div>
             )}
+
+            <DeleteConfirmationModal
+                isOpen={isOpen}
+                isDeleting={isDeleting}
+                error={deleteError}
+                success={success}
+                itemLabel={itemLabel}
+                onConfirm={confirmDelete}
+                onCancel={cancelDelete}
+            />
         </div>
     );
 }

@@ -8,7 +8,7 @@
 }
 
 @mixin content-container {
-    width: min(1120px, calc(100% - (vars.$space-lg * 2)));
+    width: min(1120px, calc(100% - (#{vars.$space-lg} + #{vars.$space-lg})));
     margin: 0 auto;
 }
 

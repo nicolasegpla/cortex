@@ -36,6 +36,10 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
         throw new Error(error.detail || error.message || `HTTP ${response.status}`);
     }
 
+    if (response.status === 204) {
+        return undefined as T;
+    }
+
     return response.json() as Promise<T>;
 }
 
@@ -79,6 +83,6 @@ export const apiClient = {
         request<T>(endpoint, { method: 'POST', body: JSON.stringify(data) }),
     put: <T>(endpoint: string, data: unknown) =>
         request<T>(endpoint, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
+    delete: (endpoint: string) => request<void>(endpoint, { method: 'DELETE' }),
     stream: (endpoint: string, body: unknown) => streamRequest(endpoint, body),
 };
