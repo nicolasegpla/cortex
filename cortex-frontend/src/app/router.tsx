@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { AppShell } from '@/presentation/layouts/AppShell';
 import { DashboardPage } from '@/presentation/pages/DashboardPage';
 import { LoginPage } from '@/presentation/pages/LoginPage';
+import { AdminPage } from '@/presentation/pages/AdminPage';
 import { DatabasesPage } from '@/presentation/pages/DatabasesPage';
 import { SessionsPage } from '@/presentation/pages/SessionsPage';
 import { ConfigPage } from '@/presentation/pages/ConfigPage';
@@ -14,7 +15,7 @@ import { ChatPage } from '@/features/chat/ChatPage';
 import { AnimalFeedProducerList, AnimalFeedProducerCreate, AnimalFeedProducerEdit } from '@/features/animal-feed-producers';
 import { WineProducerList, WineProducerCreate, WineProducerEdit } from '@/features/wine-producers';
 
-export const router = createBrowserRouter([
+export const appRoutes = [
     {
         path: '/',
         element: <AppShell />,
@@ -37,10 +38,6 @@ export const router = createBrowserRouter([
             },
             {
                 path: 'login',
-                element: <LoginPage />,
-            },
-            {
-                path: 'register',
                 element: <LoginPage />,
             },
             {
@@ -167,10 +164,12 @@ export const router = createBrowserRouter([
                 path: 'admin',
                 element: (
                     <RequireRole allowedRoles={['super_admin']}>
-                        <div>Panel de administración</div>
+                        <AdminPage />
                     </RequireRole>
                 ),
             },
         ],
     },
-]);
+];
+
+export const router = createBrowserRouter(appRoutes);

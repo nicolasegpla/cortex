@@ -22,7 +22,6 @@ interface AuthState {
     setLoading: (loading: boolean) => void;
     setSession: (session: Session) => void;
     initialize: () => Promise<void>;
-    register: (email: string, password: string, role?: string) => Promise<{ user: User | null; session: Session | null; requiresConfirmation: boolean }>;
 }
 
 function extractUserAndRole(data: { user?: { id: string; email?: string; user_metadata?: { role?: string } } | null; session?: { access_token: string } | null }) {
@@ -108,40 +107,5 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
 
         set({ isInitialized: true });
-    },
-
-    register: async (email: string, password: string, role: string = 'operativo') => {
-        if (!supabaseClient) {
-            throw new Error('Supabase no está configurado');
-        }
-
-        const { data, error } = await supabaseClient.auth.signUp({
-            email,
-            password,
-            options: {
-                data: { role },
-            },
-        });
-
-        if (error) {
-            throw new Error(error.message);
-        }
-
-        const requiresConfirmation = !data.session;
-
-        if (data.session && data.user) {
-            const extracted = extractUserAndRole({ user: data.user, session: data.session });
-            set({
-                user: extracted.user,
-                session: extracted.session,
-                role: extracted.role,
-            });
-        }
-
-        return {
-            user: data.user ? { id: data.user.id, email: data.user.email || '' } : null,
-            session: data.session ? { access_token: data.session.access_token } : null,
-            requiresConfirmation,
-        };
     },
 }));
