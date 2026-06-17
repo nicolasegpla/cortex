@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { Button } from '@/presentation/components/atoms';
+import { getTopmostModal } from '@/shared/modalUtils';
 
 import './DeleteConfirmationModal.scss';
 
@@ -24,15 +25,24 @@ export function DeleteConfirmationModal({
     onConfirm,
     onCancel,
 }: DeleteConfirmationModalProps) {
+    const dialogRef = useRef<HTMLDialogElement>(null);
+
     useEffect(() => {
         if (!isOpen) {
             return;
         }
 
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && !isDeleting) {
-                onCancel();
+            if (event.key !== 'Escape' || isDeleting) {
+                return;
             }
+
+            const topmost = getTopmostModal();
+            if (dialogRef.current && topmost !== dialogRef.current) {
+                return;
+            }
+
+            onCancel();
         };
 
         window.addEventListener('keydown', handleKeyDown);
@@ -98,6 +108,7 @@ export function DeleteConfirmationModal({
 
     return (
         <dialog
+            ref={dialogRef}
             className="delete-confirmation-modal"
             open
             onCancel={handleDialogCancel}

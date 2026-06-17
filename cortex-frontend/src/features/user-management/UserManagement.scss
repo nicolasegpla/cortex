@@ -1,0 +1,255 @@
+@use '@/presentation/styles/variables' as vars;
+
+.user-management {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    gap: vars.$space-lg;
+    color: vars.$color-text-primary;
+}
+
+.user-management__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: vars.$space-md;
+    flex-shrink: 0;
+}
+
+.user-management__header-text {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-xs;
+}
+
+.user-management__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: vars.$color-text-primary;
+}
+
+.user-management__description {
+    margin: 0;
+    font-size: 1rem;
+    color: vars.$color-text-muted;
+    line-height: 1.5;
+}
+
+.user-management__create-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 vars.$space-md;
+    border: 1px solid vars.$color-border-subtle;
+    border-radius: 12px;
+    background: vars.$color-accent-primary;
+    color: vars.$color-accent-contrast;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        transform 150ms ease;
+}
+
+.user-management__create-button:hover,
+.user-management__create-button:focus-visible {
+    background: vars.$color-accent-primary;
+    border-color: vars.$color-accent-primary;
+    transform: translateY(-1px);
+}
+
+.user-management__create-button:focus-visible {
+    outline: 2px solid vars.$color-border-strong;
+    outline-offset: 2px;
+}
+
+.user-management__table-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid vars.$color-border-divider;
+    border-radius: 16px;
+}
+
+.user-management__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+
+    thead {
+        background-color: vars.$color-surface-muted;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+
+        th {
+            text-align: left;
+            padding: vars.$space-sm vars.$space-md;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: vars.$color-text-muted;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid vars.$color-border-divider;
+            white-space: nowrap;
+        }
+    }
+
+    tbody {
+        tr {
+            border-bottom: 1px solid vars.$color-border-divider;
+            transition: background-color 120ms ease;
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            &:hover {
+                background-color: rgba(0, 0, 0, 0.02);
+            }
+        }
+
+        td {
+            padding: vars.$space-sm vars.$space-md;
+            color: vars.$color-text-primary;
+            vertical-align: middle;
+        }
+    }
+}
+
+.user-management__delete-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0 vars.$space-sm;
+    border: 1px solid rgba(65, 0, 2, 0.2);
+    border-radius: 8px;
+    background: transparent;
+    color: vars.$color-feedback-error-text;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease;
+}
+
+.user-management__delete-button:hover,
+.user-management__delete-button:focus-visible {
+    background-color: rgba(65, 0, 2, 0.05);
+}
+
+.user-management__delete-button:focus-visible {
+    outline: 2px solid vars.$color-border-strong;
+    outline-offset: 2px;
+}
+
+.user-management__empty-state {
+    text-align: center;
+    padding: vars.$space-2xl;
+    color: vars.$color-text-muted;
+    font-size: 1rem;
+    border: 1px dashed vars.$color-border-divider;
+    border-radius: 16px;
+}
+
+.user-management__modal-layer {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: vars.$space-lg;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 100;
+}
+
+.user-management__modal {
+    width: min(480px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-lg;
+    padding: vars.$space-xl;
+    border: 1px solid vars.$color-border-subtle;
+    border-radius: 20px;
+    background: vars.$color-surface-card;
+    box-shadow: vars.$shadow-card-hover;
+    pointer-events: auto;
+}
+
+.user-management__modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: vars.$space-md;
+}
+
+.user-management__modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: vars.$color-text-primary;
+}
+
+.user-management__modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid vars.$color-border-subtle;
+    border-radius: 999px;
+    background: transparent;
+    color: vars.$color-text-muted;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        color 150ms ease;
+}
+
+.user-management__modal-close:hover,
+.user-management__modal-close:focus-visible {
+    background: vars.$color-surface-muted;
+    border-color: vars.$color-border-strong;
+    color: vars.$color-text-primary;
+}
+
+.user-management__modal-close:focus-visible {
+    outline: 2px solid vars.$color-border-strong;
+    outline-offset: 2px;
+}
+
+.user-management__form {
+    display: grid;
+    gap: vars.$space-md;
+}
+
+.user-management__form-actions {
+    display: flex;
+    gap: vars.$space-sm;
+    justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+    .user-management__header {
+        flex-direction: column;
+        gap: vars.$space-md;
+    }
+
+    .user-management__modal-layer {
+        padding: vars.$space-lg;
+    }
+
+    .user-management__modal {
+        padding: vars.$space-lg;
+    }
+}

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
 import { NAV_ITEM_ACTION, type NavItemAction } from '@/presentation/config/navigation';
 import { Sidebar } from '@/presentation/components/molecules/Sidebar/Sidebar';
 import { ThemeToggle } from '@/presentation/components/atoms/ThemeToggle/ThemeToggle';
 import { ConfigPage } from '@/presentation/pages/ConfigPage';
+import { hasNestedModal } from '@/shared/modalUtils';
 
 import './AppShell.scss';
 
@@ -12,6 +13,7 @@ export function AppShell() {
     const location = useLocation();
     const isChatRoute = location.pathname === '/chat';
     const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const modalDialogRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!isConfigOpen) {
@@ -19,9 +21,16 @@ export function AppShell() {
         }
 
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setIsConfigOpen(false);
+            if (event.key !== 'Escape') {
+                return;
             }
+
+            const dialogEl = modalDialogRef.current;
+            if (dialogEl && hasNestedModal(dialogEl)) {
+                return;
+            }
+
+            setIsConfigOpen(false);
         };
 
         window.addEventListener('keydown', handleKeyDown);
@@ -58,9 +67,15 @@ export function AppShell() {
                 <div
                     className="app-shell__modal-overlay"
                     role="presentation"
-                    onClick={() => setIsConfigOpen(false)}
+                    onClick={() => {
+                        const dialogEl = modalDialogRef.current;
+                        if (dialogEl && hasNestedModal(dialogEl)) {
+                            return;
+                        }
+                        setIsConfigOpen(false);
+                    }}
                 >
-                    <div className="app-shell__modal-dialog" onClick={(event) => event.stopPropagation()}>
+                    <div ref={modalDialogRef} className="app-shell__modal-dialog" onClick={(event) => event.stopPropagation()}>
                         <ConfigPage variant="modal" onClose={() => setIsConfigOpen(false)} />
                     </div>
                 </div>

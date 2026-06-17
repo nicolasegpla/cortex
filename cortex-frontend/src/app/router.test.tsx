@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { Navigate } from 'react-router-dom';
+
+import { RequireRole } from '@/features/auth/RequireRole';
 
 import { appRoutes } from './router';
 
@@ -17,6 +20,21 @@ function collectPaths(routes: RouteConfig[]): string[] {
     });
 }
 
+function findRoute(routes: RouteConfig[], path: string): RouteConfig | undefined {
+    for (const route of routes) {
+        if (route.path === path) {
+            return route;
+        }
+        if (route.children) {
+            const found = findRoute(route.children, path);
+            if (found) {
+                return found;
+            }
+        }
+    }
+    return undefined;
+}
+
 describe('appRoutes', () => {
     it('does not expose a public /register route', () => {
         const paths = collectPaths(appRoutes);
@@ -24,9 +42,15 @@ describe('appRoutes', () => {
         expect(paths).not.toContain('register');
     });
 
-    it('includes the admin user management route', () => {
+    it('redirects the legacy /admin route to /config', () => {
         const paths = collectPaths(appRoutes);
 
         expect(paths).toContain('admin');
+
+        const adminRoute = findRoute(appRoutes, 'admin');
+        expect(adminRoute).toBeDefined();
+        expect(adminRoute?.element?.type).toBe(RequireRole);
+        expect(adminRoute?.element?.props?.children?.type).toBe(Navigate);
+        expect(adminRoute?.element?.props?.children?.props).toMatchObject({ to: '/config', replace: true });
     });
 });

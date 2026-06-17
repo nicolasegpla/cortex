@@ -6,16 +6,32 @@ import { navigationConfig } from '@/presentation/config/navigation';
 
 const mockToggle = vi.fn();
 
-vi.mock('@/presentation/pages/ConfigPage', () => ({
-    ConfigPage: ({ onClose }: { onClose?: () => void }) => (
-        <div role="dialog" aria-label="Configuration">
-            <button type="button" onClick={onClose}>
-                Close settings
-            </button>
-            <span>Config modal content</span>
-        </div>
-    ),
-}));
+vi.mock('@/presentation/pages/ConfigPage', async () => {
+    const { useState } = await import('react');
+
+    return {
+        ConfigPage: ({ onClose }: { onClose?: () => void }) => {
+            const [isNestedOpen, setIsNestedOpen] = useState(false);
+
+            return (
+                <div role="dialog" aria-label="Configuration" aria-modal="true">
+                    <button type="button" onClick={onClose}>
+                        Close settings
+                    </button>
+                    <span>Config modal content</span>
+                    <button type="button" onClick={() => setIsNestedOpen(true)}>
+                        Open nested modal
+                    </button>
+                    {isNestedOpen && (
+                        <div role="dialog" aria-label="Nested modal" aria-modal="true">
+                            <span>Nested content</span>
+                        </div>
+                    )}
+                </div>
+            );
+        },
+    };
+});
 
 vi.mock('@/store/useSidebarStore', () => ({
     useSidebarStore: () => ({
@@ -133,6 +149,50 @@ describe('AppShell', () => {
 
         expect(screen.getByRole('dialog', { name: /configuration/i })).toBeInTheDocument();
         expect(screen.getByText('Config modal content')).toBeInTheDocument();
+    });
+
+    it('should close settings modal with the Escape key', async () => {
+        const user = (await import('@testing-library/user-event')).default.setup();
+
+        render(
+            <MemoryRouter>
+                <Routes>
+                    <Route path="*" element={<AppShell />}>
+                        <Route index element={<div>Chat Content</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await user.click(screen.getByRole('button', { name: /config/i }));
+        expect(screen.getByRole('dialog', { name: /configuration/i })).toBeInTheDocument();
+
+        await user.keyboard('{Escape}');
+
+        expect(screen.queryByRole('dialog', { name: /configuration/i })).not.toBeInTheDocument();
+    });
+
+    it('should not close the settings modal on Escape while a nested modal is open', async () => {
+        const user = (await import('@testing-library/user-event')).default.setup();
+
+        render(
+            <MemoryRouter>
+                <Routes>
+                    <Route path="*" element={<AppShell />}>
+                        <Route index element={<div>Chat Content</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await user.click(screen.getByRole('button', { name: /config/i }));
+        await user.click(screen.getByRole('button', { name: /open nested modal/i }));
+
+        expect(screen.getByRole('dialog', { name: /nested modal/i })).toBeInTheDocument();
+
+        await user.keyboard('{Escape}');
+
+        expect(screen.getByRole('dialog', { name: /configuration/i })).toBeInTheDocument();
     });
 
     it('should close settings modal from the close button', async () => {

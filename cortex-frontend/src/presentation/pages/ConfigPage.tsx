@@ -1,21 +1,20 @@
+import { useState } from 'react';
+
 import { Chat } from '@/presentation/components/atoms/Icon/Chat';
+import { Admin } from '@/presentation/components/atoms/Icon/Admin';
 import { X } from '@/presentation/components/atoms/Icon/X';
 import { ChatSettings } from '@/features/chat/ChatSettings';
+import { UserManagement } from '@/features/user-management';
+import { useAuthStore } from '@/features/auth/store';
 
 import './ConfigPage.scss';
 
 const CONFIG_TAB = {
     provider: 'provider',
+    users: 'users',
 } as const;
 
 type ConfigTab = (typeof CONFIG_TAB)[keyof typeof CONFIG_TAB];
-
-const navSections = [
-    {
-        heading: 'Funciones',
-        items: [{ label: 'Proveedores de modelos', icon: Chat, tab: CONFIG_TAB.provider }],
-    },
-] as const;
 
 interface ConfigPageProps {
     variant?: 'page' | 'modal';
@@ -23,11 +22,34 @@ interface ConfigPageProps {
 }
 
 export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
-    const activeTab: ConfigTab = CONFIG_TAB.provider;
+    const [activeTab, setActiveTab] = useState<ConfigTab>(CONFIG_TAB.provider);
+    const { role } = useAuthStore();
+    const isSuperAdmin = role === 'super_admin';
+
+    const navSections = [
+        {
+            heading: 'Funciones',
+            items: [
+                { label: 'Proveedores de modelos', icon: Chat, tab: CONFIG_TAB.provider },
+                ...(isSuperAdmin ? [{ label: 'Usuarios', icon: Admin, tab: CONFIG_TAB.users }] : []),
+            ],
+        },
+    ];
+
+    const activeSection = navSections
+        .flatMap((section) => section.items)
+        .find((item) => item.tab === activeTab);
+
+    const headerTitle = activeTab === CONFIG_TAB.users ? 'Administración de usuarios' : 'Proveedores de modelos';
+    const headerDescription =
+        activeTab === CONFIG_TAB.users
+            ? 'Creá y gestioná los usuarios que tienen acceso a Cortex.'
+            : 'Conectá y administrá las API keys que Cortex usa para acceder a tus proveedores de modelos.';
 
     return (
         <section
-            aria-labelledby="config-title"
+            aria-label={activeTab === CONFIG_TAB.users ? headerTitle : undefined}
+            aria-labelledby={activeTab === CONFIG_TAB.provider ? 'config-title' : undefined}
             aria-modal={variant === 'modal' ? true : undefined}
             className={`config-page config-page--${variant}`}
             role={variant === 'modal' ? 'dialog' : undefined}
@@ -52,13 +74,15 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                                 <div className="config-page__nav-list">
                                     {section.items.map((item) => {
                                         const Icon = item.icon;
+                                        const isActive = activeTab === item.tab;
 
                                         return (
                                             <button
                                                 key={item.label}
                                                 type="button"
-                                                className="config-page__nav-item config-page__nav-item--active"
-                                                aria-current={activeTab === item.tab ? 'page' : undefined}
+                                                className={`config-page__nav-item ${isActive ? 'config-page__nav-item--active' : ''}`}
+                                                aria-current={isActive ? 'page' : undefined}
+                                                onClick={() => setActiveTab(item.tab)}
                                             >
                                                 <Icon className="config-page__nav-icon" width={16} height={16} />
                                                 <span>{item.label}</span>
@@ -78,17 +102,21 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
 
                 <div className="config-page__content">
                     <div className="config-page__content-inner">
-                        <header className="config-page__header">
-                            <p className="config-page__eyebrow">Configuración</p>
-                            <h1 id="config-title" className="config-page__title">
-                                Proveedores de modelos
-                            </h1>
-                            <p className="config-page__description">
-                                Conectá y administrá las API keys que Cortex usa para acceder a tus proveedores de modelos.
-                            </p>
-                        </header>
+                        {activeTab === CONFIG_TAB.provider ? (
+                            <>
+                                <header className="config-page__header">
+                                    <p className="config-page__eyebrow">Configuración</p>
+                                    <h1 id="config-title" className="config-page__title">
+                                        {headerTitle}
+                                    </h1>
+                                    <p className="config-page__description">{headerDescription}</p>
+                                </header>
 
-                        <ChatSettings headingId="config-title" />
+                                <ChatSettings headingId="config-title" />
+                            </>
+                        ) : activeTab === CONFIG_TAB.users && isSuperAdmin ? (
+                            <UserManagement />
+                        ) : null}
                     </div>
                 </div>
             </div>
