@@ -6,7 +6,6 @@ import { useAuthStore } from './store';
 const mockUnsubscribe = vi.fn();
 const mockOnAuthStateChange = vi.fn(() => ({ data: { subscription: { unsubscribe: mockUnsubscribe } } }));
 const mockGetSession = vi.fn();
-const mockSignUp = vi.fn();
 
 vi.mock('@/services/supabase/client', () => {
     return {
@@ -14,7 +13,6 @@ vi.mock('@/services/supabase/client', () => {
             auth: {
                 getSession: () => mockGetSession(),
                 onAuthStateChange: (callback: Function) => mockOnAuthStateChange(callback),
-                signUp: (...args: unknown[]) => mockSignUp(...args),
             },
         },
     };
@@ -240,73 +238,6 @@ describe('useAuthStore', () => {
             // This test verifies the guard works when client is unavailable
             // The mock setup always provides a client, so we test the logic path exists
             expect(useAuthStore.getState().isInitialized).toBe(false);
-        });
-    });
-
-    describe('register', () => {
-        beforeEach(() => {
-            mockSignUp.mockClear();
-        });
-
-        it('should register user with default operativo role', async () => {
-            mockSignUp.mockResolvedValueOnce({
-                data: {
-                    user: { id: 'new-user', email: 'new@example.com' },
-                    session: { access_token: 'new-token' },
-                },
-                error: null,
-            });
-
-            const { register } = useAuthStore.getState();
-            const result = await register('new@example.com', 'password123');
-
-            expect(mockSignUp).toHaveBeenCalledWith({
-                email: 'new@example.com',
-                password: 'password123',
-                options: { data: { role: 'operativo' } },
-            });
-            expect(result.user).toEqual({ id: 'new-user', email: 'new@example.com' });
-            expect(result.session).toEqual({ access_token: 'new-token' });
-            expect(result.requiresConfirmation).toBe(false);
-
-            const state = useAuthStore.getState();
-            expect(state.user).toEqual({ id: 'new-user', email: 'new@example.com' });
-            expect(state.role).toBe('operativo');
-        });
-
-        it('should register user with custom role and require confirmation', async () => {
-            mockSignUp.mockResolvedValueOnce({
-                data: {
-                    user: { id: 'admin-user', email: 'admin@example.com' },
-                    session: null,
-                },
-                error: null,
-            });
-
-            const { register } = useAuthStore.getState();
-            const result = await register('admin@example.com', 'password123', 'super_admin');
-
-            expect(mockSignUp).toHaveBeenCalledWith({
-                email: 'admin@example.com',
-                password: 'password123',
-                options: { data: { role: 'super_admin' } },
-            });
-            expect(result.requiresConfirmation).toBe(true);
-            expect(result.session).toBeNull();
-
-            // Store should not be updated when no session
-            const state = useAuthStore.getState();
-            expect(state.user).toBeNull();
-        });
-
-        it('should throw error when registration fails', async () => {
-            mockSignUp.mockResolvedValueOnce({
-                data: { user: null, session: null },
-                error: { message: 'Email already registered' },
-            });
-
-            const { register } = useAuthStore.getState();
-            await expect(register('taken@example.com', 'password123')).rejects.toThrow('Email already registered');
         });
     });
 });

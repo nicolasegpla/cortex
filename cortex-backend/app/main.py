@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.routers import (
+    admin_users,
     animal_feed_producers,
     auth,
     breweries,
@@ -37,6 +38,7 @@ def create_app() -> FastAPI:
 
     application.include_router(health.router)
     application.include_router(auth.router)
+    application.include_router(admin_users.router)
     application.include_router(breweries.router)
     application.include_router(coffee_farms.router)
     application.include_router(animal_feed_producers.router)

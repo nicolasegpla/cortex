@@ -8,4 +8,6 @@ class TestMain:
 
         assert '/health' in paths
         assert '/auth/login' in paths
-        assert '/auth/register' in paths
+        assert '/auth/register' not in paths
+        assert '/admin/users' in paths
+        assert '/admin/users/{user_id}' in paths

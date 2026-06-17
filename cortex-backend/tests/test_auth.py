@@ -45,82 +45,6 @@ class TestAuthEndpoints:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_register_success_returns_user_info(self, client: TestClient) -> None:
-        mock_user = MagicMock()
-        mock_user.id = "user-uuid-123"
-        mock_user.email = "new@example.com"
-        mock_user.user_metadata = {"role": "operativo"}
-        mock_response = MagicMock()
-        mock_response.user = mock_user
-
-        with patch("app.routers.auth.get_supabase_client") as mock_get_client:
-            mock_supabase = MagicMock()
-            mock_supabase.auth.admin.create_user.return_value = mock_response
-            mock_get_client.return_value = mock_supabase
-
-            response = client.post(
-                "/auth/register",
-                json={
-                    "email": "new@example.com",
-                    "password": "secret123",
-                    "full_name": "New User",
-                },
-            )
-
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["user_id"] == "user-uuid-123"
-        assert data["email"] == "new@example.com"
-        assert data["role"] == "operativo"
-        assert data["requires_confirmation"] is False
-
-    def test_register_with_confirmation_required(self, client: TestClient) -> None:
-        mock_user = MagicMock()
-        mock_user.id = "user-uuid-456"
-        mock_user.email = "confirm@example.com"
-        mock_user.user_metadata = {"role": "operativo"}
-        mock_user.email_confirmed_at = None
-        mock_response = MagicMock()
-        mock_response.user = mock_user
-
-        with patch("app.routers.auth.get_supabase_client") as mock_get_client:
-            mock_supabase = MagicMock()
-            mock_supabase.auth.admin.create_user.return_value = mock_response
-            mock_get_client.return_value = mock_supabase
-
-            response = client.post(
-                "/auth/register",
-                json={
-                    "email": "confirm@example.com",
-                    "password": "secret123",
-                    "full_name": "Confirm User",
-                },
-            )
-
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["requires_confirmation"] is True
-        assert "revisá tu email" in data["message"].lower()
-
-    def test_register_duplicate_email_returns_409(self, client: TestClient) -> None:
-        with patch("app.routers.auth.get_supabase_client") as mock_get_client:
-            mock_supabase = MagicMock()
-            mock_supabase.auth.admin.create_user.side_effect = AuthApiError(
-                "User already registered", 422, "user_already_exists"
-            )
-            mock_get_client.return_value = mock_supabase
-
-            response = client.post(
-                "/auth/register",
-                json={
-                    "email": "existing@example.com",
-                    "password": "secret123",
-                    "full_name": "Existing User",
-                },
-            )
-
-        assert response.status_code == status.HTTP_409_CONFLICT
-
     def test_logout_success(self, client: TestClient) -> None:
         with patch("app.routers.auth.get_supabase_client") as mock_get_client:
             mock_supabase = MagicMock()
@@ -132,3 +56,15 @@ class TestAuthEndpoints:
         data = response.json()
         assert "message" in data
         mock_supabase.auth.sign_out.assert_called_once()
+
+    def test_register_endpoint_removed_returns_404(self, client: TestClient) -> None:
+        response = client.post(
+            "/auth/register",
+            json={
+                "email": "new@example.com",
+                "password": "secret123",
+                "full_name": "New User",
+            },
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND

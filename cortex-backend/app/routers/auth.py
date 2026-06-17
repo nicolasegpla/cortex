@@ -3,7 +3,7 @@ from supabase import AuthApiError
 
 from app.core.config import get_settings
 from app.core.security import User, get_current_user
-from app.schemas.auth import LoginRequest, RegisterRequest, RegisterResponse, TokenResponse
+from app.schemas.auth import LoginRequest, TokenResponse
 from app.services.supabase_service import SupabaseService
 
 router = APIRouter(prefix='/auth', tags=['auth'])
@@ -45,44 +45,6 @@ def login(payload: LoginRequest) -> TokenResponse:
     return TokenResponse(
         access_token=response.session.access_token,
         token_type="bearer",
-    )
-
-
-@router.post('/register', response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest) -> RegisterResponse:
-    """Register a new user with Supabase Auth and assign the operativo role."""
-    supabase = get_supabase_client()
-
-    try:
-        response = supabase.auth.admin.create_user({
-            "email": payload.email,
-            "password": payload.password,
-            "user_metadata": {"role": "operativo"},
-        })
-    except AuthApiError as exc:
-        if "already registered" in str(exc).lower() or "already exists" in str(exc).lower():
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="El usuario ya está registrado",
-            ) from exc
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No se pudo completar el registro: {exc}",
-        ) from exc
-
-    user = response.user
-    requires_confirmation = not getattr(user, "email_confirmed_at", None)
-
-    return RegisterResponse(
-        user_id=str(user.id),
-        email=user.email,
-        role=user.user_metadata.get("role", "operativo"),
-        requires_confirmation=requires_confirmation,
-        message=(
-            "Registro exitoso. Revisá tu email para confirmar tu cuenta."
-            if requires_confirmation
-            else "Registro exitoso."
-        ),
     )
 
 

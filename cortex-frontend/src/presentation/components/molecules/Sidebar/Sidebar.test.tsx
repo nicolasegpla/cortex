@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 
 import { navigationConfig } from '@/presentation/config/navigation';
+import { useAuthStore } from '@/features/auth/store';
 
 const mockStore = {
     collapsed: false,
@@ -20,6 +21,7 @@ describe('Sidebar', () => {
         cleanup();
         mockStore.collapsed = false;
         mockStore.toggle.mockClear();
+        useAuthStore.setState({ role: 'super_admin' });
     });
 
     it('should render all navigation sections from config', () => {
