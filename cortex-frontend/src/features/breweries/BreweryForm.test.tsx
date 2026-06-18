@@ -137,6 +137,36 @@ describe('BreweryForm', () => {
         });
     });
 
+    it('notifies onSavingChange while submitting', async () => {
+        const user = userEvent.setup();
+        const onSavingChange = vi.fn();
+        let resolveSubmit: (() => void) | undefined;
+        const submitPromise = new Promise<void>((resolve) => {
+            resolveSubmit = resolve;
+        });
+        vi.mocked(apiClient.post).mockImplementationOnce(() => submitPromise as Promise<unknown>);
+
+        render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} onSavingChange={onSavingChange} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
+        await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
+
+        await waitFor(() => {
+            expect(onSavingChange).toHaveBeenCalledWith(true);
+        });
+        expect(onSavingChange).not.toHaveBeenCalledWith(false);
+
+        resolveSubmit?.();
+
+        await waitFor(() => {
+            expect(onSavingChange).toHaveBeenCalledWith(false);
+        });
+    });
+
     it('calls apiClient.put and onSuccess when editing with valid data', async () => {
         const user = userEvent.setup();
         vi.mocked(apiClient.put).mockResolvedValueOnce({ id: 'brewery-1' });

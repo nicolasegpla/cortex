@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-dom';
 
 import { BreweryList } from './index';
 
@@ -53,6 +53,14 @@ function renderWithRouter(ui: React.ReactElement, { initialEntries = ['/brewerie
             {ui}
         </MemoryRouter>
     );
+}
+
+function renderWithRouterHistory(ui: React.ReactElement, { initialEntries = ['/breweries'] } = {}) {
+    const router = createMemoryRouter([{ path: '*', element: ui }], { initialEntries });
+    return {
+        router,
+        ...render(<RouterProvider router={router} />),
+    };
 }
 
 describe('BreweryList', () => {
@@ -246,6 +254,39 @@ describe('BreweryList', () => {
         expect(screen.queryByRole('heading', { name: 'Cervecería Artesanal' })).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Editar Cervecería', level: 2 })).toBeInTheDocument();
         expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('Cervecería Artesanal');
+    });
+
+    it('closes the form modal when the browser back button is pressed after opening edit from detail', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        const { router } = renderWithRouterHistory(<BreweryList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        expect(screen.getByRole('heading', { name: 'Cervecería Artesanal' })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Edit' }));
+        expect(screen.getByRole('heading', { name: 'Editar Cervecería', level: 2 })).toBeInTheDocument();
+
+        await act(async () => {
+            await router.navigate(-1);
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Editar Cervecería', level: 2 })).not.toBeInTheDocument();
+        });
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('opens the delete confirmation modal when the modal Delete button is clicked', async () => {
@@ -501,6 +542,57 @@ describe('BreweryList', () => {
         });
 
         expect(screen.queryByRole('heading', { name: 'Crear Cervecería' })).not.toBeInTheDocument();
+    });
+
+    it('shows a loading overlay in the form modal while submitting', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        let resolveSubmit: (() => void) | undefined;
+        const submitPromise = new Promise<void>((resolve) => {
+            resolveSubmit = resolve;
+        });
+
+        globalThis.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+            if (init?.method === 'POST') {
+                return submitPromise.then(
+                    () =>
+                        new Response(JSON.stringify({ id: 'brewery-new' }), {
+                            status: 201,
+                            headers: { 'Content-Type': 'application/json' },
+                        })
+                );
+            }
+
+            return Promise.resolve(
+                new Response(JSON.stringify(mockBreweries), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
+        });
+
+        renderWithRouter(<BreweryList />, { initialEntries: ['/breweries?modal=new'] });
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
+        await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Saving...')).toBeInTheDocument();
+            expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'true');
+        });
+
+        act(() => {
+            resolveSubmit?.();
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
+            expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'false');
+        });
     });
 
     it('keeps form values when submit fails', async () => {

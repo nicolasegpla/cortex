@@ -42,6 +42,7 @@ export interface BreweryFormProps {
     id?: string;
     onSuccess: () => void;
     onCancel: () => void;
+    onSavingChange?: (saving: boolean) => void;
 }
 
 const EMPTY_FORM: BreweryFormData = {
@@ -73,7 +74,7 @@ const EMPTY_FORM: BreweryFormData = {
     oportunidades: '',
 };
 
-export function BreweryForm({ initialData, id, onSuccess, onCancel }: BreweryFormProps) {
+export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChange }: BreweryFormProps) {
     const isEditMode = Boolean(initialData ?? id);
     const [loading, setLoading] = useState(isEditMode && !initialData);
     const [notFound, setNotFound] = useState(false);
@@ -123,6 +124,7 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel }: BreweryFor
         e.preventDefault();
         setError('');
         setSaving(true);
+        onSavingChange?.(true);
 
         try {
             const payload = {
@@ -146,6 +148,7 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel }: BreweryFor
             setError('Error al guardar la cervecería');
         } finally {
             setSaving(false);
+            onSavingChange?.(false);
         }
     };
 

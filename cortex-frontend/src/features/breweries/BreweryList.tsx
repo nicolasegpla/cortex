@@ -48,6 +48,7 @@ export function BreweryList() {
     const [error, setError] = useState('');
     const [selectedBrewery, setSelectedBrewery] = useState<Brewery | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [isFormLoading, setIsFormLoading] = useState(false);
 
     const modalParam = searchParams.get('modal');
     const editId = searchParams.get('id');
@@ -172,7 +173,7 @@ export function BreweryList() {
     const handleEdit = () => {
         if (selectedBrewery) {
             setIsDetailOpen(false);
-            setSearchParams({ modal: 'edit', id: selectedBrewery.id }, { replace: true });
+            setSearchParams({ modal: 'edit', id: selectedBrewery.id });
         }
     };
 
@@ -277,13 +278,14 @@ export function BreweryList() {
                 isOpen={isFormModalOpen}
                 title={isEditMode ? 'Editar Cervecería' : 'Crear Cervecería'}
                 onClose={handleCloseFormModal}
-                isLoading={false}
+                isLoading={isFormLoading}
             >
                 <BreweryForm
                     id={isEditMode ? editId ?? undefined : undefined}
                     initialData={isEditMode ? selectedBrewery ?? undefined : undefined}
                     onSuccess={handleFormSuccess}
                     onCancel={handleCloseFormModal}
+                    onSavingChange={setIsFormLoading}
                 />
             </EntityFormModal>
         </div>
