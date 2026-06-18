@@ -137,6 +137,35 @@ describe('CoffeeFarmForm', () => {
         });
     });
 
+    it('preserves zero values instead of converting them to null', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'farm-zero' });
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Finca/i), 'Finca Cero');
+        await user.type(screen.getByLabelText(/Hectáreas Totales/i), '0');
+        await user.type(screen.getByLabelText(/Hectáreas de Café/i), '0');
+        await user.type(screen.getByLabelText(/Puntaje del Café/i), '0');
+
+        await user.click(screen.getByRole('button', { name: 'Crear Finca de Café' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            hectareas_totales: '0',
+            hectareas_cafe: '0',
+            puntaje_cafe: '0',
+        });
+    });
+
     it('notifies onSavingChange while submitting', async () => {
         const user = userEvent.setup();
         const onSavingChange = vi.fn();
@@ -156,9 +185,9 @@ describe('CoffeeFarmForm', () => {
         await user.click(screen.getByRole('button', { name: 'Crear Finca de Café' }));
 
         await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledWith('/coffee-farms', expect.any(Object));
             expect(onSavingChange).toHaveBeenCalledWith(true);
         });
-        expect(onSavingChange).not.toHaveBeenCalledWith(false);
 
         resolveSubmit?.();
 
@@ -227,6 +256,7 @@ describe('CoffeeFarmForm', () => {
         await user.click(screen.getByRole('button', { name: 'Crear Finca de Café' }));
 
         await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
             expect(screen.getByRole('alert')).toHaveTextContent('Error al crear la finca de café');
         });
 

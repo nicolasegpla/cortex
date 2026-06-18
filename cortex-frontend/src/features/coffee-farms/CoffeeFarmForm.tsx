@@ -118,9 +118,9 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
                 variedades_sembradas: parseArray(formData.variedades_sembradas),
                 equipos: parseArray(formData.equipos),
                 numero_arboles: formData.numero_arboles ? parseInt(formData.numero_arboles, 10) : null,
-                hectareas_totales: formData.hectareas_totales || null,
-                hectareas_cafe: formData.hectareas_cafe || null,
-                puntaje_cafe: formData.puntaje_cafe || null,
+                hectareas_totales: formData.hectareas_totales !== '' ? formData.hectareas_totales : null,
+                hectareas_cafe: formData.hectareas_cafe !== '' ? formData.hectareas_cafe : null,
+                puntaje_cafe: formData.puntaje_cafe !== '' ? formData.puntaje_cafe : null,
             };
 
             if (id) {
