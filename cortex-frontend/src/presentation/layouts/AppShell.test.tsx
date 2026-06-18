@@ -52,10 +52,25 @@ vi.mock('@/store/useThemeStore', () => ({
 
 import { AppShell } from './AppShell';
 
+function setupMatchMedia(matches: boolean) {
+    Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockImplementation((query: string) => ({
+            matches,
+            media: query,
+            onchange: null,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+        })),
+    });
+}
+
 describe('AppShell', () => {
     beforeEach(() => {
         cleanup();
         mockToggle.mockClear();
+        setupMatchMedia(false);
     });
 
     it('should render sidebar with navigation from config', () => {
@@ -212,5 +227,135 @@ describe('AppShell', () => {
         await user.click(screen.getByRole('button', { name: /close settings/i }));
 
         expect(screen.queryByRole('dialog', { name: /configuration/i })).not.toBeInTheDocument();
+    });
+
+    describe('mobile sidebar', () => {
+        it('should show mobile menu button on mobile viewport', () => {
+            setupMatchMedia(true);
+
+            render(
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="*" element={<AppShell />}>
+                            <Route index element={<div>Chat Content</div>} />
+                        </Route>
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            expect(screen.getByTestId('mobile-menu-button')).toBeInTheDocument();
+        });
+
+        it('should hide mobile menu button on desktop viewport', () => {
+            render(
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="*" element={<AppShell />}>
+                            <Route index element={<div>Chat Content</div>} />
+                        </Route>
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            expect(screen.queryByTestId('mobile-menu-button')).not.toBeInTheDocument();
+        });
+
+        it('should open and close mobile sidebar when menu button is clicked', async () => {
+            const user = (await import('@testing-library/user-event')).default.setup();
+            setupMatchMedia(true);
+
+            render(
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="*" element={<AppShell />}>
+                            <Route index element={<div>Chat Content</div>} />
+                        </Route>
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            const sidebar = screen.getByTestId('sidebar');
+            expect(sidebar).toHaveClass('sidebar--collapsed');
+            expect(screen.queryByTestId('mobile-sidebar-backdrop')).not.toBeInTheDocument();
+
+            await user.click(screen.getByTestId('mobile-menu-button'));
+
+            expect(sidebar).not.toHaveClass('sidebar--collapsed');
+            expect(screen.getByTestId('mobile-sidebar-backdrop')).toBeInTheDocument();
+
+            await user.click(screen.getByTestId('mobile-menu-button'));
+
+            expect(sidebar).toHaveClass('sidebar--collapsed');
+            expect(screen.queryByTestId('mobile-sidebar-backdrop')).not.toBeInTheDocument();
+        });
+
+        it('should close mobile sidebar when backdrop is clicked', async () => {
+            const user = (await import('@testing-library/user-event')).default.setup();
+            setupMatchMedia(true);
+
+            render(
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="*" element={<AppShell />}>
+                            <Route index element={<div>Chat Content</div>} />
+                        </Route>
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByTestId('mobile-menu-button'));
+            expect(screen.getByTestId('mobile-sidebar-backdrop')).toBeInTheDocument();
+
+            await user.click(screen.getByTestId('mobile-sidebar-backdrop'));
+
+            expect(screen.getByTestId('sidebar')).toHaveClass('sidebar--collapsed');
+            expect(screen.queryByTestId('mobile-sidebar-backdrop')).not.toBeInTheDocument();
+        });
+
+        it('should close mobile sidebar on route change', async () => {
+            const user = (await import('@testing-library/user-event')).default.setup();
+            setupMatchMedia(true);
+
+            render(
+                <MemoryRouter initialEntries={['/']}>
+                    <Routes>
+                        <Route path="*" element={<AppShell />}>
+                            <Route index element={<div>Chat Content</div>} />
+                            <Route path="databases" element={<div>Bases de datos</div>} />
+                        </Route>
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByTestId('mobile-menu-button'));
+            expect(screen.getByTestId('sidebar')).not.toHaveClass('sidebar--collapsed');
+
+            await user.click(screen.getByRole('link', { name: /Bases de datos/i }));
+
+            expect(screen.getByTestId('sidebar')).toHaveClass('sidebar--collapsed');
+        });
+
+        it('should close mobile sidebar when opening config', async () => {
+            const user = (await import('@testing-library/user-event')).default.setup();
+            setupMatchMedia(true);
+
+            render(
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="*" element={<AppShell />}>
+                            <Route index element={<div>Chat Content</div>} />
+                        </Route>
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByTestId('mobile-menu-button'));
+            expect(screen.getByTestId('sidebar')).not.toHaveClass('sidebar--collapsed');
+
+            await user.click(screen.getByRole('button', { name: /configuración/i }));
+
+            expect(screen.getByRole('dialog', { name: /configuration/i })).toBeInTheDocument();
+            expect(screen.getByTestId('sidebar')).toHaveClass('sidebar--collapsed');
+        });
     });
 });

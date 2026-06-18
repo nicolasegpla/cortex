@@ -89,6 +89,35 @@ describe('Sidebar', () => {
         expect(sidebar).toHaveClass('sidebar--collapsed');
     });
 
+    it('should apply collapsed class from controlled prop over store state', () => {
+        mockStore.collapsed = false;
+
+        render(
+            <MemoryRouter>
+                <Sidebar collapsed />
+            </MemoryRouter>
+        );
+
+        const sidebar = screen.getByTestId('sidebar');
+        expect(sidebar).toHaveClass('sidebar--collapsed');
+    });
+
+    it('should ignore store toggle when collapsed prop is controlled', async () => {
+        const { userEvent } = await import('@testing-library/user-event');
+        const user = userEvent.setup();
+
+        render(
+            <MemoryRouter>
+                <Sidebar collapsed={false} />
+            </MemoryRouter>
+        );
+
+        const toggleButton = screen.getByRole('button', { name: /contraer barra lateral/i });
+        await user.click(toggleButton);
+
+        expect(mockStore.toggle).not.toHaveBeenCalled();
+    });
+
     it('should highlight active nav item based on current route', () => {
         render(
             <MemoryRouter initialEntries={['/databases']}>

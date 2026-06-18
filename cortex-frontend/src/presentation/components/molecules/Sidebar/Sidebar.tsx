@@ -8,13 +8,18 @@ import { SidebarFooter } from './SidebarFooter';
 interface SidebarProps {
     activeAction?: NavItemAction | null;
     onAction?: (action: NavItemAction) => void;
+    collapsed?: boolean;
 }
 
-export function Sidebar({ activeAction = null, onAction }: SidebarProps) {
-    const { collapsed, toggle } = useSidebarStore();
+export function Sidebar({ activeAction = null, onAction, collapsed: collapsedProp }: SidebarProps) {
+    const store = useSidebarStore();
+    const isControlled = collapsedProp !== undefined;
+    const collapsed = isControlled ? collapsedProp : store.collapsed;
+    const toggle = isControlled ? () => undefined : store.toggle;
 
     return (
         <aside
+            id="sidebar"
             className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}
             aria-label="Navegación principal"
             data-testid="sidebar"
@@ -41,7 +46,7 @@ export function Sidebar({ activeAction = null, onAction }: SidebarProps) {
                 ))}
             </nav>
 
-            <SidebarFooter />
+            <SidebarFooter collapsed={collapsed} />
         </aside>
     );
 }

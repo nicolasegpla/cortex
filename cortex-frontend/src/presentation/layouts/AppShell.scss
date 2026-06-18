@@ -29,11 +29,38 @@
     flex-shrink: 0;
 }
 
+.app-shell__top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
 .app-shell__logo {
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--color-text-primary);
     letter-spacing: -0.02em;
+}
+
+.app-shell__menu-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-input);
+    border: 1px solid var(--color-border-subtle);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition:
+        background-color 150ms ease,
+        color 150ms ease;
+
+    &:hover {
+        background-color: var(--color-surface-muted);
+        color: var(--color-text-primary);
+    }
 }
 
 .app-shell__top-bar-right {
@@ -75,6 +102,13 @@
     min-height: 520px;
     min-width: 0;
     overflow: hidden;
+}
+
+.app-shell__sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(6, 8, 12, 0.48);
 }
 
 // Sidebar styles (co-located in AppShell.scss for single-file layout)
@@ -301,6 +335,10 @@
             justify-content: flex-start;
             padding: var(--space-sm) var(--space-md);
         }
+    }
+
+    .sidebar__toggle {
+        display: none;
     }
 
     .app-shell__modal-overlay {

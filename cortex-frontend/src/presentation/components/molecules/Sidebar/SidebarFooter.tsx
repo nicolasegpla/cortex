@@ -2,12 +2,14 @@ import { useNavigate } from 'react-router-dom';
 
 import { Logout } from '@/presentation/components/atoms/Icon/Logout';
 import { useAuthStore } from '@/features/auth/store';
-import { useSidebarStore } from '@/store/useSidebarStore';
 
-export function SidebarFooter() {
+interface SidebarFooterProps {
+    collapsed: boolean;
+}
+
+export function SidebarFooter({ collapsed }: SidebarFooterProps) {
     const navigate = useNavigate();
     const { user, role, logout } = useAuthStore();
-    const { collapsed } = useSidebarStore();
 
     if (!user) {
         return null;

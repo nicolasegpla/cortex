@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '@/features/auth/store';
 
 const mockNavigate = vi.fn();
-const mockSidebarStore = { collapsed: false };
 const mockSignOut = vi.hoisted(() => vi.fn());
 const mockAuthConfig = vi.hoisted(() => ({ authAvailable: true }));
 const mockAlert = vi.hoisted(() => vi.fn());
@@ -14,10 +13,6 @@ vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return { ...(actual as object), useNavigate: () => mockNavigate };
 });
-
-vi.mock('@/store/useSidebarStore', () => ({
-    useSidebarStore: () => mockSidebarStore,
-}));
 
 vi.mock('@/services/supabase/client', () => ({
     supabaseClient: {
@@ -37,7 +32,6 @@ describe('SidebarFooter', () => {
         mockAlert.mockClear();
         mockAuthConfig.authAvailable = true;
         vi.stubGlobal('alert', mockAlert);
-        mockSidebarStore.collapsed = false;
         useAuthStore.setState({
             user: null,
             session: null,
@@ -59,7 +53,7 @@ describe('SidebarFooter', () => {
 
         render(
             <MemoryRouter>
-                <SidebarFooter />
+                <SidebarFooter collapsed={false} />
             </MemoryRouter>
         );
 
@@ -70,7 +64,7 @@ describe('SidebarFooter', () => {
     it('renders nothing when the user is null', () => {
         render(
             <MemoryRouter>
-                <SidebarFooter />
+                <SidebarFooter collapsed={false} />
             </MemoryRouter>
         );
 
@@ -88,7 +82,7 @@ describe('SidebarFooter', () => {
 
         render(
             <MemoryRouter>
-                <SidebarFooter />
+                <SidebarFooter collapsed={false} />
             </MemoryRouter>
         );
 
@@ -114,7 +108,7 @@ describe('SidebarFooter', () => {
 
         render(
             <MemoryRouter>
-                <SidebarFooter />
+                <SidebarFooter collapsed={false} />
             </MemoryRouter>
         );
 
@@ -140,7 +134,7 @@ describe('SidebarFooter', () => {
 
         render(
             <MemoryRouter>
-                <SidebarFooter />
+                <SidebarFooter collapsed={false} />
             </MemoryRouter>
         );
 
@@ -166,7 +160,7 @@ describe('SidebarFooter', () => {
 
         render(
             <MemoryRouter>
-                <SidebarFooter />
+                <SidebarFooter collapsed={false} />
             </MemoryRouter>
         );
 
@@ -186,11 +180,10 @@ describe('SidebarFooter', () => {
             user: { id: '3', email: 'han@cortex.ai' },
             role: 'operativo',
         });
-        mockSidebarStore.collapsed = true;
 
         render(
             <MemoryRouter>
-                <SidebarFooter />
+                <SidebarFooter collapsed={true} />
             </MemoryRouter>
         );
 
@@ -208,7 +201,7 @@ describe('SidebarFooter', () => {
 
         render(
             <MemoryRouter>
-                <SidebarFooter />
+                <SidebarFooter collapsed={false} />
             </MemoryRouter>
         );
 
