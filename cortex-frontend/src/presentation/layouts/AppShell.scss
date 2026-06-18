@@ -150,12 +150,18 @@
     flex-shrink: 0;
 }
 
+.sidebar--collapsed .sidebar__header {
+    justify-content: center;
+    padding: 0;
+}
+
 .sidebar__toggle {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
+    padding: 0;
     border-radius: var(--radius-input);
     border: 0;
     background: transparent;
@@ -177,6 +183,7 @@
 }
 
 .sidebar__toggle-icon {
+    display: block;
     transition: transform 200ms ease;
 }
 
