@@ -16,6 +16,10 @@ import { WineProducerList, WineProducerCreate, WineProducerEdit } from '@/featur
 
 export const appRoutes = [
     {
+        path: '/login',
+        element: <LoginPage />,
+    },
+    {
         path: '/',
         element: <AppShell />,
         children: [
@@ -34,10 +38,6 @@ export const appRoutes = [
                         <DashboardPage />
                     </ProtectedRoute>
                 ),
-            },
-            {
-                path: 'login',
-                element: <LoginPage />,
             },
             {
                 path: 'breweries',

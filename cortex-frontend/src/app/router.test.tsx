@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { Navigate } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { createMemoryRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 import { RequireRole } from '@/features/auth/RequireRole';
 
 import { appRoutes } from './router';
+
+vi.mock('@/services/supabase/client', () => ({
+    supabaseClient: null,
+}));
 
 interface RouteConfig {
     path?: string;
@@ -35,7 +40,15 @@ function findRoute(routes: RouteConfig[], path: string): RouteConfig | undefined
     return undefined;
 }
 
+function getElementType(route?: RouteConfig) {
+    return (route as unknown as { element?: { type?: unknown } })?.element?.type;
+}
+
 describe('appRoutes', () => {
+    afterEach(() => {
+        cleanup();
+    });
+
     it('does not expose a public /register route', () => {
         const paths = collectPaths(appRoutes);
 
@@ -49,8 +62,17 @@ describe('appRoutes', () => {
 
         const adminRoute = findRoute(appRoutes, 'admin');
         expect(adminRoute).toBeDefined();
-        expect(adminRoute?.element?.type).toBe(RequireRole);
-        expect(adminRoute?.element?.props?.children?.type).toBe(Navigate);
-        expect(adminRoute?.element?.props?.children?.props).toMatchObject({ to: '/config', replace: true });
+        expect(getElementType(adminRoute)).toBe(RequireRole);
+        expect((adminRoute as unknown as { element: { props: { children: { type: unknown; props: unknown } } } }).element.props.children.type).toBe(Navigate);
+        expect((adminRoute as unknown as { element: { props: { children: { props: unknown } } } }).element.props.children.props).toMatchObject({ to: '/config', replace: true });
+    });
+
+    it('renders the login page outside the app shell', () => {
+        const router = createMemoryRouter(appRoutes, { initialEntries: ['/login'] });
+        const { container } = render(<RouterProvider router={router} />);
+
+        expect(screen.getByRole('heading', { name: /Iniciá sesión en Cortex/i })).toBeInTheDocument();
+        expect(screen.queryByTestId('sidebar')).not.toBeInTheDocument();
+        expect(container.querySelector('.app-shell')).not.toBeInTheDocument();
     });
 });

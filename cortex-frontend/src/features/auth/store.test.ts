@@ -6,15 +6,19 @@ import { useAuthStore } from './store';
 const mockUnsubscribe = vi.fn();
 const mockOnAuthStateChange = vi.fn(() => ({ data: { subscription: { unsubscribe: mockUnsubscribe } } }));
 const mockGetSession = vi.fn();
+const mockSignOut = vi.fn();
+
+const mockSupabaseClient = vi.hoisted(() => ({
+    auth: {
+        getSession: () => mockGetSession(),
+        onAuthStateChange: (callback: Function) => mockOnAuthStateChange(callback),
+        signOut: () => mockSignOut(),
+    },
+}));
 
 vi.mock('@/services/supabase/client', () => {
     return {
-        supabaseClient: {
-            auth: {
-                getSession: () => mockGetSession(),
-                onAuthStateChange: (callback: Function) => mockOnAuthStateChange(callback),
-            },
-        },
+        supabaseClient: mockSupabaseClient,
     };
 });
 
@@ -54,16 +58,78 @@ describe('useAuthStore', () => {
         expect(state.role).toBe('super_admin');
     });
 
-    it('should clear state on logout', () => {
+    it('should clear state on logout when Supabase signOut succeeds', async () => {
+        mockSignOut.mockResolvedValueOnce({ error: null });
+
         const { login, logout } = useAuthStore.getState();
 
         login({ id: '123' }, { access_token: 'token' }, 'operativo');
-        logout();
+        const success = await logout();
 
         const state = useAuthStore.getState();
+        expect(success).toBe(true);
         expect(state.user).toBeNull();
         expect(state.session).toBeNull();
         expect(state.role).toBeNull();
+    });
+
+    it('should call Supabase signOut on logout', async () => {
+        mockSignOut.mockResolvedValueOnce({ error: null });
+
+        const { login, logout } = useAuthStore.getState();
+
+        login({ id: '123' }, { access_token: 'token' }, 'operativo');
+        await logout();
+
+        expect(mockSignOut).toHaveBeenCalledOnce();
+    });
+
+    it('should keep local state and return false when Supabase signOut returns an error', async () => {
+        mockSignOut.mockResolvedValueOnce({ error: new Error('sign out failed') });
+
+        const { login, logout } = useAuthStore.getState();
+        login({ id: '123' }, { access_token: 'token' }, 'operativo');
+        const success = await logout();
+
+        const state = useAuthStore.getState();
+        expect(success).toBe(false);
+        expect(state.user).not.toBeNull();
+        expect(state.session).not.toBeNull();
+        expect(state.role).not.toBeNull();
+        expect(mockSignOut).toHaveBeenCalledOnce();
+    });
+
+    it('should keep local state and return false when Supabase signOut throws', async () => {
+        mockSignOut.mockRejectedValueOnce(new Error('network error'));
+
+        const { login, logout } = useAuthStore.getState();
+        login({ id: '123' }, { access_token: 'token' }, 'operativo');
+        const success = await logout();
+
+        const state = useAuthStore.getState();
+        expect(success).toBe(false);
+        expect(state.user).not.toBeNull();
+        expect(state.session).not.toBeNull();
+        expect(state.role).not.toBeNull();
+        expect(mockSignOut).toHaveBeenCalledOnce();
+    });
+
+    it('should keep local state and return false when supabase client auth is missing', async () => {
+        const originalAuth = mockSupabaseClient.auth;
+        mockSupabaseClient.auth = undefined as unknown as typeof originalAuth;
+
+        const { login, logout } = useAuthStore.getState();
+        login({ id: '123' }, { access_token: 'token' }, 'operativo');
+        const success = await logout();
+
+        const state = useAuthStore.getState();
+        expect(success).toBe(false);
+        expect(state.user).not.toBeNull();
+        expect(state.session).not.toBeNull();
+        expect(state.role).not.toBeNull();
+        expect(mockSignOut).not.toHaveBeenCalled();
+
+        mockSupabaseClient.auth = originalAuth;
     });
 
     it('should set loading state', () => {

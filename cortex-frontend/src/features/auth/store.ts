@@ -18,7 +18,7 @@ interface AuthState {
     isLoading: boolean;
     isInitialized: boolean;
     login: (user: User, session: Session, role: string) => void;
-    logout: () => void;
+    logout: () => Promise<boolean>;
     setLoading: (loading: boolean) => void;
     setSession: (session: Session) => void;
     initialize: () => Promise<void>;
@@ -54,13 +54,35 @@ export const useAuthStore = create<AuthState>((set) => ({
             isLoading: false,
         }),
 
-    logout: () =>
+    logout: async () => {
+        if (!supabaseClient || !supabaseClient.auth) {
+            // A missing Supabase client means we cannot complete server-side logout.
+            // Keep the local session intact and report failure so callers stay in-app.
+            return false;
+        }
+
+        try {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) {
+                // Supabase signOut reported a failure: keep the local session intact
+                // so the user stays in-app and the failure can be surfaced.
+                return false;
+            }
+        } catch {
+            // Supabase signOut failed: keep the local session intact
+            // so the user stays in-app and the failure can be surfaced.
+            return false;
+        }
+
         set({
             user: null,
             session: null,
             role: null,
             isLoading: false,
-        }),
+        });
+
+        return true;
+    },
 
     setLoading: (loading) => set({ isLoading: loading }),
 
