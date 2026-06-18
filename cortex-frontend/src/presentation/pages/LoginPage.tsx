@@ -5,6 +5,8 @@ import { Button, Input } from '@/presentation/components/atoms';
 import { useAuthStore } from '@/features/auth/store';
 import { supabaseClient } from '@/services/supabase/client';
 
+import './LoginPage.scss';
+
 function translateAuthError(message: string) {
     const normalized = message.toLowerCase();
 
@@ -75,14 +77,14 @@ export function LoginPage() {
     };
 
     return (
-        <section aria-labelledby="auth-title">
+        <section className="login-page" aria-labelledby="auth-title">
             <div className="page-card page-card--narrow">
                 <p className="page-card__eyebrow">Autenticación</p>
                 <h2 id="auth-title" className="page-card__title">
                     Iniciá sesión en Cortex
                 </h2>
                 <p className="page-card__description">
-                    Ingresá tus credenciales para acceder al sistema de gestión cervecera.
+                    Ingresá tus credenciales para acceder al sistema de gestión de tu empresa.
                 </p>
 
                 {error && (

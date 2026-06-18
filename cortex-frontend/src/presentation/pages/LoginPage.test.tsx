@@ -56,7 +56,7 @@ describe('LoginPage', () => {
         expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /continuar/i })).toBeInTheDocument();
-        expect(screen.getByText(/ingresá tus credenciales para acceder al sistema de gestión cervecera/i)).toBeInTheDocument();
+        expect(screen.getByText(/ingresá tus credenciales para acceder al sistema de gestión de tu empresa/i)).toBeInTheDocument();
     });
 
     it('does not expose registration toggle or CTA', () => {
