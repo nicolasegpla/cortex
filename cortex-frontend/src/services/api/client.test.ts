@@ -1,5 +1,16 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+const mockSignOut = vi.hoisted(() => vi.fn());
+const mockAuthConfig = vi.hoisted(() => ({ authAvailable: true }));
+
+vi.mock('@/services/supabase/client', () => ({
+    supabaseClient: {
+        get auth() {
+            return mockAuthConfig.authAvailable ? { signOut: () => mockSignOut() } : undefined;
+        },
+    },
+}));
+
 import { apiClient } from './client';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -9,11 +20,17 @@ describe('apiClient.delete', () => {
 
     beforeEach(() => {
         originalFetch = globalThis.fetch;
+        mockAuthConfig.authAvailable = true;
+        Object.defineProperty(window, 'location', {
+            writable: true,
+            value: { href: '' },
+        });
     });
 
     afterEach(() => {
         globalThis.fetch = originalFetch;
         vi.clearAllMocks();
+        mockSignOut.mockReset();
     });
 
     it('resolves without parsing JSON for 204 No Content', async () => {
@@ -36,6 +53,42 @@ describe('apiClient.delete', () => {
 
         await expect(apiClient.delete('/breweries/1')).rejects.toThrow('No tiene permiso para eliminar');
     });
+
+    it('redirects to login on 401 when logout succeeds', async () => {
+        mockSignOut.mockResolvedValueOnce({ error: null });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(null, { status: 401, statusText: 'Unauthorized' })
+        );
+
+        await expect(apiClient.delete('/breweries/1')).rejects.toThrow('Unauthorized');
+        expect(mockSignOut).toHaveBeenCalledOnce();
+        expect(window.location.href).toBe('/login');
+    });
+
+    it('stays in-app on 401 when logout returns an error', async () => {
+        mockSignOut.mockResolvedValueOnce({ error: new Error('sign out failed') });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(null, { status: 401, statusText: 'Unauthorized' })
+        );
+
+        await expect(apiClient.delete('/breweries/1')).rejects.toThrow('Unauthorized');
+        expect(mockSignOut).toHaveBeenCalledOnce();
+        expect(window.location.href).not.toBe('/login');
+    });
+
+    it('stays in-app on 401 when supabaseClient.auth is unavailable', async () => {
+        mockAuthConfig.authAvailable = false;
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(null, { status: 401, statusText: 'Unauthorized' })
+        );
+
+        await expect(apiClient.delete('/breweries/1')).rejects.toThrow('Unauthorized');
+        expect(mockSignOut).not.toHaveBeenCalled();
+        expect(window.location.href).not.toBe('/login');
+    });
 });
 
 describe('apiClient.stream', () => {
@@ -43,11 +96,17 @@ describe('apiClient.stream', () => {
 
     beforeEach(() => {
         originalFetch = globalThis.fetch;
+        mockAuthConfig.authAvailable = true;
+        Object.defineProperty(window, 'location', {
+            writable: true,
+            value: { href: '' },
+        });
     });
 
     afterEach(() => {
         globalThis.fetch = originalFetch;
         vi.clearAllMocks();
+        mockSignOut.mockReset();
     });
 
     it('should make a POST request with correct headers and body', async () => {
@@ -120,17 +179,19 @@ describe('apiClient.stream', () => {
     });
 
     it('should throw on non-ok response', async () => {
-        const mockResponse = new Response('No autorizado', {
-            status: 401,
-            statusText: 'Unauthorized',
+        const mockResponse = new Response('Forbidden', {
+            status: 403,
+            statusText: 'Forbidden',
         });
 
         globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('No autorizado');
+        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('Forbidden');
     });
 
-    it('should throw unauthorized error on 401 and trigger logout', async () => {
+    it('should redirect to login on 401 when logout succeeds', async () => {
+        mockSignOut.mockResolvedValueOnce({ error: null });
+
         const mockResponse = new Response(null, {
             status: 401,
             statusText: 'Unauthorized',
@@ -138,6 +199,38 @@ describe('apiClient.stream', () => {
 
         globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('No autorizado');
+        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('Unauthorized');
+        expect(mockSignOut).toHaveBeenCalledOnce();
+        expect(window.location.href).toBe('/login');
+    });
+
+    it('should stay in-app on 401 when logout returns an error', async () => {
+        mockSignOut.mockResolvedValueOnce({ error: new Error('sign out failed') });
+
+        const mockResponse = new Response(null, {
+            status: 401,
+            statusText: 'Unauthorized',
+        });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('Unauthorized');
+        expect(mockSignOut).toHaveBeenCalledOnce();
+        expect(window.location.href).not.toBe('/login');
+    });
+
+    it('should stay in-app on 401 when supabaseClient.auth is unavailable', async () => {
+        mockAuthConfig.authAvailable = false;
+
+        const mockResponse = new Response(null, {
+            status: 401,
+            statusText: 'Unauthorized',
+        });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        await expect(apiClient.stream('/chat/stream', {})).rejects.toThrow('Unauthorized');
+        expect(mockSignOut).not.toHaveBeenCalled();
+        expect(window.location.href).not.toBe('/login');
     });
 });

@@ -26,9 +26,11 @@ async function request<T>(endpoint: string, config: RequestConfig = {}): Promise
     });
 
     if (response.status === 401) {
-        useAuthStore.getState().logout();
-        window.location.href = '/login';
-        throw new Error('No autorizado');
+        const loggedOut = await useAuthStore.getState().logout();
+        if (loggedOut) {
+            window.location.href = '/login';
+        }
+        throw new Error('Unauthorized');
     }
 
     if (!response.ok) {
@@ -60,9 +62,11 @@ async function streamRequest(endpoint: string, body: unknown): Promise<ReadableS
     });
 
     if (response.status === 401) {
-        useAuthStore.getState().logout();
-        window.location.href = '/login';
-        throw new Error('No autorizado');
+        const loggedOut = await useAuthStore.getState().logout();
+        if (loggedOut) {
+            window.location.href = '/login';
+        }
+        throw new Error('Unauthorized');
     }
 
     if (!response.ok) {
