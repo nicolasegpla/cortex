@@ -34,9 +34,9 @@ Chain strategy: pending
 
 ## Phase 2: Core — BreweryForm Extraction
 
-- [ ] 2.1 **TDD: Write `BreweryForm.test.tsx`** — test `BreweryForm` in isolation. Cover: create mode (no `initialData`), edit mode (with `initialData`), submit calls `apiClient.post/put`, `onSuccess` called on 2xx, `onCancel` called on cancel, error state preserves form values, field-level validation. Use mock `apiClient`. (est. ~150 lines)
-- [ ] 2.2 **Create `BreweryForm.tsx`** — extract/create domain form with `initialData?`, `id?`, `onSuccess`, `onCancel` props. Handles `parseArray`/`joinArray` for array fields. Uses `useEffect` to pre-fetch edit data when `id` is set. Submit dispatches to `apiClient.post` (create) or `apiClient.put` (edit). **React 19 rules:** named imports only, no `useMemo`/`useCallback`, `ref` as prop pattern. (est. ~200 lines)
-- [ ] 2.3 **Update `breweries/index.ts`** — export `BreweryForm`, remove `BreweryCreate` and `BreweryEdit`. (est. ~5 lines)
+- [x] 2.1 **TDD: Write `BreweryForm.test.tsx`** — test `BreweryForm` in isolation. Cover: create mode (no `initialData`), edit mode (with `initialData`), submit calls `apiClient.post/put`, `onSuccess` called on 2xx, `onCancel` called on cancel, error state preserves form values, field-level validation. Use mock `apiClient`. (est. ~150 lines)
+- [x] 2.2 **Create `BreweryForm.tsx`** — extract/create domain form with `initialData?`, `id?`, `onSuccess`, `onCancel` props. Handles `parseArray`/`joinArray` for array fields. Uses `useEffect` to pre-fetch edit data when `id` is set. Submit dispatches to `apiClient.post` (create) or `apiClient.put` (edit). **React 19 rules:** named imports only, no `useMemo`/`useCallback`, `ref` as prop pattern. (est. ~200 lines)
+- [x] 2.3 **Update `breweries/index.ts`** — export `BreweryForm`, remove `BreweryCreate` and `BreweryEdit`. (est. ~5 lines)
 
 **Dependencies:** Phase 1 (EntityFormModal used in Phase 3 integration; form itself is independently testable).
 
@@ -44,8 +44,8 @@ Chain strategy: pending
 
 ## Phase 3: Router — Deep-Link Redirects
 
-- [ ] 3.1 **Modify `router.tsx`** — replace `/breweries/new` route rendering `BreweryCreate` with `Navigate to="/breweries?modal=new"`. Replace `/breweries/:id/edit` with `Navigate to="/breweries?modal=edit&id=:id"`. Preserve other routes unchanged. (est. ~10 lines change)
-- [ ] 3.2 **Modify `router.test.tsx`** — rewrite assertions for `/breweries/new` and `/breweries/:id/edit` to assert redirect behavior instead of page renders. Add case for invalid-id redirect. (est. ~60 lines)
+- [x] 3.1 **Modify `router.tsx`** — replace `/breweries/new` route rendering `BreweryCreate` with `Navigate to="/breweries?modal=new"`. Replace `/breweries/:id/edit` with `Navigate to="/breweries?modal=edit&id=:id"`. Preserve other routes unchanged. (est. ~10 lines change)
+- [x] 3.2 **Modify `router.test.tsx`** — rewrite assertions for `/breweries/new` and `/breweries/:id/edit` to assert redirect behavior instead of page renders. Add case for invalid-id redirect. (est. ~60 lines)
 
 **Dependencies:** Phase 2 (BreweryForm must exist before router redirects point at it); Phase 3 is independent of Phase 1 and can run in parallel with it.
 

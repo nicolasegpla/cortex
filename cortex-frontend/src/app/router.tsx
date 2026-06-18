@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '@/presentation/layouts/AppShell';
 import { DashboardPage } from '@/presentation/pages/DashboardPage';
@@ -8,11 +8,16 @@ import { SessionsPage } from '@/presentation/pages/SessionsPage';
 import { ConfigPage } from '@/presentation/pages/ConfigPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { RequireRole } from '@/features/auth/RequireRole';
-import { BreweryList, BreweryCreate, BreweryEdit } from '@/features/breweries';
+import { BreweryList } from '@/features/breweries';
 import { CoffeeFarmList, CoffeeFarmCreate, CoffeeFarmEdit } from '@/features/coffee-farms';
 import { ChatPage } from '@/features/chat/ChatPage';
 import { AnimalFeedProducerList, AnimalFeedProducerCreate, AnimalFeedProducerEdit } from '@/features/animal-feed-producers';
 import { WineProducerList, WineProducerCreate, WineProducerEdit } from '@/features/wine-producers';
+
+function BreweryEditRedirect() {
+    const { id } = useParams();
+    return <Navigate to={`/breweries?modal=edit&id=${id}`} replace />;
+}
 
 export const appRoutes = [
     {
@@ -51,7 +56,7 @@ export const appRoutes = [
                 path: 'breweries/new',
                 element: (
                     <ProtectedRoute>
-                        <BreweryCreate />
+                        <Navigate to="/breweries?modal=new" replace />
                     </ProtectedRoute>
                 ),
             },
@@ -59,7 +64,7 @@ export const appRoutes = [
                 path: 'breweries/:id/edit',
                 element: (
                     <ProtectedRoute>
-                        <BreweryEdit />
+                        <BreweryEditRedirect />
                     </ProtectedRoute>
                 ),
             },

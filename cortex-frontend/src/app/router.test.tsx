@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 import { RequireRole } from '@/features/auth/RequireRole';
@@ -8,6 +8,17 @@ import { appRoutes } from './router';
 
 vi.mock('@/services/supabase/client', () => ({
     supabaseClient: null,
+}));
+
+vi.mock('@/features/auth/store', () => ({
+    useAuthStore: vi.fn(() => ({
+        user: { id: 'user-1', email: 'test@example.com' },
+        session: { access_token: 'mock-token' },
+        role: 'operativo',
+        isInitialized: true,
+        isLoading: false,
+        logout: vi.fn(),
+    })),
 }));
 
 interface RouteConfig {
@@ -74,5 +85,35 @@ describe('appRoutes', () => {
         expect(screen.getByRole('heading', { name: /Iniciá sesión en Cortex/i })).toBeInTheDocument();
         expect(screen.queryByTestId('sidebar')).not.toBeInTheDocument();
         expect(container.querySelector('.app-shell')).not.toBeInTheDocument();
+    });
+
+    it('redirects /breweries/new to /breweries?modal=new', async () => {
+        const router = createMemoryRouter(appRoutes, { initialEntries: ['/breweries/new'] });
+        render(<RouterProvider router={router} />);
+
+        await waitFor(() => {
+            expect(router.state.location.pathname).toBe('/breweries');
+            expect(router.state.location.search).toBe('?modal=new');
+        });
+    });
+
+    it('redirects /breweries/:id/edit to /breweries?modal=edit&id=:id', async () => {
+        const router = createMemoryRouter(appRoutes, { initialEntries: ['/breweries/brewery-1/edit'] });
+        render(<RouterProvider router={router} />);
+
+        await waitFor(() => {
+            expect(router.state.location.pathname).toBe('/breweries');
+            expect(router.state.location.search).toBe('?modal=edit&id=brewery-1');
+        });
+    });
+
+    it('redirects an invalid /breweries/:id/edit id through the same redirect', async () => {
+        const router = createMemoryRouter(appRoutes, { initialEntries: ['/breweries/unknown-id/edit'] });
+        render(<RouterProvider router={router} />);
+
+        await waitFor(() => {
+            expect(router.state.location.pathname).toBe('/breweries');
+            expect(router.state.location.search).toBe('?modal=edit&id=unknown-id');
+        });
     });
 });
