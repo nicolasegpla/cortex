@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
-import { DeleteConfirmationModal } from '@/presentation/components/organisms';
+import { DeleteConfirmationModal, EntityDetailModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
 import './AnimalFeedProducerList.scss';
@@ -27,10 +27,18 @@ export interface AnimalFeedProducer {
     updated_at: string;
 }
 
+function getPrimaryIdentity(producer: AnimalFeedProducer): string {
+    return producer.marca || producer.razon_social;
+}
+
 export function AnimalFeedProducerList() {
     const [producers, setProducers] = useState<AnimalFeedProducer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [selectedProducer, setSelectedProducer] = useState<AnimalFeedProducer | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+    const navigate = useNavigate();
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/animal-feed-producers', (id) => {
@@ -53,16 +61,84 @@ export function AnimalFeedProducerList() {
         }
     };
 
-    const selectedProducer = producers.find((producer) => producer.id === itemId);
-    const itemLabel = selectedProducer ? `el productor ${selectedProducer.razon_social}` : 'este registro';
+    const producerToDelete = producers.find((producer) => producer.id === itemId);
+    const itemLabel = producerToDelete ? `el productor ${producerToDelete.razon_social}` : 'este registro';
 
     const formatArray = (arr: string[] | null) => {
         if (!arr || arr.length === 0) return '-';
         return arr.join(', ');
     };
 
+    const buildSections = (producer: AnimalFeedProducer) => [
+        {
+            heading: 'Identificación',
+            fields: [
+                { label: 'Razón Social', value: producer.razon_social },
+                { label: 'Marca', value: producer.marca || '-' },
+                { label: 'NIT', value: producer.nit || '-' },
+            ],
+        },
+        {
+            heading: 'Ubicación',
+            fields: [
+                { label: 'Dirección', value: producer.direccion || '-' },
+                { label: 'Departamento', value: producer.departamento || '-' },
+                { label: 'Ciudad', value: producer.ciudad || '-' },
+                { label: 'País', value: producer.pais || '-' },
+            ],
+        },
+        {
+            heading: 'Contacto',
+            fields: [
+                { label: 'Nombre de Contacto', value: producer.nombre_contacto || '-' },
+                { label: 'Celular', value: producer.celular || '-' },
+                { label: 'Correo', value: producer.correo || '-' },
+            ],
+        },
+        {
+            heading: 'Producción',
+            fields: [
+                { label: 'Especies Manejadas', value: formatArray(producer.especies_manejadas) },
+                { label: 'Productos Fabricados', value: formatArray(producer.productos_fabricados) },
+            ],
+        },
+        {
+            heading: 'Notas',
+            fields: [
+                { label: 'Observaciones', value: producer.observaciones || '-' },
+                { label: 'Oportunidades', value: producer.oportunidades || '-' },
+            ],
+        },
+    ];
+
+    const handleRowClick = (producer: AnimalFeedProducer) => {
+        setSelectedProducer(producer);
+        setIsDetailOpen(true);
+    };
+
+    const handleCloseDetail = () => {
+        setIsDetailOpen(false);
+    };
+
+    const handleEdit = () => {
+        if (selectedProducer) {
+            navigate(`/animal-feed-producers/${selectedProducer.id}/edit`);
+        }
+    };
+
+    const handleDelete = () => {
+        if (selectedProducer) {
+            setIsDetailOpen(false);
+            openModal(selectedProducer.id);
+        }
+    };
+
     if (loading) {
-        return <div className="animal-feed-producer-list__skeleton-row">Cargando productores de alimentos para animales...</div>;
+        return (
+            <div className="animal-feed-producer-list__skeleton-row">
+                Cargando productores de alimentos para animales...
+            </div>
+        );
     }
 
     if (error) {
@@ -73,7 +149,9 @@ export function AnimalFeedProducerList() {
         <div className="animal-feed-producer-list">
             <div className="animal-feed-producer-list__header">
                 <h2>Productores de Alimentos para Animales</h2>
-                <Link to="/animal-feed-producers/new" className="animal-feed-producer-list__add-button">Agregar Productor</Link>
+                <Link to="/animal-feed-producers/new" className="animal-feed-producer-list__add-button">
+                    Agregar Productor
+                </Link>
             </div>
 
             {producers.length === 0 ? (
@@ -86,62 +164,50 @@ export function AnimalFeedProducerList() {
                         <table>
                             <thead>
                                 <tr>
+                                    <th>Identificación</th>
                                     <th>Razón Social</th>
-                                    <th>Marca</th>
-                                    <th>NIT</th>
-                                    <th>Dirección</th>
-                                    <th>Departamento</th>
                                     <th>Ciudad</th>
-                                    <th>País</th>
-                                    <th>Contacto</th>
-                                    <th>Celular</th>
-                                    <th>Correo</th>
-                                    <th>Especies Manejadas</th>
-                                    <th>Productos Fabricados</th>
-                                    <th>Observaciones</th>
-                                    <th>Oportunidades</th>
-                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {producers.map((producer) => (
-                                    <tr key={producer.id}>
-                                        <td>{producer.razon_social}</td>
-                                        <td>{producer.marca || '-'}</td>
-                                        <td>{producer.nit || '-'}</td>
-                                        <td>{producer.direccion || '-'}</td>
-                                        <td>{producer.departamento || '-'}</td>
-                                        <td>{producer.ciudad || '-'}</td>
-                                        <td>{producer.pais || '-'}</td>
-                                        <td>{producer.nombre_contacto || '-'}</td>
-                                        <td>{producer.celular || '-'}</td>
-                                        <td>{producer.correo || '-'}</td>
-                                        <td>{formatArray(producer.especies_manejadas)}</td>
-                                        <td>{formatArray(producer.productos_fabricados)}</td>
-                                        <td>{producer.observaciones || '-'}</td>
-                                        <td>{producer.oportunidades || '-'}</td>
+                                    <tr
+                                        key={producer.id}
+                                        className="animal-feed-producer-list__row"
+                                        onClick={() => handleRowClick(producer)}
+                                    >
                                         <td>
-                                            <div className="animal-feed-producer-list__actions">
-                                                <Link
-                                                    to={`/animal-feed-producers/${producer.id}/edit`}
-                                                    className="animal-feed-producer-list__edit-button"
-                                                >
-                                                    Editar
-                                                </Link>
-                                                <button
-                                                    className="animal-feed-producer-list__delete-button"
-                                                    onClick={() => openModal(producer.id)}
-                                                >
-                                                    Eliminar
-                                                </button>
-                                            </div>
+                                            <button
+                                                type="button"
+                                                className="animal-feed-producer-list__row-action"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    handleRowClick(producer);
+                                                }}
+                                                aria-label={`Ver detalles de ${getPrimaryIdentity(producer)}`}
+                                            >
+                                                {getPrimaryIdentity(producer)}
+                                            </button>
                                         </td>
+                                        <td>{producer.razon_social}</td>
+                                        <td>{producer.ciudad || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
+            )}
+
+            {selectedProducer && (
+                <EntityDetailModal
+                    isOpen={isDetailOpen}
+                    title={getPrimaryIdentity(selectedProducer)}
+                    sections={buildSections(selectedProducer)}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onClose={handleCloseDetail}
+                />
             )}
 
             <DeleteConfirmationModal

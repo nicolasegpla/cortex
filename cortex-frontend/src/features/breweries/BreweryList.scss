@@ -49,7 +49,6 @@
     }
 
     &__table {
-        min-width: 3000px; // Ancho mínimo para forzar scroll horizontal
         font-size: 14px;
 
         table {
@@ -104,34 +103,29 @@
         }
     }
 
-    &__actions {
-        display: flex;
-        gap: $space-xs;
+    &__row {
+        cursor: pointer;
     }
 
-    &__edit-button,
-    &__delete-button {
-        @include chip;
-        font-size: 13px;
-        padding: $space-xs $space-sm;
-        border-radius: $radius-chip;
-    }
+    &__row-action {
+        appearance: none;
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        text-align: left;
 
-    &__edit-button {
-        color: $color-text-primary;
-        border-color: $color-border-strong;
-
-        &:hover {
-            background-color: rgba(0, 0, 0, 0.05);
+        &:hover,
+        &:focus-visible {
+            color: $color-accent-primary;
+            outline: none;
         }
-    }
 
-    &__delete-button {
-        color: $color-feedback-error-text;
-        border-color: rgba(65, 0, 2, 0.2);
-
-        &:hover {
-            background-color: rgba(65, 0, 2, 0.05);
+        &:focus-visible {
+            text-decoration: underline;
         }
     }
 

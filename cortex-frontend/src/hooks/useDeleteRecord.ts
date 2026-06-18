@@ -61,14 +61,18 @@ export function useDeleteRecord(endpoint: string, onDeleted: (id: string) => voi
 
         try {
             await apiClient.delete(`${endpoint}/${itemId}`);
-            setSuccess(true);
             setIsDeleting(false);
+            setSuccess(true);
+
+            // Notify the consumer immediately so the record is removed from the
+            // list even if the user dismisses the success feedback early.
+            onDeleted(itemId);
 
             autoCloseTimer.current = setTimeout(() => {
-                onDeleted(itemId);
                 setIsOpen(false);
                 setItemId(null);
                 setSuccess(false);
+                autoCloseTimer.current = null;
             }, 2000);
         } catch (err) {
             setIsDeleting(false);

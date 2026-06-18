@@ -1,10 +1,6 @@
-# record-deletion-ux Specification
+# Delta for record-deletion-ux
 
-## Purpose
-
-Define the shared frontend delete flow used by breweries, coffee farms, wine producers, and animal feed producers.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Shared confirmation and feedback flow
 
@@ -21,12 +17,3 @@ The system MUST expose a reusable delete interaction that keeps the delete actio
 - GIVEN an authenticated user without delete permission opens the confirmation modal
 - WHEN the user confirms deletion
 - THEN the modal stays open and shows an explicit permission error
-
-### Requirement: Delete transport MUST accept empty success bodies
-
-The system MUST treat `204 No Content` delete responses as successful completion and SHALL NOT require a JSON body to finish the UI flow.
-
-#### Scenario: Delete returns 204
-- GIVEN the delete endpoint responds with `204 No Content`
-- WHEN the frontend completes the request
-- THEN the interaction is handled as success without a parse error

@@ -1,9 +1,17 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 
 import { AnimalFeedProducerList } from './index';
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: vi.fn(),
+    };
+});
 
 const mockProducers = [
     {
@@ -65,13 +73,282 @@ describe('AnimalFeedProducerList', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Productores de Alimentos para Animales' })).toBeInTheDocument();
+            expect(
+                screen.getByRole('heading', { name: 'Productores de Alimentos para Animales' })
+            ).toBeInTheDocument();
         });
 
         expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
-        expect(screen.getByText('Alimentos del Campo')).toBeInTheDocument();
+        expect(screen.getAllByText('Alimentos del Campo')).toHaveLength(2);
+    });
+
+    it('renders exactly three summary columns with marca as primary identity', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        const headers = screen.getAllByRole('columnheader');
+        expect(headers).toHaveLength(3);
+        expect(headers[0]).toHaveTextContent('Identificación');
+        expect(headers[1]).toHaveTextContent('Razón Social');
+        expect(headers[2]).toHaveTextContent('Ciudad');
+
+        const rows = screen.getAllByRole('row');
+        const firstDataRow = rows.find((row) => row.textContent?.includes('NutriAnimal'));
+        expect(firstDataRow).toHaveTextContent('NutriAnimal');
+        expect(firstDataRow).toHaveTextContent('Nutrición Animal S.A.');
+    });
+
+    it('falls back to razon_social as primary identity when marca is missing', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getAllByText('Alimentos del Campo')[0]).toBeInTheDocument();
+        });
+
+        const rows = screen.getAllByRole('row');
+        const secondDataRow = rows.find((row) =>
+            row.textContent?.includes('Alimentos del Campo')
+        );
+        expect(secondDataRow).toHaveTextContent('Alimentos del Campo');
+        expect(secondDataRow).toHaveTextContent('Bogotá');
+    });
+
+    it('opens the detail modal when the table row is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        const rows = screen.getAllByRole('row');
+        const dataRow = rows.find((row) => row.textContent?.includes('NutriAnimal'));
+        expect(dataRow).toBeDefined();
+
+        await user.click(dataRow!);
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Ana López')).toBeInTheDocument();
         expect(screen.getByText('Bovinos, Porcinos')).toBeInTheDocument();
-        expect(screen.getByText('Aves')).toBeInTheDocument();
+    });
+
+    it('opens the detail modal when the row action button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Ana López')).toBeInTheDocument();
+        expect(screen.getByText('Bovinos, Porcinos')).toBeInTheDocument();
+    });
+
+    it('opens the detail modal when the row action button is activated with Enter or Space', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        const button = screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' });
+
+        button.focus();
+        await user.keyboard('{Enter}');
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Ana López')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Close details' }));
+
+        button.focus();
+        await user.keyboard(' ');
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('dismisses the detail modal with the close button, Escape, and backdrop click', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+        await user.keyboard('{Escape}');
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+        await user.click(screen.getByRole('dialog'));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('closes the detail modal and opens the delete confirmation modal when Delete is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+        expect(screen.getByRole('heading', { name: 'NutriAnimal' })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+        expect(screen.queryByRole('heading', { name: 'NutriAnimal' })).not.toBeInTheDocument();
+        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
+    });
+
+    it('navigates to the edit page when the modal Edit button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        const navigate = vi.fn();
+        vi.mocked(useNavigate).mockReturnValue(navigate);
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+        await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+        expect(navigate).toHaveBeenCalledTimes(1);
+        expect(navigate).toHaveBeenCalledWith('/animal-feed-producers/producer-1/edit');
+    });
+
+    it('opens the delete confirmation modal when the modal Delete button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
 
     it('shows an empty state when no producers are returned', async () => {
@@ -108,7 +385,9 @@ describe('AnimalFeedProducerList', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByRole('alert')).toHaveTextContent('Error al cargar los productores de alimentos para animales');
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Error al cargar los productores de alimentos para animales'
+            );
         });
     });
 
@@ -132,10 +411,11 @@ describe('AnimalFeedProducerList', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
         });
 
-        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -151,10 +431,10 @@ describe('AnimalFeedProducerList', () => {
         });
 
         await waitFor(() => {
-            expect(screen.queryByText('Nutrición Animal S.A.')).not.toBeInTheDocument();
+            expect(screen.queryByText('NutriAnimal')).not.toBeInTheDocument();
         });
 
-        expect(screen.getByText('Alimentos del Campo')).toBeInTheDocument();
+        expect(screen.getAllByText('Alimentos del Campo')[0]).toBeInTheDocument();
     });
 
     it('shows an explicit error in the modal when deletion is rejected', async () => {
@@ -182,40 +462,17 @@ describe('AnimalFeedProducerList', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
         });
 
-        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
         await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
             expect(screen.getByRole('alert')).toHaveTextContent('No tiene permiso para eliminar');
         });
 
-        expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
-    });
-
-    it('renders an edit link for each producer', async () => {
-        globalThis.fetch = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify(mockProducers), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            })
-        );
-
-        render(
-            <MemoryRouter>
-                <AnimalFeedProducerList />
-            </MemoryRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
-        });
-
-        const editLinks = screen.getAllByRole('link', { name: 'Editar' });
-        expect(editLinks).toHaveLength(2);
-        expect(editLinks[0]).toHaveAttribute('href', '/animal-feed-producers/producer-1/edit');
-        expect(editLinks[1]).toHaveAttribute('href', '/animal-feed-producers/producer-2/edit');
+        expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
     });
 });

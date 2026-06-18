@@ -1,9 +1,17 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 
 import { BreweryList } from './index';
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: vi.fn(),
+    };
+});
 
 const mockBreweries = [
     {
@@ -62,7 +70,29 @@ describe('BreweryList', () => {
         cleanup();
     });
 
-    it('renders an edit link for each brewery', async () => {
+    it('renders a table with loaded breweries', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: 'Cervecerías' })).toBeInTheDocument();
+        });
+
+        expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        expect(screen.getByText('Brew House')).toBeInTheDocument();
+    });
+
+    it('renders exactly three summary columns', async () => {
         globalThis.fetch = vi.fn().mockResolvedValue(
             new Response(JSON.stringify(mockBreweries), {
                 status: 200,
@@ -80,10 +110,262 @@ describe('BreweryList', () => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
         });
 
-        const editLinks = screen.getAllByRole('link', { name: 'Editar' });
-        expect(editLinks).toHaveLength(2);
-        expect(editLinks[0]).toHaveAttribute('href', '/breweries/brewery-1/edit');
-        expect(editLinks[1]).toHaveAttribute('href', '/breweries/brewery-2/edit');
+        const headers = screen.getAllByRole('columnheader');
+        expect(headers).toHaveLength(3);
+        expect(headers[0]).toHaveTextContent('Nombre');
+        expect(headers[1]).toHaveTextContent('Razón Social');
+        expect(headers[2]).toHaveTextContent('Ciudad');
+    });
+
+    it('opens the detail modal when the table row is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        const rows = screen.getAllByRole('row');
+        const dataRow = rows.find((row) => row.textContent?.includes('Cervecería Artesanal'));
+        expect(dataRow).toBeDefined();
+
+        await user.click(dataRow!);
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+        expect(screen.getByText('Pilsner, Munich')).toBeInTheDocument();
+    });
+
+    it('opens the detail modal when the row action button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+        expect(screen.getByText('Pilsner, Munich')).toBeInTheDocument();
+    });
+
+    it('opens the detail modal when the row action button is activated with Enter or Space', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        const button = screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' });
+
+        button.focus();
+        await user.keyboard('{Enter}');
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Close details' }));
+
+        button.focus();
+        await user.keyboard(' ');
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('dismisses the detail modal with the close button, Escape, and backdrop click', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        await user.keyboard('{Escape}');
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        await user.click(screen.getByRole('dialog'));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('closes the detail modal and opens the delete confirmation modal when Delete is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        expect(screen.getByRole('heading', { name: 'Cervecería Artesanal' })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+        expect(screen.queryByRole('heading', { name: 'Cervecería Artesanal' })).not.toBeInTheDocument();
+        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
+    });
+
+    it('navigates to the edit page when the modal Edit button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        const navigate = vi.fn();
+        vi.mocked(useNavigate).mockReturnValue(navigate);
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+        expect(navigate).toHaveBeenCalledTimes(1);
+        expect(navigate).toHaveBeenCalledWith('/breweries/brewery-1/edit');
+    });
+
+    it('opens the delete confirmation modal when the modal Delete button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
+    });
+
+    it('shows an empty state when no breweries are returned', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify([]), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('No hay cervecerías registradas.')).toBeInTheDocument();
+        });
+    });
+
+    it('shows an error message when the API request fails', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ detail: 'Service unavailable' }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <BreweryList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent('Error al cargar las cervecerías');
+        });
     });
 
     it('removes a brewery after confirming deletion in the modal', async () => {
@@ -109,7 +391,8 @@ describe('BreweryList', () => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
         });
 
-        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -129,40 +412,6 @@ describe('BreweryList', () => {
         });
 
         expect(screen.getByText('Brew House')).toBeInTheDocument();
-    });
-
-    it('does not delete the brewery when the modal is cancelled before confirming', async () => {
-        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-
-        globalThis.fetch = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify(mockBreweries), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            })
-        );
-
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
-        });
-
-        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
-
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-
-        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }));
-
-        await waitFor(() => {
-            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-        });
-
-        expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
-        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('shows an explicit error in the modal when deletion is rejected', async () => {
@@ -193,7 +442,8 @@ describe('BreweryList', () => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
         });
 
-        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
         await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
-import { DeleteConfirmationModal } from '@/presentation/components/organisms';
+import { DeleteConfirmationModal, EntityDetailModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
 import './WineProducerList.scss';
@@ -38,6 +38,10 @@ export function WineProducerList() {
     const [producers, setProducers] = useState<WineProducer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [selectedProducer, setSelectedProducer] = useState<WineProducer | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+    const navigate = useNavigate();
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/wine-producers', (id) => {
@@ -60,12 +64,88 @@ export function WineProducerList() {
         }
     };
 
-    const selectedProducer = producers.find((producer) => producer.id === itemId);
-    const itemLabel = selectedProducer ? `el productor ${selectedProducer.nombre_comercial}` : 'este registro';
+    const producerToDelete = producers.find((producer) => producer.id === itemId);
+    const itemLabel = producerToDelete ? `el productor ${producerToDelete.nombre_comercial}` : 'este registro';
 
     const formatArray = (arr: string[] | null) => {
         if (!arr || arr.length === 0) return '-';
         return arr.join(', ');
+    };
+
+    const buildSections = (producer: WineProducer) => [
+        {
+            heading: 'Identificación',
+            fields: [
+                { label: 'Nombre Comercial', value: producer.nombre_comercial },
+                { label: 'Razón Social', value: producer.razon_social || '-' },
+                { label: 'NIT', value: producer.nit || '-' },
+            ],
+        },
+        {
+            heading: 'Ubicación',
+            fields: [
+                { label: 'Dirección', value: producer.direccion || '-' },
+                { label: 'Ciudad', value: producer.ciudad || '-' },
+                { label: 'País', value: producer.pais || '-' },
+            ],
+        },
+        {
+            heading: 'Contacto',
+            fields: [
+                { label: 'Nombre de Contacto', value: producer.nombre_contacto || '-' },
+                { label: 'Celular', value: producer.celular || '-' },
+                { label: 'Correo', value: producer.correo || '-' },
+            ],
+        },
+        {
+            heading: 'Producción',
+            fields: [
+                { label: 'Marcas', value: formatArray(producer.marcas) },
+                { label: 'Fuente de Azúcar', value: producer.fuente_azucar || '-' },
+                { label: 'Tipo de Uva', value: formatArray(producer.tipo_uva) },
+                { label: 'Tipo de Vino', value: formatArray(producer.tipo_vino) },
+                { label: 'Levaduras Utilizadas', value: formatArray(producer.levaduras_utilizadas) },
+            ],
+        },
+        {
+            heading: 'Embotellado',
+            fields: [
+                { label: 'Botellas Utilizadas', value: formatArray(producer.botellas_utilizadas) },
+                { label: 'Nutrientes Utilizados', value: formatArray(producer.nutrientes_utilizados) },
+                { label: 'Conservantes Utilizados', value: formatArray(producer.conservantes_utilizados) },
+                { label: 'Clarificantes Utilizados', value: formatArray(producer.clarificantes_utilizados) },
+                { label: 'Producción Anual', value: producer.produccion_anual || '-' },
+            ],
+        },
+        {
+            heading: 'Notas',
+            fields: [
+                { label: 'Observaciones', value: producer.observaciones || '-' },
+                { label: 'Oportunidades', value: producer.oportunidades || '-' },
+            ],
+        },
+    ];
+
+    const handleRowClick = (producer: WineProducer) => {
+        setSelectedProducer(producer);
+        setIsDetailOpen(true);
+    };
+
+    const handleCloseDetail = () => {
+        setIsDetailOpen(false);
+    };
+
+    const handleEdit = () => {
+        if (selectedProducer) {
+            navigate(`/wine-producers/${selectedProducer.id}/edit`);
+        }
+    };
+
+    const handleDelete = () => {
+        if (selectedProducer) {
+            setIsDetailOpen(false);
+            openModal(selectedProducer.id);
+        }
     };
 
     if (loading) {
@@ -95,74 +175,48 @@ export function WineProducerList() {
                                 <tr>
                                     <th>Nombre Comercial</th>
                                     <th>Razón Social</th>
-                                    <th>NIT</th>
-                                    <th>Dirección</th>
                                     <th>Ciudad</th>
-                                    <th>País</th>
-                                    <th>Contacto</th>
-                                    <th>Celular</th>
-                                    <th>Correo</th>
-                                    <th>Marcas</th>
-                                    <th>Fuente de Azúcar</th>
-                                    <th>Tipo de Uva</th>
-                                    <th>Tipo de Vino</th>
-                                    <th>Levaduras</th>
-                                    <th>Botellas</th>
-                                    <th>Nutrientes</th>
-                                    <th>Conservantes</th>
-                                    <th>Clarificantes</th>
-                                    <th>Producción Anual</th>
-                                    <th>Observaciones</th>
-                                    <th>Oportunidades</th>
-                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {producers.map((producer) => (
-                                    <tr key={producer.id}>
-                                        <td>{producer.nombre_comercial}</td>
-                                        <td>{producer.razon_social || '-'}</td>
-                                        <td>{producer.nit || '-'}</td>
-                                        <td>{producer.direccion || '-'}</td>
-                                        <td>{producer.ciudad || '-'}</td>
-                                        <td>{producer.pais || '-'}</td>
-                                        <td>{producer.nombre_contacto || '-'}</td>
-                                        <td>{producer.celular || '-'}</td>
-                                        <td>{producer.correo || '-'}</td>
-                                        <td>{formatArray(producer.marcas)}</td>
-                                        <td>{producer.fuente_azucar || '-'}</td>
-                                        <td>{formatArray(producer.tipo_uva)}</td>
-                                        <td>{formatArray(producer.tipo_vino)}</td>
-                                        <td>{formatArray(producer.levaduras_utilizadas)}</td>
-                                        <td>{formatArray(producer.botellas_utilizadas)}</td>
-                                        <td>{formatArray(producer.nutrientes_utilizados)}</td>
-                                        <td>{formatArray(producer.conservantes_utilizados)}</td>
-                                        <td>{formatArray(producer.clarificantes_utilizados)}</td>
-                                        <td>{producer.produccion_anual || '-'}</td>
-                                        <td>{producer.observaciones || '-'}</td>
-                                        <td>{producer.oportunidades || '-'}</td>
+                                    <tr
+                                        key={producer.id}
+                                        className="wine-producer-list__row"
+                                        onClick={() => handleRowClick(producer)}
+                                    >
                                         <td>
-                                            <div className="wine-producer-list__actions">
-                                                <Link
-                                                    to={`/wine-producers/${producer.id}/edit`}
-                                                    className="wine-producer-list__edit-button"
-                                                >
-                                                    Editar
-                                                </Link>
-                                                <button
-                                                    className="wine-producer-list__delete-button"
-                                                    onClick={() => openModal(producer.id)}
-                                                >
-                                                    Eliminar
-                                                </button>
-                                            </div>
+                                            <button
+                                                type="button"
+                                                className="wine-producer-list__row-action"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    handleRowClick(producer);
+                                                }}
+                                                aria-label={`Ver detalles de ${producer.nombre_comercial}`}
+                                            >
+                                                {producer.nombre_comercial}
+                                            </button>
                                         </td>
+                                        <td>{producer.razon_social || '-'}</td>
+                                        <td>{producer.ciudad || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
+            )}
+
+            {selectedProducer && (
+                <EntityDetailModal
+                    isOpen={isDetailOpen}
+                    title={selectedProducer.nombre_comercial}
+                    sections={buildSections(selectedProducer)}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onClose={handleCloseDetail}
+                />
             )}
 
             <DeleteConfirmationModal

@@ -71,7 +71,7 @@ describe('useDeleteRecord', () => {
         expect(result.current.isDeleting).toBe(false);
         expect(result.current.success).toBe(true);
         expect(result.current.isOpen).toBe(true);
-        expect(onDeleted).not.toHaveBeenCalled();
+        expect(onDeleted).toHaveBeenCalledWith('brewery-1');
 
         act(() => {
             vi.advanceTimersByTime(2000);
@@ -81,9 +81,39 @@ describe('useDeleteRecord', () => {
             expect(result.current.isOpen).toBe(false);
         });
 
-        expect(onDeleted).toHaveBeenCalledWith('brewery-1');
+        expect(onDeleted).toHaveBeenCalledTimes(1);
         expect(result.current.success).toBe(false);
         expect(result.current.itemId).toBeNull();
+    });
+
+    it('notifies the consumer immediately on success even if the modal is dismissed early', async () => {
+        vi.mocked(apiClient.delete).mockResolvedValueOnce(undefined);
+        const onDeleted = vi.fn();
+        const { result } = renderHook(() => useDeleteRecord('/breweries', onDeleted));
+
+        act(() => {
+            result.current.openModal('brewery-1');
+        });
+
+        let confirmPromise: Promise<void> = Promise.resolve();
+        act(() => {
+            confirmPromise = result.current.confirmDelete();
+        });
+
+        await act(async () => {
+            await confirmPromise;
+        });
+
+        expect(onDeleted).toHaveBeenCalledTimes(1);
+        expect(result.current.success).toBe(true);
+
+        act(() => {
+            result.current.cancelDelete();
+        });
+
+        expect(result.current.isOpen).toBe(false);
+        expect(result.current.success).toBe(false);
+        expect(onDeleted).toHaveBeenCalledTimes(1);
     });
 
     it('keeps the modal open and shows the error when deletion fails', async () => {

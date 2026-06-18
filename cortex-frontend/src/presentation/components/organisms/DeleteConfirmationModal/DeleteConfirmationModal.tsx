@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 import { Button } from '@/presentation/components/atoms';
-import { getTopmostModal } from '@/shared/modalUtils';
 
 import './DeleteConfirmationModal.scss';
 
@@ -26,28 +25,28 @@ export function DeleteConfirmationModal({
     onCancel,
 }: DeleteConfirmationModalProps) {
     const dialogRef = useRef<HTMLDialogElement>(null);
+    const headingId = useId();
 
     useEffect(() => {
-        if (!isOpen) {
+        const dialog = dialogRef.current;
+        if (!dialog) {
             return;
         }
 
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape' || isDeleting) {
-                return;
+        if (isOpen) {
+            if (!dialog.open) {
+                dialog.showModal();
             }
+        } else if (dialog.open) {
+            dialog.close();
+        }
 
-            const topmost = getTopmostModal();
-            if (dialogRef.current && topmost !== dialogRef.current) {
-                return;
+        return () => {
+            if (dialog.open) {
+                dialog.close();
             }
-
-            onCancel();
         };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, isDeleting, onCancel]);
+    }, [isOpen]);
 
     if (!isOpen) {
         return null;
@@ -79,7 +78,7 @@ export function DeleteConfirmationModal({
     } else {
         stateContent = (
             <div className="delete-confirmation-modal__state">
-                <h3>Confirmar eliminación</h3>
+                <h3 id={headingId}>Confirmar eliminación</h3>
                 {!success && error && (
                     <p role="alert" className="delete-confirmation-modal__error">{error}</p>
                 )}
@@ -110,10 +109,11 @@ export function DeleteConfirmationModal({
         <dialog
             ref={dialogRef}
             className="delete-confirmation-modal"
-            open
             onCancel={handleDialogCancel}
             onClick={handleBackdropClick}
             aria-modal="true"
+            aria-labelledby={success ? undefined : headingId}
+            aria-label={success ? 'Eliminado correctamente' : undefined}
         >
             {stateContent}
         </dialog>

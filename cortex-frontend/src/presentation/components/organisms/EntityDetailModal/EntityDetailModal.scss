@@ -1,0 +1,130 @@
+@use '@/presentation/styles/index.scss' as *;
+
+.entity-detail-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+
+    &::backdrop {
+        background-color: rgba(0, 0, 0, 0.45);
+    }
+
+    &__content {
+        @include card-base;
+        display: flex;
+        flex-direction: column;
+        width: min(680px, calc(100% - (#{$space-lg} + #{$space-lg})));
+        max-height: calc(100% - (#{$space-lg} + #{$space-lg}));
+        text-align: left;
+        overflow: hidden;
+    }
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: $space-md $space-lg;
+        border-bottom: 1px solid $color-border-divider;
+
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: $color-text-primary;
+            margin: 0;
+        }
+    }
+
+    &__close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: none;
+        border-radius: $radius-chip;
+        background-color: transparent;
+        color: $color-text-muted;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        transition:
+            background-color 150ms ease,
+            color 150ms ease;
+
+        &:hover,
+        &:focus-visible {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: $color-text-primary;
+            outline: none;
+        }
+    }
+
+    &__body {
+        padding: $space-md $space-lg;
+        overflow-y: auto;
+    }
+
+    &__section {
+        margin-bottom: $space-lg;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    &__section-heading {
+        font-size: 13px;
+        font-weight: 600;
+        color: $color-text-muted;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0 0 $space-sm;
+    }
+
+    &__fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: $space-sm $space-md;
+        margin: 0;
+    }
+
+    &__field {
+        display: flex;
+        flex-direction: column;
+        gap: $space-xs;
+
+        dt {
+            font-size: 12px;
+            font-weight: 500;
+            color: $color-text-muted;
+        }
+
+        dd {
+            font-size: 14px;
+            color: $color-text-primary;
+            margin: 0;
+            word-break: break-word;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: $space-md;
+        padding: $space-md $space-lg;
+        border-top: 1px solid $color-border-divider;
+    }
+}

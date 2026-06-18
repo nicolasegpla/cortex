@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
-import { DeleteConfirmationModal } from '@/presentation/components/organisms';
+import { DeleteConfirmationModal, EntityDetailModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
 import './BreweryList.scss';
@@ -43,6 +43,10 @@ export function BreweryList() {
     const [breweries, setBreweries] = useState<Brewery[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [selectedBrewery, setSelectedBrewery] = useState<Brewery | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+    const navigate = useNavigate();
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/breweries', (id) => {
@@ -65,7 +69,6 @@ export function BreweryList() {
         }
     };
 
-    const selectedBrewery = breweries.find((b) => b.id === itemId);
     const itemLabel = selectedBrewery ? `la cervecería ${selectedBrewery.nombre_cerveceria}` : 'este registro';
 
     const formatTipoOperacion = (tipo: string | null) => {
@@ -86,6 +89,91 @@ export function BreweryList() {
     const formatBoolean = (val: boolean | null) => {
         if (val === null || val === undefined) return '-';
         return val ? 'Sí' : 'No';
+    };
+
+    const formatNumber = (value: number | null) => {
+        if (value === null || value === undefined) return '-';
+        return value.toLocaleString();
+    };
+
+    const buildSections = (brewery: Brewery) => [
+        {
+            heading: 'Identificación',
+            fields: [
+                { label: 'Nombre', value: brewery.nombre_cerveceria },
+                { label: 'Razón Social', value: brewery.razon_social || '-' },
+                { label: 'NIT', value: brewery.nit || '-' },
+            ],
+        },
+        {
+            heading: 'Ubicación',
+            fields: [
+                { label: 'Dirección', value: brewery.direccion || '-' },
+                { label: 'Ciudad', value: brewery.ciudad || '-' },
+                { label: 'País', value: brewery.pais || '-' },
+            ],
+        },
+        {
+            heading: 'Contacto',
+            fields: [
+                { label: 'Nombre de Contacto', value: brewery.nombre_contacto || '-' },
+                { label: 'Celular 1', value: brewery.celular_1 || '-' },
+                { label: 'Celular 2', value: brewery.celular_2 || '-' },
+                { label: 'Correo', value: brewery.correo || '-' },
+            ],
+        },
+        {
+            heading: 'Producción',
+            fields: [
+                { label: 'Maltas Utilizadas', value: formatArray(brewery.maltas_utilizadas) },
+                { label: 'Lúpulos Utilizados', value: formatArray(brewery.lupulos_utilizados) },
+                { label: 'Levaduras Utilizadas', value: formatArray(brewery.levaduras_utilizadas) },
+                { label: 'Utiliza Otros Productos', value: formatBoolean(brewery.utiliza_otros_productos) },
+                { label: 'Estilos de Cerveza', value: formatArray(brewery.estilos_cerveza) },
+                { label: 'Tipo de Operación', value: formatTipoOperacion(brewery.tipo_operacion) },
+            ],
+        },
+        {
+            heading: 'Equipos',
+            fields: [
+                { label: 'Marca del Equipo', value: brewery.marca_equipo || '-' },
+                { label: 'Capacidad Brewhouse', value: brewery.capacidad_brewhouse || '-' },
+                { label: 'Capacidad Fermentación', value: brewery.capacidad_fermentacion || '-' },
+                { label: 'Litros al Mes', value: formatNumber(brewery.litros_mes) },
+                { label: 'Calidad del Equipo', value: brewery.calidad_equipo || '-' },
+                { label: 'Formatos de Venta', value: formatArray(brewery.formatos_venta) },
+                { label: 'Dónde Vende', value: brewery.donde_vende || '-' },
+            ],
+        },
+        {
+            heading: 'Notas',
+            fields: [
+                { label: 'Observaciones', value: brewery.observaciones || '-' },
+                { label: 'Oportunidades', value: brewery.oportunidades || '-' },
+            ],
+        },
+    ];
+
+    const handleRowClick = (brewery: Brewery) => {
+        setSelectedBrewery(brewery);
+        setIsDetailOpen(true);
+    };
+
+    const handleCloseDetail = () => {
+        setIsDetailOpen(false);
+    };
+
+    const handleEdit = () => {
+        if (selectedBrewery) {
+            navigate(`/breweries/${selectedBrewery.id}/edit`);
+        }
+    };
+
+    const handleDelete = () => {
+        if (selectedBrewery) {
+            setIsDetailOpen(false);
+            openModal(selectedBrewery.id);
+        }
     };
 
     if (loading) {
@@ -115,84 +203,48 @@ export function BreweryList() {
                                 <tr>
                                     <th>Nombre</th>
                                     <th>Razón Social</th>
-                                    <th>NIT</th>
-                                    <th>Dirección</th>
                                     <th>Ciudad</th>
-                                    <th>País</th>
-                                    <th>Contacto</th>
-                                    <th>Cervecero</th>
-                                    <th>Celular 1</th>
-                                    <th>Celular 2</th>
-                                    <th>Correo</th>
-                                    <th>Malta</th>
-                                    <th>Lúpulo</th>
-                                    <th>Levadura</th>
-                                    <th>Otros Productos</th>
-                                    <th>Estilos</th>
-                                    <th>Tipo Operación</th>
-                                    <th>Marca Equipo</th>
-                                    <th>Cap. Brewhouse</th>
-                                    <th>Cap. Fermentación</th>
-                                    <th>Litros/Mes</th>
-                                    <th>Calidad Equipo</th>
-                                    <th>Formatos</th>
-                                    <th>Dónde Vende</th>
-                                    <th>Observaciones</th>
-                                    <th>Oportunidades</th>
-                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {breweries.map((brewery) => (
-                                    <tr key={brewery.id}>
-                                        <td>{brewery.nombre_cerveceria}</td>
-                                        <td>{brewery.razon_social || '-'}</td>
-                                        <td>{brewery.nit || '-'}</td>
-                                        <td>{brewery.direccion || '-'}</td>
-                                        <td>{brewery.ciudad || '-'}</td>
-                                        <td>{brewery.pais || '-'}</td>
-                                        <td>{brewery.nombre_contacto || '-'}</td>
-                                        <td>{brewery.nombre_cervecero || '-'}</td>
-                                        <td>{brewery.celular_1 || '-'}</td>
-                                        <td>{brewery.celular_2 || '-'}</td>
-                                        <td>{brewery.correo || '-'}</td>
-                                        <td>{formatArray(brewery.maltas_utilizadas)}</td>
-                                        <td>{formatArray(brewery.lupulos_utilizados)}</td>
-                                        <td>{formatArray(brewery.levaduras_utilizadas)}</td>
-                                        <td>{formatBoolean(brewery.utiliza_otros_productos)}</td>
-                                        <td>{formatArray(brewery.estilos_cerveza)}</td>
-                                        <td>{formatTipoOperacion(brewery.tipo_operacion)}</td>
-                                        <td>{brewery.marca_equipo || '-'}</td>
-                                        <td>{brewery.capacidad_brewhouse || '-'}</td>
-                                        <td>{brewery.capacidad_fermentacion || '-'}</td>
-                                        <td>{brewery.litros_mes?.toLocaleString() || '-'}</td>
-                                        <td>{brewery.calidad_equipo || '-'}</td>
-                                        <td>{formatArray(brewery.formatos_venta)}</td>
-                                        <td>{brewery.donde_vende || '-'}</td>
-                                        <td>{brewery.observaciones || '-'}</td>
-                                        <td>{brewery.oportunidades || '-'}</td>
+                                    <tr
+                                        key={brewery.id}
+                                        className="brewery-list__row"
+                                        onClick={() => handleRowClick(brewery)}
+                                    >
                                         <td>
-                                            <div className="brewery-list__actions">
-                                                <Link
-                                                    to={`/breweries/${brewery.id}/edit`}
-                                                    className="brewery-list__edit-button"
-                                                >
-                                                    Editar
-                                                </Link>
-                                                <button
-                                                className="brewery-list__delete-button"
-                                                onClick={() => openModal(brewery.id)}
+                                            <button
+                                                type="button"
+                                                className="brewery-list__row-action"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    handleRowClick(brewery);
+                                                }}
+                                                aria-label={`Ver detalles de ${brewery.nombre_cerveceria}`}
                                             >
-                                                Eliminar
+                                                {brewery.nombre_cerveceria}
                                             </button>
-                                            </div>
                                         </td>
+                                        <td>{brewery.razon_social || '-'}</td>
+                                        <td>{brewery.ciudad || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
+            )}
+
+            {selectedBrewery && (
+                <EntityDetailModal
+                    isOpen={isDetailOpen}
+                    title={selectedBrewery.nombre_cerveceria}
+                    sections={buildSections(selectedBrewery)}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onClose={handleCloseDetail}
+                />
             )}
 
             <DeleteConfirmationModal

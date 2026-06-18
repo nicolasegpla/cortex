@@ -1,9 +1,17 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 
-import { CoffeeFarmList } from './CoffeeFarmList';
+import { CoffeeFarmList } from './index';
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: vi.fn(),
+    };
+});
 
 const mockFarms = [
     {
@@ -78,8 +86,244 @@ describe('CoffeeFarmList', () => {
 
         expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
         expect(screen.getByText('Finca Aurora')).toBeInTheDocument();
+    });
+
+    it('renders exactly three summary columns', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        const headers = screen.getAllByRole('columnheader');
+        expect(headers).toHaveLength(3);
+        expect(headers[0]).toHaveTextContent('Nombre');
+        expect(headers[1]).toHaveTextContent('Razón Social');
+        expect(headers[2]).toHaveTextContent('Ciudad');
+    });
+
+    it('opens the detail modal when the table row is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        const rows = screen.getAllByRole('row');
+        const dataRow = rows.find((row) => row.textContent?.includes('Finca Primavera'));
+        expect(dataRow).toBeDefined();
+
+        await user.click(dataRow!);
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
         expect(screen.getByText('Castillo, Caturra')).toBeInTheDocument();
-        expect(screen.getByText('Geisha')).toBeInTheDocument();
+    });
+
+    it('opens the detail modal when the row action button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+        expect(screen.getByText('Castillo, Caturra')).toBeInTheDocument();
+    });
+
+    it('opens the detail modal when the row action button is activated with Enter or Space', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        const button = screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' });
+
+        button.focus();
+        await user.keyboard('{Enter}');
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Close details' }));
+
+        button.focus();
+        await user.keyboard(' ');
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('dismisses the detail modal with the close button, Escape, and backdrop click', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        await user.keyboard('{Escape}');
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        await user.click(screen.getByRole('dialog'));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('closes the detail modal and opens the delete confirmation modal when Delete is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        expect(screen.getByRole('heading', { name: 'Finca Primavera' })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+        expect(screen.queryByRole('heading', { name: 'Finca Primavera' })).not.toBeInTheDocument();
+        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
+    });
+
+    it('navigates to the edit page when the modal Edit button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+        const navigate = vi.fn();
+        vi.mocked(useNavigate).mockReturnValue(navigate);
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+        expect(navigate).toHaveBeenCalledTimes(1);
+        expect(navigate).toHaveBeenCalledWith('/coffee-farms/farm-1/edit');
+    });
+
+    it('opens the delete confirmation modal when the modal Delete button is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
 
     it('shows an empty state when no coffee farms are returned', async () => {
@@ -120,30 +364,6 @@ describe('CoffeeFarmList', () => {
         });
     });
 
-    it('renders an edit link for each coffee farm', async () => {
-        globalThis.fetch = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify(mockFarms), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            })
-        );
-
-        render(
-            <MemoryRouter>
-                <CoffeeFarmList />
-            </MemoryRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
-        });
-
-        const editLinks = screen.getAllByRole('link', { name: 'Editar' });
-        expect(editLinks).toHaveLength(2);
-        expect(editLinks[0]).toHaveAttribute('href', '/coffee-farms/farm-1/edit');
-        expect(editLinks[1]).toHaveAttribute('href', '/coffee-farms/farm-2/edit');
-    });
-
     it('removes a coffee farm after confirming deletion in the modal', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
@@ -167,7 +387,8 @@ describe('CoffeeFarmList', () => {
             expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
         });
 
-        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -186,6 +407,47 @@ describe('CoffeeFarmList', () => {
             expect(screen.queryByText('Finca Primavera')).not.toBeInTheDocument();
         });
 
+        expect(screen.getByText('Finca Aurora')).toBeInTheDocument();
+    });
+
+    it('keeps the deleted row removed when the success state is dismissed early', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockFarms), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmList />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Eliminado correctamente')).toBeInTheDocument();
+        });
+
+        await user.keyboard('{Escape}');
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
+
+        expect(screen.queryByText('Finca Primavera')).not.toBeInTheDocument();
         expect(screen.getByText('Finca Aurora')).toBeInTheDocument();
     });
 
@@ -217,7 +479,8 @@ describe('CoffeeFarmList', () => {
             expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
         });
 
-        await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
         await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {

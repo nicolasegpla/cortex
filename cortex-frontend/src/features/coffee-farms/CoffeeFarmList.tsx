@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
-import { DeleteConfirmationModal } from '@/presentation/components/organisms';
+import { DeleteConfirmationModal, EntityDetailModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
 import './CoffeeFarmList.scss';
@@ -39,6 +39,10 @@ export function CoffeeFarmList() {
     const [farms, setFarms] = useState<CoffeeFarm[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [selectedFarm, setSelectedFarm] = useState<CoffeeFarm | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+    const navigate = useNavigate();
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/coffee-farms', (id) => {
@@ -61,7 +65,6 @@ export function CoffeeFarmList() {
         }
     };
 
-    const selectedFarm = farms.find((farm) => farm.id === itemId);
     const itemLabel = selectedFarm ? `la finca de café ${selectedFarm.nombre_finca}` : 'este registro';
 
     const formatValue = (value: string | number | null) => {
@@ -72,6 +75,83 @@ export function CoffeeFarmList() {
     const formatArray = (arr: string[] | null) => {
         if (!arr || arr.length === 0) return '-';
         return arr.join(', ');
+    };
+
+    const buildSections = (farm: CoffeeFarm) => [
+        {
+            heading: 'Identificación',
+            fields: [
+                { label: 'Nombre', value: farm.nombre_finca },
+                { label: 'Razón Social', value: farm.razon_social || '-' },
+                { label: 'NIT', value: farm.nit || '-' },
+                { label: 'Marca', value: farm.marca || '-' },
+            ],
+        },
+        {
+            heading: 'Ubicación',
+            fields: [
+                { label: 'Dirección', value: farm.direccion || '-' },
+                { label: 'Departamento', value: farm.departamento || '-' },
+                { label: 'Ciudad', value: farm.ciudad || '-' },
+                { label: 'País', value: farm.pais || '-' },
+            ],
+        },
+        {
+            heading: 'Contacto',
+            fields: [
+                { label: 'Nombre de Contacto', value: farm.nombre_contacto || '-' },
+                { label: 'Celular', value: farm.celular || '-' },
+                { label: 'Correo', value: farm.correo || '-' },
+            ],
+        },
+        {
+            heading: 'Producción',
+            fields: [
+                { label: 'Tipo de Actividad', value: farm.tipo_actividad || '-' },
+                { label: 'Hectáreas Totales', value: formatValue(farm.hectareas_totales) },
+                { label: 'Hectáreas de Café', value: formatValue(farm.hectareas_cafe) },
+                { label: 'Número de Árboles', value: formatValue(farm.numero_arboles) },
+                { label: 'Variedades Sembradas', value: formatArray(farm.variedades_sembradas) },
+                { label: 'Tipo de Proceso', value: farm.tipo_proceso || '-' },
+            ],
+        },
+        {
+            heading: 'Calidad',
+            fields: [
+                { label: 'Puntaje del Café', value: formatValue(farm.puntaje_cafe) },
+                { label: 'Nivel de Tecnificación', value: farm.nivel_tecnificacion || '-' },
+                { label: 'Equipos', value: formatArray(farm.equipos) },
+            ],
+        },
+        {
+            heading: 'Notas',
+            fields: [
+                { label: 'Observaciones', value: farm.observaciones || '-' },
+                { label: 'Oportunidades', value: farm.oportunidades || '-' },
+            ],
+        },
+    ];
+
+    const handleRowClick = (farm: CoffeeFarm) => {
+        setSelectedFarm(farm);
+        setIsDetailOpen(true);
+    };
+
+    const handleCloseDetail = () => {
+        setIsDetailOpen(false);
+    };
+
+    const handleEdit = () => {
+        if (selectedFarm) {
+            navigate(`/coffee-farms/${selectedFarm.id}/edit`);
+        }
+    };
+
+    const handleDelete = () => {
+        if (selectedFarm) {
+            setIsDetailOpen(false);
+            openModal(selectedFarm.id);
+        }
     };
 
     if (loading) {
@@ -101,76 +181,48 @@ export function CoffeeFarmList() {
                                 <tr>
                                     <th>Nombre</th>
                                     <th>Razón Social</th>
-                                    <th>NIT</th>
-                                    <th>Marca</th>
-                                    <th>Dirección</th>
-                                    <th>Departamento</th>
                                     <th>Ciudad</th>
-                                    <th>País</th>
-                                    <th>Contacto</th>
-                                    <th>Celular</th>
-                                    <th>Correo</th>
-                                    <th>Tipo Actividad</th>
-                                    <th>Hectáreas Totales</th>
-                                    <th>Hectáreas Café</th>
-                                    <th>Número de Árboles</th>
-                                    <th>Variedades Sembradas</th>
-                                    <th>Tipo Proceso</th>
-                                    <th>Puntaje Café</th>
-                                    <th>Nivel Tecnificación</th>
-                                    <th>Equipos</th>
-                                    <th>Observaciones</th>
-                                    <th>Oportunidades</th>
-                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {farms.map((farm) => (
-                                    <tr key={farm.id}>
-                                        <td>{farm.nombre_finca}</td>
-                                        <td>{farm.razon_social || '-'}</td>
-                                        <td>{farm.nit || '-'}</td>
-                                        <td>{farm.marca || '-'}</td>
-                                        <td>{farm.direccion || '-'}</td>
-                                        <td>{farm.departamento || '-'}</td>
-                                        <td>{farm.ciudad || '-'}</td>
-                                        <td>{farm.pais || '-'}</td>
-                                        <td>{farm.nombre_contacto || '-'}</td>
-                                        <td>{farm.celular || '-'}</td>
-                                        <td>{farm.correo || '-'}</td>
-                                        <td>{farm.tipo_actividad || '-'}</td>
-                                        <td>{formatValue(farm.hectareas_totales)}</td>
-                                        <td>{formatValue(farm.hectareas_cafe)}</td>
-                                        <td>{formatValue(farm.numero_arboles)}</td>
-                                        <td>{formatArray(farm.variedades_sembradas)}</td>
-                                        <td>{farm.tipo_proceso || '-'}</td>
-                                        <td>{formatValue(farm.puntaje_cafe)}</td>
-                                        <td>{farm.nivel_tecnificacion || '-'}</td>
-                                        <td>{formatArray(farm.equipos)}</td>
-                                        <td>{farm.observaciones || '-'}</td>
-                                        <td>{farm.oportunidades || '-'}</td>
+                                    <tr
+                                        key={farm.id}
+                                        className="coffee-farm-list__row"
+                                        onClick={() => handleRowClick(farm)}
+                                    >
                                         <td>
-                                            <div className="coffee-farm-list__actions">
-                                                <Link
-                                                    to={`/coffee-farms/${farm.id}/edit`}
-                                                    className="coffee-farm-list__edit-button"
-                                                >
-                                                    Editar
-                                                </Link>
-                                                <button
-                                                    className="coffee-farm-list__delete-button"
-                                                    onClick={() => openModal(farm.id)}
-                                                >
-                                                    Eliminar
-                                                </button>
-                                            </div>
+                                            <button
+                                                type="button"
+                                                className="coffee-farm-list__row-action"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    handleRowClick(farm);
+                                                }}
+                                                aria-label={`Ver detalles de ${farm.nombre_finca}`}
+                                            >
+                                                {farm.nombre_finca}
+                                            </button>
                                         </td>
+                                        <td>{farm.razon_social || '-'}</td>
+                                        <td>{farm.ciudad || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
+            )}
+
+            {selectedFarm && (
+                <EntityDetailModal
+                    isOpen={isDetailOpen}
+                    title={selectedFarm.nombre_finca}
+                    sections={buildSections(selectedFarm)}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onClose={handleCloseDetail}
+                />
             )}
 
             <DeleteConfirmationModal
