@@ -96,4 +96,15 @@ describe('appRoutes', () => {
             expect(router.state.location.search).toBe('');
         });
     });
+
+    it('does not expose new or edit routes for producer-like lists managed via local modals', () => {
+        const paths = collectPaths(appRoutes);
+
+        expect(paths).not.toContain('coffee-farms/new');
+        expect(paths).not.toContain('coffee-farms/:id/edit');
+        expect(paths).not.toContain('wine-producers/new');
+        expect(paths).not.toContain('wine-producers/:id/edit');
+        expect(paths).not.toContain('animal-feed-producers/new');
+        expect(paths).not.toContain('animal-feed-producers/:id/edit');
+    });
 });

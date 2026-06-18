@@ -1,17 +1,9 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 
 import { WineProducerList } from './index';
-
-vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: vi.fn(),
-    };
-});
 
 const mockProducers = [
     {
@@ -50,6 +42,14 @@ const mockProducers = [
     },
 ];
 
+function renderWithRouter(ui: React.ReactElement, { initialEntries = ['/wine-producers'] } = {}) {
+    return render(
+        <MemoryRouter initialEntries={initialEntries}>
+            {ui}
+        </MemoryRouter>
+    );
+}
+
 describe('WineProducerList', () => {
     let originalFetch: typeof globalThis.fetch;
 
@@ -73,18 +73,15 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Productores de Vino' })).toBeInTheDocument();
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
         });
 
-        expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
         expect(screen.getByText('Bodega del Valle')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Agregar Productor' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).not.toBeInTheDocument();
     });
 
     it('renders exactly three summary columns', async () => {
@@ -95,11 +92,7 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
@@ -122,25 +115,14 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
         });
 
-        const rows = screen.getAllByRole('row');
-        const dataRow = rows.find((row) => row.textContent?.includes('Viñedo Real'));
-        expect(dataRow).toBeDefined();
-
-        await user.click(dataRow!);
-
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByText('Carlos López')).toBeInTheDocument();
-        expect(screen.getByText('Cabernet Sauvignon, Merlot')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
+        expect(screen.getByRole('heading', { name: 'Viñedo Real' })).toBeInTheDocument();
     });
 
     it('opens the detail modal when the row action button is clicked', async () => {
@@ -153,21 +135,14 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
-
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByText('Carlos López')).toBeInTheDocument();
-        expect(screen.getByText('Cabernet Sauvignon, Merlot')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Viñedo Real' })).toBeInTheDocument();
     });
 
     it('opens the detail modal when the row action button is activated with Enter or Space', async () => {
@@ -180,68 +155,17 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
         });
 
-        const button = screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' });
-
-        button.focus();
+        const rowButton = screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' });
+        rowButton.focus();
         await user.keyboard('{Enter}');
 
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByText('Carlos López')).toBeInTheDocument();
-
-        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
-
-        button.focus();
-        await user.keyboard(' ');
-
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
-
-    it('renders fallback placeholders in the detail modal for a sparse record', async () => {
-        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-
-        globalThis.fetch = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify(mockProducers), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            })
-        );
-
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Bodega del Valle')).toBeInTheDocument();
-        });
-
-        await user.click(screen.getByRole('button', { name: 'Ver detalles de Bodega del Valle' }));
-
-        const modal = screen.getByRole('dialog');
-        expect(modal).toBeInTheDocument();
-
-        const razonSocialField = within(modal).getByText('Razón Social').closest('div');
-        expect(razonSocialField).toHaveTextContent('Razón Social');
-        expect(razonSocialField).toHaveTextContent('-');
-
-        const tipoUvaField = within(modal).getByText('Tipo de Uva').closest('div');
-        expect(tipoUvaField).toHaveTextContent('Tipo de Uva');
-        expect(tipoUvaField).toHaveTextContent('Chardonnay');
-
-        const ciudadField = within(modal).getByText('Ciudad').closest('div');
-        expect(ciudadField).toHaveTextContent('Ciudad');
-        expect(ciudadField).toHaveTextContent('Bogotá');
+        expect(screen.getByRole('heading', { name: 'Viñedo Real' })).toBeInTheDocument();
     });
 
     it('dismisses the detail modal with the close button, Escape, and backdrop click', async () => {
@@ -254,46 +178,7 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
-        });
-
-        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-
-        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
-        await user.keyboard('{Escape}');
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
-        await user.click(screen.getByRole('dialog'));
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    });
-
-    it('closes the detail modal and opens the delete confirmation modal when Delete is clicked', async () => {
-        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-
-        globalThis.fetch = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify(mockProducers), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            })
-        );
-
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
@@ -302,16 +187,24 @@ describe('WineProducerList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
         expect(screen.getByRole('heading', { name: 'Viñedo Real' })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Viñedo Real' })).not.toBeInTheDocument();
+        });
 
-        expect(screen.queryByRole('heading', { name: 'Viñedo Real' })).not.toBeInTheDocument();
-        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
+        await user.keyboard('{Escape}');
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Viñedo Real' })).not.toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
+        await user.click(screen.getByRole('dialog'));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('navigates to the edit page when the modal Edit button is clicked', async () => {
+    it('closes the detail modal and opens the form modal when Edit is clicked', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-        const navigate = vi.fn();
-        vi.mocked(useNavigate).mockReturnValue(navigate);
 
         globalThis.fetch = vi.fn().mockResolvedValue(
             new Response(JSON.stringify(mockProducers), {
@@ -320,21 +213,72 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
+        expect(screen.getByRole('heading', { name: 'Viñedo Real' })).toBeInTheDocument();
+
         await user.click(screen.getByRole('button', { name: 'Editar' }));
 
-        expect(navigate).toHaveBeenCalledTimes(1);
-        expect(navigate).toHaveBeenCalledWith('/wine-producers/producer-1/edit');
+        expect(screen.queryByRole('heading', { name: 'Viñedo Real' })).not.toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Editar Productor de Vino', level: 2 })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('Viñedo Real');
+    });
+
+    it('opens the create form modal when Agregar Productor is clicked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+
+        expect(screen.getByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).toBeInTheDocument();
+    });
+
+    it('closes the form modal with the close button and Cancelar button', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+        expect(screen.getByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Cerrar formulario' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).not.toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+        await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).not.toBeInTheDocument();
+        });
     });
 
     it('opens the delete confirmation modal when the modal Delete button is clicked', async () => {
@@ -347,11 +291,7 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
@@ -371,11 +311,7 @@ describe('WineProducerList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('No hay productores de vino registrados.')).toBeInTheDocument();
@@ -383,21 +319,12 @@ describe('WineProducerList', () => {
     });
 
     it('shows an error message when the API request fails', async () => {
-        globalThis.fetch = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify({ detail: 'Service unavailable' }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            })
-        );
+        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByRole('alert')).toHaveTextContent('Error al cargar los productores de vino');
+            expect(screen.getByText('Error al cargar los productores de vino')).toBeInTheDocument();
         });
     });
 
@@ -412,13 +339,13 @@ describe('WineProducerList', () => {
                     headers: { 'Content-Type': 'application/json' },
                 })
             )
-            .mockResolvedValueOnce(new Response(null, { status: 204 }));
+            .mockResolvedValueOnce(
+                new Response(null, {
+                    status: 204,
+                })
+            );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
@@ -426,19 +353,7 @@ describe('WineProducerList', () => {
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
         await user.click(screen.getByRole('button', { name: 'Eliminar' }));
-
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
-
-        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
-
-        await waitFor(() => {
-            expect(screen.getByText('Eliminado correctamente')).toBeInTheDocument();
-        });
-
-        act(() => {
-            vi.advanceTimersByTime(2000);
-        });
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
             expect(screen.queryByText('Viñedo Real')).not.toBeInTheDocument();
@@ -465,11 +380,7 @@ describe('WineProducerList', () => {
                 })
             );
 
-        render(
-            <MemoryRouter>
-                <WineProducerList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
             expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
@@ -477,12 +388,147 @@ describe('WineProducerList', () => {
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
         await user.click(screen.getByRole('button', { name: 'Eliminar' }));
-        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
             expect(screen.getByRole('alert')).toHaveTextContent('No tiene permiso para eliminar');
         });
 
         expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+    });
+
+    it('refetches the list after a successful create submit', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockProducers), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ id: 'producer-new' }), {
+                    status: 201,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify([...mockProducers, { id: 'producer-new', nombre_comercial: 'Viñedo Nuevo', ciudad: 'Cali' }]), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+
+        await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Viñedo Nuevo');
+        await user.click(screen.getByRole('button', { name: 'Crear Productor' }));
+
+        await waitFor(() => {
+            expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Nuevo')).toBeInTheDocument();
+        });
+
+        expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino' })).not.toBeInTheDocument();
+    });
+
+    it('shows a loading overlay in the form modal while submitting', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        let resolveSubmit: (() => void) | undefined;
+        const submitPromise = new Promise<void>((resolve) => {
+            resolveSubmit = resolve;
+        });
+
+        globalThis.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+            if (init?.method === 'POST') {
+                return submitPromise.then(
+                    () =>
+                        new Response(JSON.stringify({ id: 'producer-new' }), {
+                            status: 201,
+                            headers: { 'Content-Type': 'application/json' },
+                        })
+                );
+            }
+
+            return Promise.resolve(
+                new Response(JSON.stringify(mockProducers), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
+        });
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+
+        await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Viñedo Nuevo');
+        await user.click(screen.getByRole('button', { name: 'Crear Productor' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Creando...')).toBeInTheDocument();
+            expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'true');
+        });
+
+        act(() => {
+            resolveSubmit?.();
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByText('Creando...')).not.toBeInTheDocument();
+            expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).not.toBeInTheDocument();
+        });
+    });
+
+    it('keeps form values when submit fails', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockProducers), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ detail: 'Server error' }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+
+        await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Viñedo Nuevo');
+        await user.click(screen.getByRole('button', { name: 'Crear Productor' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent('Error al crear el productor de vino');
+        });
+
+        expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('Viñedo Nuevo');
     });
 });

@@ -1,0 +1,8 @@
+.animal-feed-producer-form {
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-md);
+        margin-top: var(--space-md);
+    }
+}

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
-import { DeleteConfirmationModal, EntityDetailModal } from '@/presentation/components/organisms';
+import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
+
+import { CoffeeFarmForm } from './CoffeeFarmForm';
 
 import './CoffeeFarmList.scss';
 
@@ -41,8 +42,9 @@ export function CoffeeFarmList() {
     const [error, setError] = useState('');
     const [selectedFarm, setSelectedFarm] = useState<CoffeeFarm | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
-
-    const navigate = useNavigate();
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+    const [isFormLoading, setIsFormLoading] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/coffee-farms', (id) => {
@@ -143,8 +145,25 @@ export function CoffeeFarmList() {
 
     const handleEdit = () => {
         if (selectedFarm) {
-            navigate(`/coffee-farms/${selectedFarm.id}/edit`);
+            setIsDetailOpen(false);
+            setIsEditMode(true);
+            setIsFormModalOpen(true);
         }
+    };
+
+    const handleCreate = () => {
+        setSelectedFarm(null);
+        setIsEditMode(false);
+        setIsFormModalOpen(true);
+    };
+
+    const handleCloseFormModal = () => {
+        setIsFormModalOpen(false);
+    };
+
+    const handleFormSuccess = async () => {
+        await loadFarms();
+        setIsFormModalOpen(false);
     };
 
     const handleDelete = () => {
@@ -166,7 +185,13 @@ export function CoffeeFarmList() {
         <div className="coffee-farm-list">
             <div className="coffee-farm-list__header">
                 <h2>Fincas de café</h2>
-                <Link to="/coffee-farms/new" className="coffee-farm-list__add-button">Agregar Finca de Café</Link>
+                <button
+                    type="button"
+                    className="coffee-farm-list__add-button"
+                    onClick={handleCreate}
+                >
+                    Agregar Finca de Café
+                </button>
             </div>
 
             {farms.length === 0 ? (
@@ -234,6 +259,21 @@ export function CoffeeFarmList() {
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
             />
+
+            <EntityFormModal
+                isOpen={isFormModalOpen}
+                title={isEditMode ? 'Editar Finca de Café' : 'Crear Finca de Café'}
+                onClose={handleCloseFormModal}
+                isLoading={isFormLoading}
+            >
+                <CoffeeFarmForm
+                    id={isEditMode ? selectedFarm?.id ?? undefined : undefined}
+                    initialData={isEditMode ? selectedFarm ?? undefined : undefined}
+                    onSuccess={handleFormSuccess}
+                    onCancel={handleCloseFormModal}
+                    onSavingChange={setIsFormLoading}
+                />
+            </EntityFormModal>
         </div>
     );
 }

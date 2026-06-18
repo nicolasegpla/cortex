@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
-import { DeleteConfirmationModal, EntityDetailModal } from '@/presentation/components/organisms';
+import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
+
+import { WineProducerForm } from './WineProducerForm';
 
 import './WineProducerList.scss';
 
@@ -40,8 +41,9 @@ export function WineProducerList() {
     const [error, setError] = useState('');
     const [selectedProducer, setSelectedProducer] = useState<WineProducer | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
-
-    const navigate = useNavigate();
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+    const [isFormLoading, setIsFormLoading] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/wine-producers', (id) => {
@@ -137,8 +139,25 @@ export function WineProducerList() {
 
     const handleEdit = () => {
         if (selectedProducer) {
-            navigate(`/wine-producers/${selectedProducer.id}/edit`);
+            setIsDetailOpen(false);
+            setIsEditMode(true);
+            setIsFormModalOpen(true);
         }
+    };
+
+    const handleCreate = () => {
+        setSelectedProducer(null);
+        setIsEditMode(false);
+        setIsFormModalOpen(true);
+    };
+
+    const handleCloseFormModal = () => {
+        setIsFormModalOpen(false);
+    };
+
+    const handleFormSuccess = async () => {
+        await loadProducers();
+        setIsFormModalOpen(false);
     };
 
     const handleDelete = () => {
@@ -160,7 +179,13 @@ export function WineProducerList() {
         <div className="wine-producer-list">
             <div className="wine-producer-list__header">
                 <h2>Productores de Vino</h2>
-                <Link to="/wine-producers/new" className="wine-producer-list__add-button">Agregar Productor</Link>
+                <button
+                    type="button"
+                    className="wine-producer-list__add-button"
+                    onClick={handleCreate}
+                >
+                    Agregar Productor
+                </button>
             </div>
 
             {producers.length === 0 ? (
@@ -228,6 +253,21 @@ export function WineProducerList() {
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
             />
+
+            <EntityFormModal
+                isOpen={isFormModalOpen}
+                title={isEditMode ? 'Editar Productor de Vino' : 'Crear Productor de Vino'}
+                onClose={handleCloseFormModal}
+                isLoading={isFormLoading}
+            >
+                <WineProducerForm
+                    id={isEditMode ? selectedProducer?.id ?? undefined : undefined}
+                    initialData={isEditMode ? selectedProducer ?? undefined : undefined}
+                    onSuccess={handleFormSuccess}
+                    onCancel={handleCloseFormModal}
+                    onSavingChange={setIsFormLoading}
+                />
+            </EntityFormModal>
         </div>
     );
 }

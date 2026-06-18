@@ -9,10 +9,10 @@ import { ConfigPage } from '@/presentation/pages/ConfigPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { RequireRole } from '@/features/auth/RequireRole';
 import { BreweryList } from '@/features/breweries';
-import { CoffeeFarmList, CoffeeFarmCreate, CoffeeFarmEdit } from '@/features/coffee-farms';
+import { CoffeeFarmList } from '@/features/coffee-farms';
 import { ChatPage } from '@/features/chat/ChatPage';
-import { AnimalFeedProducerList, AnimalFeedProducerCreate, AnimalFeedProducerEdit } from '@/features/animal-feed-producers';
-import { WineProducerList, WineProducerCreate, WineProducerEdit } from '@/features/wine-producers';
+import { AnimalFeedProducerList } from '@/features/animal-feed-producers';
+import { WineProducerList } from '@/features/wine-producers';
 
 export const appRoutes = [
     {
@@ -56,22 +56,6 @@ export const appRoutes = [
                 ),
             },
             {
-                path: 'coffee-farms/new',
-                element: (
-                    <ProtectedRoute>
-                        <CoffeeFarmCreate />
-                    </ProtectedRoute>
-                ),
-            },
-            {
-                path: 'coffee-farms/:id/edit',
-                element: (
-                    <ProtectedRoute>
-                        <CoffeeFarmEdit />
-                    </ProtectedRoute>
-                ),
-            },
-            {
                 path: 'animal-feed-producers',
                 element: (
                     <ProtectedRoute>
@@ -80,42 +64,10 @@ export const appRoutes = [
                 ),
             },
             {
-                path: 'animal-feed-producers/new',
-                element: (
-                    <ProtectedRoute>
-                        <AnimalFeedProducerCreate />
-                    </ProtectedRoute>
-                ),
-            },
-            {
-                path: 'animal-feed-producers/:id/edit',
-                element: (
-                    <ProtectedRoute>
-                        <AnimalFeedProducerEdit />
-                    </ProtectedRoute>
-                ),
-            },
-            {
                 path: 'wine-producers',
                 element: (
                     <ProtectedRoute>
                         <WineProducerList />
-                    </ProtectedRoute>
-                ),
-            },
-            {
-                path: 'wine-producers/new',
-                element: (
-                    <ProtectedRoute>
-                        <WineProducerCreate />
-                    </ProtectedRoute>
-                ),
-            },
-            {
-                path: 'wine-producers/:id/edit',
-                element: (
-                    <ProtectedRoute>
-                        <WineProducerEdit />
                     </ProtectedRoute>
                 ),
             },

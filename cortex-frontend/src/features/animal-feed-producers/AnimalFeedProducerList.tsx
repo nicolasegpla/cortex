@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
-import { DeleteConfirmationModal, EntityDetailModal } from '@/presentation/components/organisms';
+import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
+
+import { AnimalFeedProducerForm } from './AnimalFeedProducerForm';
 
 import './AnimalFeedProducerList.scss';
 
@@ -37,8 +38,9 @@ export function AnimalFeedProducerList() {
     const [error, setError] = useState('');
     const [selectedProducer, setSelectedProducer] = useState<AnimalFeedProducer | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
-
-    const navigate = useNavigate();
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+    const [isFormLoading, setIsFormLoading] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/animal-feed-producers', (id) => {
@@ -122,8 +124,25 @@ export function AnimalFeedProducerList() {
 
     const handleEdit = () => {
         if (selectedProducer) {
-            navigate(`/animal-feed-producers/${selectedProducer.id}/edit`);
+            setIsDetailOpen(false);
+            setIsEditMode(true);
+            setIsFormModalOpen(true);
         }
+    };
+
+    const handleCreate = () => {
+        setSelectedProducer(null);
+        setIsEditMode(false);
+        setIsFormModalOpen(true);
+    };
+
+    const handleCloseFormModal = () => {
+        setIsFormModalOpen(false);
+    };
+
+    const handleFormSuccess = async () => {
+        await loadProducers();
+        setIsFormModalOpen(false);
     };
 
     const handleDelete = () => {
@@ -149,9 +168,13 @@ export function AnimalFeedProducerList() {
         <div className="animal-feed-producer-list">
             <div className="animal-feed-producer-list__header">
                 <h2>Productores de Alimentos para Animales</h2>
-                <Link to="/animal-feed-producers/new" className="animal-feed-producer-list__add-button">
+                <button
+                    type="button"
+                    className="animal-feed-producer-list__add-button"
+                    onClick={handleCreate}
+                >
                     Agregar Productor
-                </Link>
+                </button>
             </div>
 
             {producers.length === 0 ? (
@@ -219,6 +242,21 @@ export function AnimalFeedProducerList() {
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
             />
+
+            <EntityFormModal
+                isOpen={isFormModalOpen}
+                title={isEditMode ? 'Editar Productor de Alimentos para Animales' : 'Crear Productor de Alimentos para Animales'}
+                onClose={handleCloseFormModal}
+                isLoading={isFormLoading}
+            >
+                <AnimalFeedProducerForm
+                    id={isEditMode ? selectedProducer?.id ?? undefined : undefined}
+                    initialData={isEditMode ? selectedProducer ?? undefined : undefined}
+                    onSuccess={handleFormSuccess}
+                    onCancel={handleCloseFormModal}
+                    onSavingChange={setIsFormLoading}
+                />
+            </EntityFormModal>
         </div>
     );
 }
