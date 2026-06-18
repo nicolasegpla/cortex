@@ -3,6 +3,7 @@ import { ChevronLeft } from '@/presentation/components/atoms/Icon/ChevronLeft';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { navigationConfig } from '@/presentation/config/navigation';
 import { NavSection } from './NavSection';
+import { SidebarFooter } from './SidebarFooter';
 
 interface SidebarProps {
     activeAction?: NavItemAction | null;
@@ -39,6 +40,8 @@ export function Sidebar({ activeAction = null, onAction }: SidebarProps) {
                     <NavSection key={section.title} section={section} activeAction={activeAction} onAction={onAction} />
                 ))}
             </nav>
+
+            <SidebarFooter />
         </aside>
     );
 }

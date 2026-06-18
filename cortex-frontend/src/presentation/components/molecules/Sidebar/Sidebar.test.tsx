@@ -120,4 +120,20 @@ describe('Sidebar', () => {
 
         expect(screen.getByRole('button', { name: /config/i })).toBeInTheDocument();
     });
+
+    it('should render the footer with the authenticated user and logout action', () => {
+        useAuthStore.setState({
+            user: { id: '1', email: 'user@cortex.ai' },
+            role: 'super_admin',
+        });
+
+        render(
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText('user@cortex.ai')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /cerrar sesión/i })).toBeInTheDocument();
+    });
 });
