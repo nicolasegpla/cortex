@@ -13,6 +13,10 @@ $radius-chip: var(--radius-chip);
 $radius-card: var(--radius-card);
 $radius-input: var(--radius-input);
 $radius-rect: var(--radius-rect);
+$radius-sm: var(--radius-sm);
+$radius-md: var(--radius-md);
+$radius-lg: var(--radius-lg);
+$radius-xl: var(--radius-xl);
 
 // Shadows
 $shadow-card: var(--shadow-card);
@@ -23,6 +27,7 @@ $shadow-soft: var(--shadow-soft);
 // Kept as var() aliases for backward compatibility during migration
 $color-surface-canvas: var(--color-surface-canvas);
 $color-surface-card: var(--color-surface-card);
+$color-surface-primary: var(--color-surface-primary);
 $color-surface-elevated: var(--color-surface-elevated);
 $color-surface-muted: var(--color-surface-muted);
 $color-surface-glass: var(--color-surface-glass);

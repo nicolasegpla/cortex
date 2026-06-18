@@ -29,15 +29,12 @@ describe('UserManagement', () => {
         vi.restoreAllMocks();
     });
 
-    it('renders title, create-user button, and empty directory', async () => {
+    it('renders the empty directory', async () => {
         render(
             <MemoryRouter>
                 <UserManagement />
             </MemoryRouter>
         );
-
-        expect(screen.getByRole('heading', { name: /administración de usuarios/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /crear usuario/i })).toBeInTheDocument();
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();

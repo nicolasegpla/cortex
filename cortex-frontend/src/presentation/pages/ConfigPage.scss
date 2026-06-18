@@ -3,15 +3,18 @@
 .config-page {
     display: flex;
     flex-direction: column;
+    flex: 1;
     position: relative;
+    width: 100%;
     height: 100%;
     min-height: 0;
+    min-width: 0;
     max-height: 100%;
     color: vars.$color-text-primary;
     background: vars.$color-surface-card;
-    border: 1px solid vars.$color-border-subtle;
-    border-radius: 28px;
-    box-shadow: vars.$shadow-card-hover;
+    border: 1px solid vars.$color-border-divider;
+    border-radius: 20px;
+    box-shadow: vars.$shadow-card;
     overflow: hidden;
 }
 
@@ -19,49 +22,22 @@
     min-height: 640px;
 }
 
-.config-page__eyebrow {
-    margin: 0 0 vars.$space-sm;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: vars.$color-text-muted;
-}
-
-.config-page__title {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: vars.$color-text-primary;
-}
-
-.config-page__description {
-    margin: vars.$space-sm 0 0;
-    max-width: 640px;
-    font-size: 1rem;
-    font-weight: 400;
-    color: vars.$color-text-muted;
-    line-height: 1.6;
-}
-
 .config-page__close {
     position: absolute;
-    top: vars.$space-xl;
-    right: vars.$space-xl;
+    top: vars.$space-lg;
+    right: vars.$space-lg;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: 1px solid vars.$color-border-subtle;
-    border-radius: 999px;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: vars.$radius-input;
     background: transparent;
     color: vars.$color-text-muted;
     cursor: pointer;
     transition:
         background-color 150ms ease,
-        border-color 150ms ease,
         color 150ms ease,
         transform 150ms ease;
 }
@@ -69,13 +45,12 @@
 .config-page__close:hover,
 .config-page__close:focus-visible {
     background: vars.$color-surface-muted;
-    border-color: vars.$color-border-strong;
     color: vars.$color-text-primary;
     transform: translateY(-1px);
 }
 
 .config-page__close:focus-visible {
-    outline: 2px solid vars.$color-border-strong;
+    outline: 2px solid rgba(17, 24, 39, 0.2);
     outline-offset: 2px;
 }
 
@@ -91,9 +66,9 @@
     display: flex;
     flex-direction: column;
     gap: vars.$space-lg;
-    padding: calc(#{vars.$space-xl} + #{vars.$space-xl}) vars.$space-lg vars.$space-lg;
-    background: vars.$color-surface-card;
-    border-right: 1px solid vars.$color-border-strong;
+    padding: calc(#{vars.$space-xl} + #{vars.$space-md}) vars.$space-md vars.$space-lg;
+    background: transparent;
+    border-right: 1px solid vars.$color-border-divider;
     overflow-y: auto;
 }
 
@@ -116,8 +91,8 @@
     margin-bottom: vars.$space-sm;
     padding: 0 vars.$space-sm;
     font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: vars.$color-text-muted;
 }
@@ -125,7 +100,7 @@
 .config-page__nav-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
 }
 
 .config-page__nav-item {
@@ -134,18 +109,17 @@
     gap: vars.$space-sm;
     justify-content: flex-start;
     width: 100%;
-    min-height: 44px;
-    padding: 0 vars.$space-md;
-    border: 1px solid transparent;
-    border-radius: 12px;
+    min-height: 36px;
+    padding: vars.$space-sm vars.$space-md;
+    border: 0;
+    border-radius: vars.$radius-input;
     background: transparent;
     color: vars.$color-text-muted;
-    font-size: 1rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     text-align: left;
     transition:
         background-color 150ms ease,
-        border-color 150ms ease,
         color 150ms ease;
 }
 
@@ -153,30 +127,19 @@
     flex-shrink: 0;
 }
 
-.config-page__nav-item span {
-    font-size: 1rem;
-    font-weight: inherit;
-}
-
-.config-page__nav-footer span {
-    font-size: 1rem;
-    font-weight: 500;
-}
-
 .config-page__nav-item:not(.config-page__nav-item--placeholder) {
     cursor: pointer;
 }
 
 .config-page__nav-item:not(.config-page__nav-item--placeholder):hover {
-    background: vars.$color-surface-elevated;
+    background: vars.$color-surface-muted;
     color: vars.$color-text-primary;
 }
 
 .config-page__nav-item--active {
     background: vars.$color-surface-muted;
-    border-color: transparent;
     color: vars.$color-text-primary;
-    font-weight: 200;
+    font-weight: 500;
 }
 
 .config-page__nav-item--placeholder {
@@ -187,10 +150,15 @@
     display: flex;
     align-items: center;
     gap: vars.$space-sm;
-    min-height: 44px;
+    min-height: 36px;
     padding: 0 vars.$space-sm;
     border-top: 1px solid vars.$color-border-divider;
     color: vars.$color-text-muted;
+}
+
+.config-page__nav-footer span {
+    font-size: 0.8125rem;
+    font-weight: 500;
 }
 
 .config-page__content {
@@ -209,13 +177,6 @@
     width: min(960px, 100%);
     height: 100%;
     min-height: 0;
-    gap: vars.$space-xl;
-}
-
-.config-page__header {
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
@@ -223,16 +184,12 @@
         border-radius: 24px 24px 0 0;
     }
 
-    .config-page__header {
-        padding: vars.$space-lg;
-    }
-
     .config-page__body {
         grid-template-columns: 1fr;
     }
 
     .config-page__nav {
-        padding: vars.$space-xl vars.$space-lg vars.$space-md;
+        padding: vars.$space-xl vars.$space-md vars.$space-md;
         background: transparent;
         border-right: 0;
         border-bottom: 1px solid vars.$color-border-divider;

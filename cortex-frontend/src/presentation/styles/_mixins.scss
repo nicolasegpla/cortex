@@ -31,12 +31,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: vars.$space-xs vars.$space-md;
+    padding: vars.$space-xs vars.$space-sm;
     border-radius: vars.$radius-chip;
-    border: 1px solid vars.$color-border-strong;
-    background-color: transparent;
+    border: 1px solid vars.$color-border-divider;
+    background-color: vars.$color-surface-primary;
     color: vars.$color-text-primary;
-    font-size: 14px;
+    font-size: 0.8125rem;
     font-weight: 500;
 }
 

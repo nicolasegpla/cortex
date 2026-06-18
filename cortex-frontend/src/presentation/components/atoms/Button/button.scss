@@ -3,13 +3,14 @@
 .button {
     align-items: center;
     border: 1px solid transparent;
-    border-radius: vars.$radius-input;
+    border-radius: vars.$radius-md;
     cursor: pointer;
     display: inline-flex;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 500;
     justify-content: center;
-    min-height: 44px;
-    padding: 0 vars.$space-md;
+    min-height: 36px;
+    padding: vars.$space-xs vars.$space-sm;
     transition:
         background-color 150ms ease,
         border-color 150ms ease,
@@ -33,7 +34,7 @@
 }
 
 .button--secondary {
-    background-color: vars.$color-surface-card;
-    border-color: vars.$color-border-subtle;
+    background-color: vars.$color-surface-primary;
+    border-color: vars.$color-border-divider;
     color: vars.$color-text-primary;
 }

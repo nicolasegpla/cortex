@@ -1,0 +1,77 @@
+@use '@/presentation/styles/variables' as vars;
+
+.config-content-template {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    gap: vars.$space-xl;
+}
+
+.config-content-template__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: vars.$space-md;
+    flex-shrink: 0;
+}
+
+.config-content-template__header-text {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-xs;
+}
+
+.config-content-template__eyebrow {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: vars.$color-text-muted;
+}
+
+.config-content-template__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: vars.$color-text-primary;
+}
+
+.config-content-template__description {
+    margin: vars.$space-sm 0 0;
+    max-width: 640px;
+    font-size: 0.9375rem;
+    font-weight: 400;
+    color: vars.$color-text-muted;
+    line-height: 1.6;
+}
+
+.config-content-template__actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.config-content-template__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+@media (max-width: 768px) {
+    .config-content-template__header {
+        flex-direction: column;
+        gap: vars.$space-md;
+    }
+
+    .config-content-template__actions {
+        width: 100%;
+
+        > * {
+            width: 100%;
+        }
+    }
+}

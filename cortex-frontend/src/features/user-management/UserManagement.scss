@@ -9,62 +9,10 @@
     color: vars.$color-text-primary;
 }
 
-.user-management__header {
+.user-management__toolbar {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: vars.$space-md;
+    justify-content: flex-end;
     flex-shrink: 0;
-}
-
-.user-management__header-text {
-    display: flex;
-    flex-direction: column;
-    gap: vars.$space-xs;
-}
-
-.user-management__title {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: vars.$color-text-primary;
-}
-
-.user-management__description {
-    margin: 0;
-    font-size: 1rem;
-    color: vars.$color-text-muted;
-    line-height: 1.5;
-}
-
-.user-management__create-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 40px;
-    padding: 0 vars.$space-md;
-    border: 1px solid vars.$color-border-subtle;
-    border-radius: 12px;
-    background: vars.$color-accent-primary;
-    color: vars.$color-accent-contrast;
-    font-weight: 600;
-    cursor: pointer;
-    transition:
-        background-color 150ms ease,
-        border-color 150ms ease,
-        transform 150ms ease;
-}
-
-.user-management__create-button:hover,
-.user-management__create-button:focus-visible {
-    background: vars.$color-accent-primary;
-    border-color: vars.$color-accent-primary;
-    transform: translateY(-1px);
-}
-
-.user-management__create-button:focus-visible {
-    outline: 2px solid vars.$color-border-strong;
-    outline-offset: 2px;
 }
 
 .user-management__table-wrapper {
@@ -131,7 +79,7 @@
     border-radius: 8px;
     background: transparent;
     color: vars.$color-feedback-error-text;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.8125rem;
     cursor: pointer;
     transition:
@@ -191,8 +139,8 @@
 
 .user-management__modal-title {
     margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.125rem;
+    font-weight: 500;
     color: vars.$color-text-primary;
 }
 
@@ -240,11 +188,6 @@
 }
 
 @media (max-width: 768px) {
-    .user-management__header {
-        flex-direction: column;
-        gap: vars.$space-md;
-    }
-
     .user-management__modal-layer {
         padding: vars.$space-lg;
     }

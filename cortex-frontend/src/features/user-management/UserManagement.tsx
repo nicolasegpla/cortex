@@ -159,23 +159,11 @@ export function UserManagement() {
     const itemLabel = selectedUser ? `al usuario ${selectedUser.email}` : 'este usuario';
 
     return (
-        <section aria-labelledby="user-management-title" className="user-management">
-            <div className="user-management__header">
-                <div className="user-management__header-text">
-                    <h2 id="user-management-title" className="user-management__title">
-                        Administración de usuarios
-                    </h2>
-                    <p className="user-management__description">
-                        Creá y gestioná los usuarios que tienen acceso a Cortex.
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    className="user-management__create-button"
-                    onClick={openCreateModal}
-                >
+        <section aria-label="Administración de usuarios" className="user-management">
+            <div className="user-management__toolbar">
+                <Button type="button" onClick={openCreateModal}>
                     Crear usuario
-                </button>
+                </Button>
             </div>
 
             {formState.message && !isCreateModalOpen && (

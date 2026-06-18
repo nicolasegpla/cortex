@@ -35,7 +35,8 @@
     background: transparent;
     color: inherit;
     cursor: pointer;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 500;
 }
 
 .chat-settings__main {
@@ -227,7 +228,8 @@
     background: vars.$color-surface-card;
     color: vars.$color-text-primary;
     cursor: pointer;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 500;
     transition:
         border-color 150ms ease,
         background-color 150ms ease,
@@ -288,12 +290,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 42px;
-    padding: 0 vars.$space-md;
-    border-radius: 12px;
+    min-height: 36px;
+    padding: vars.$space-xs vars.$space-sm;
+    border-radius: vars.$radius-md;
     border: 1px solid transparent;
     cursor: pointer;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 500;
     transition:
         transform 150ms ease,
         background-color 150ms ease,

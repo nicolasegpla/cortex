@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Chat } from '@/presentation/components/atoms/Icon/Chat';
 import { Admin } from '@/presentation/components/atoms/Icon/Admin';
 import { X } from '@/presentation/components/atoms/Icon/X';
+import { ConfigContentTemplate } from '@/presentation/components/templates/ConfigContentTemplate';
 import { ChatSettings } from '@/features/chat/ChatSettings';
 import { UserManagement } from '@/features/user-management';
 import { useAuthStore } from '@/features/auth/store';
@@ -35,10 +36,6 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
             ],
         },
     ];
-
-    const activeSection = navSections
-        .flatMap((section) => section.items)
-        .find((item) => item.tab === activeTab);
 
     const headerTitle = activeTab === CONFIG_TAB.users ? 'Administración de usuarios' : 'Proveedores de modelos';
     const headerDescription =
@@ -102,21 +99,18 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
 
                 <div className="config-page__content">
                     <div className="config-page__content-inner">
-                        {activeTab === CONFIG_TAB.provider ? (
-                            <>
-                                <header className="config-page__header">
-                                    <p className="config-page__eyebrow">Configuración</p>
-                                    <h1 id="config-title" className="config-page__title">
-                                        {headerTitle}
-                                    </h1>
-                                    <p className="config-page__description">{headerDescription}</p>
-                                </header>
-
+                        <ConfigContentTemplate
+                            eyebrow="Configuración"
+                            title={headerTitle}
+                            description={headerDescription}
+                            titleId="config-title"
+                        >
+                            {activeTab === CONFIG_TAB.provider ? (
                                 <ChatSettings headingId="config-title" />
-                            </>
-                        ) : activeTab === CONFIG_TAB.users && isSuperAdmin ? (
-                            <UserManagement />
-                        ) : null}
+                            ) : activeTab === CONFIG_TAB.users && isSuperAdmin ? (
+                                <UserManagement />
+                            ) : null}
+                        </ConfigContentTemplate>
                     </div>
                 </div>
             </div>

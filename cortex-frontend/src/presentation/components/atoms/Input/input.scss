@@ -7,16 +7,18 @@
 }
 
 .input-field__label {
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 500;
 }
 
 .input-field__control {
-    background-color: vars.$color-surface-card;
-    border: 1px solid vars.$color-border-subtle;
-    border-radius: vars.$radius-input;
-    min-height: 44px;
-    padding: 0 vars.$space-md;
+    background-color: vars.$color-surface-primary;
+    border: 1px solid vars.$color-border-divider;
+    border-radius: vars.$radius-md;
+    min-height: 40px;
+    padding: vars.$space-xs vars.$space-sm;
+    color: vars.$color-text-primary;
+    font-size: 0.8125rem;
     transition:
         border-color 150ms ease,
         box-shadow 150ms ease;
@@ -28,6 +30,6 @@
 
 .input-field__control:focus {
     border-color: vars.$color-accent-primary;
-    box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.08);
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
     outline: none;
 }
