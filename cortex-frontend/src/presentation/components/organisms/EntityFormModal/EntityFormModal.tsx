@@ -21,6 +21,15 @@ export function EntityFormModal({
 }: EntityFormModalProps) {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const headingId = useId();
+    const previouslyFocusedElement = useRef<HTMLElement | null>(null);
+    const wasOpen = useRef(false);
+
+    const restoreFocus = () => {
+        const element = previouslyFocusedElement.current;
+        if (element?.isConnected && 'focus' in element) {
+            element.focus();
+        }
+    };
 
     useEffect(() => {
         const dialog = dialogRef.current;
@@ -29,23 +38,30 @@ export function EntityFormModal({
         }
 
         if (isOpen) {
+            if (!wasOpen.current) {
+                previouslyFocusedElement.current = document.activeElement as HTMLElement;
+                wasOpen.current = true;
+            }
             if (!dialog.open) {
                 dialog.showModal();
             }
-        } else if (dialog.open) {
-            dialog.close();
-        }
-
-        return () => {
+        } else if (wasOpen.current) {
+            wasOpen.current = false;
             if (dialog.open) {
                 dialog.close();
             }
-        };
+            restoreFocus();
+        }
     }, [isOpen]);
 
-    if (!isOpen) {
-        return null;
-    }
+    useEffect(() => {
+        return () => {
+            if (wasOpen.current) {
+                wasOpen.current = false;
+                restoreFocus();
+            }
+        };
+    }, []);
 
     const handleBackdropClick = (event: React.MouseEvent<HTMLDialogElement>) => {
         if (event.target === event.currentTarget) {
@@ -70,9 +86,9 @@ export function EntityFormModal({
             className="entity-form-modal"
             onCancel={handleDialogCancel}
             onClick={handleBackdropClick}
-            aria-modal="true"
+            aria-modal={isOpen ? 'true' : undefined}
             aria-labelledby={headingId}
-            aria-busy={isLoading}
+            aria-busy={isOpen ? isLoading : undefined}
         >
             <div className="entity-form-modal__content">
                 <div className="entity-form-modal__header">

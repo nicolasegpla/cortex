@@ -38,7 +38,7 @@ describe('EntityFormModal', () => {
         showModalSpy.mockRestore();
     });
 
-    it('does not render when isOpen is false', () => {
+    it('does not expose the dialog when isOpen is false', () => {
         render(<EntityFormModal {...baseProps} isOpen={false} />);
 
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -110,5 +110,86 @@ describe('EntityFormModal', () => {
 
         expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'false');
         expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
+    });
+
+    it('returns focus to the triggering element when the modal closes', () => {
+        const showModalSpy = vi.spyOn(HTMLDialogElement.prototype, 'showModal').mockImplementation(function (this: HTMLDialogElement) {
+            this.setAttribute('open', '');
+        });
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.textContent = 'External trigger';
+        document.body.appendChild(trigger);
+        trigger.focus();
+        expect(trigger).toHaveFocus();
+
+        const { rerender } = render(
+            <EntityFormModal
+                isOpen
+                title="Test form"
+                onClose={() => {}}
+                isLoading={false}
+            >
+                <form aria-label="Test form">Form content</form>
+            </EntityFormModal>
+        );
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        // Simulate the browser moving focus into the modal after showModal().
+        const closeButton = screen.getByRole('button', { name: 'Close form' });
+        closeButton.focus();
+        expect(trigger).not.toHaveFocus();
+
+        rerender(
+            <EntityFormModal
+                isOpen={false}
+                title="Test form"
+                onClose={() => {}}
+                isLoading={false}
+            >
+                <form aria-label="Test form">Form content</form>
+            </EntityFormModal>
+        );
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(trigger).toHaveFocus();
+
+        document.body.removeChild(trigger);
+        showModalSpy.mockRestore();
+    });
+
+    it('restores focus when the component unmounts while the modal is open', () => {
+        const showModalSpy = vi.spyOn(HTMLDialogElement.prototype, 'showModal').mockImplementation(function (this: HTMLDialogElement) {
+            this.setAttribute('open', '');
+        });
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.textContent = 'External trigger';
+        document.body.appendChild(trigger);
+        trigger.focus();
+        expect(trigger).toHaveFocus();
+
+        const { unmount } = render(
+            <EntityFormModal {...baseProps} onClose={() => {}} />
+        );
+
+        const dialog = screen.getByRole('dialog');
+        expect(dialog).toBeInTheDocument();
+
+        // Simulate the browser moving focus into the modal after showModal().
+        const closeButton = screen.getByRole('button', { name: 'Close form' });
+        closeButton.focus();
+        expect(trigger).not.toHaveFocus();
+
+        unmount();
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(trigger).toHaveFocus();
+
+        document.body.removeChild(trigger);
+        showModalSpy.mockRestore();
     });
 });
