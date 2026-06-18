@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
+import { TableLoadingRow } from '@/presentation/components/atoms';
 import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
@@ -167,10 +168,6 @@ export function WineProducerList() {
         }
     };
 
-    if (loading) {
-        return <div className="wine-producer-list__skeleton-row">Cargando productores de vino...</div>;
-    }
-
     if (error) {
         return <div className="error" role="alert">{error}</div>;
     }
@@ -188,23 +185,25 @@ export function WineProducerList() {
                 </button>
             </div>
 
-            {producers.length === 0 ? (
-                <div className="wine-producer-list__empty-state">
-                    No hay productores de vino registrados.
-                </div>
-            ) : (
-                <div className="wine-producer-list__table-wrapper">
-                    <div className="wine-producer-list__table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nombre Comercial</th>
-                                    <th>Razón Social</th>
-                                    <th>Ciudad</th>
+            <div className="wine-producer-list__table-wrapper">
+                <div className="wine-producer-list__table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre Comercial</th>
+                                <th>Razón Social</th>
+                                <th>Ciudad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading && producers.length === 0 ? (
+                                <TableLoadingRow colSpan={3} message="Cargando productores de vino..." />
+                            ) : producers.length === 0 ? (
+                                <tr className="wine-producer-list__empty-state">
+                                    <td colSpan={3}>No hay productores de vino registrados.</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {producers.map((producer) => (
+                            ) : (
+                                producers.map((producer) => (
                                     <tr
                                         key={producer.id}
                                         className="wine-producer-list__row"
@@ -226,12 +225,12 @@ export function WineProducerList() {
                                         <td>{producer.razon_social || '-'}</td>
                                         <td>{producer.ciudad || '-'}</td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
+            </div>
 
             {selectedProducer && (
                 <EntityDetailModal

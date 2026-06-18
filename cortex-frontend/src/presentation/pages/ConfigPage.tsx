@@ -24,6 +24,7 @@ interface ConfigPageProps {
 
 export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
     const [activeTab, setActiveTab] = useState<ConfigTab>(CONFIG_TAB.provider);
+    const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
     const { role } = useAuthStore();
     const isSuperAdmin = role === 'super_admin';
 
@@ -108,7 +109,11 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                             {activeTab === CONFIG_TAB.provider ? (
                                 <ChatSettings headingId="config-title" />
                             ) : activeTab === CONFIG_TAB.users && isSuperAdmin ? (
-                                <UserManagement />
+                                <UserManagement
+                                    isCreateModalOpen={isCreateUserModalOpen}
+                                    onOpenCreateModal={() => setIsCreateUserModalOpen(true)}
+                                    onCloseCreateModal={() => setIsCreateUserModalOpen(false)}
+                                />
                             ) : null}
                         </ConfigContentTemplate>
                     </div>

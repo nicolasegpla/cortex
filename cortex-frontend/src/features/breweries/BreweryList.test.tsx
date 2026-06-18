@@ -308,6 +308,17 @@ describe('BreweryList', () => {
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
 
+    it('shows a loading row inside the table while data is loading', async () => {
+        globalThis.fetch = vi.fn(() => new Promise(() => {}));
+
+        renderWithRouter(<BreweryList />);
+
+        expect(screen.getByRole('table')).toBeInTheDocument();
+        expect(screen.getAllByRole('columnheader')).toHaveLength(3);
+        expect(screen.getByText('Cargando cervecerías...')).toBeInTheDocument();
+        expect(screen.queryByText('No hay cervecerías registradas.')).not.toBeInTheDocument();
+    });
+
     it('shows an empty state when no breweries are returned', async () => {
         globalThis.fetch = vi.fn().mockResolvedValue(
             new Response(JSON.stringify([]), {

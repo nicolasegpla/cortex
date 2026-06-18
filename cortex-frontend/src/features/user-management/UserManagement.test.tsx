@@ -2,6 +2,7 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { useState } from 'react';
 
 import { UserManagement } from '@/features/user-management/UserManagement';
 
@@ -16,6 +17,20 @@ vi.mock('@/services/adminUserApi', () => ({
         deleteUser: (...args: unknown[]) => mockDeleteUser(...args),
     },
 }));
+
+function UserManagementWithCreateButton() {
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    return (
+        <MemoryRouter>
+            <UserManagement
+                isCreateModalOpen={isCreateModalOpen}
+                onOpenCreateModal={() => setIsCreateModalOpen(true)}
+                onCloseCreateModal={() => setIsCreateModalOpen(false)}
+            />
+        </MemoryRouter>
+    );
+}
 
 describe('UserManagement', () => {
     const user = userEvent.setup();
@@ -57,6 +72,21 @@ describe('UserManagement', () => {
         expect(screen.queryByText(/no hay usuarios registrados/i)).not.toBeInTheDocument();
     });
 
+    it('shows a loading row inside the table while users are loading', async () => {
+        mockListUsers.mockImplementation(() => new Promise(() => {}));
+
+        render(
+            <MemoryRouter>
+                <UserManagement />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('table')).toBeInTheDocument();
+        expect(screen.getAllByRole('columnheader')).toHaveLength(3);
+        expect(screen.getByText('Cargando usuarios...')).toBeInTheDocument();
+        expect(screen.queryByText(/no hay usuarios registrados/i)).not.toBeInTheDocument();
+    });
+
     it('renders the user directory returned by the API in a table', async () => {
         mockListUsers.mockResolvedValueOnce([
             { id: 'user-1', email: 'one@example.com', role: 'operativo' },
@@ -79,11 +109,7 @@ describe('UserManagement', () => {
     });
 
     it('opens and closes the create-user modal', async () => {
-        render(
-            <MemoryRouter>
-                <UserManagement />
-            </MemoryRouter>
-        );
+        render(<UserManagementWithCreateButton />);
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
@@ -105,11 +131,7 @@ describe('UserManagement', () => {
     });
 
     it('closes the create-user modal when Escape is pressed', async () => {
-        render(
-            <MemoryRouter>
-                <UserManagement />
-            </MemoryRouter>
-        );
+        render(<UserManagementWithCreateButton />);
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
@@ -126,11 +148,7 @@ describe('UserManagement', () => {
     });
 
     it('closes the create-user modal when the backdrop is clicked', async () => {
-        render(
-            <MemoryRouter>
-                <UserManagement />
-            </MemoryRouter>
-        );
+        render(<UserManagementWithCreateButton />);
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
@@ -153,11 +171,7 @@ describe('UserManagement', () => {
         mockListUsers.mockResolvedValueOnce([]);
         mockCreateUser.mockResolvedValueOnce({ id: 'new-user', email: 'new@example.com', role: 'operativo' });
 
-        render(
-            <MemoryRouter>
-                <UserManagement />
-            </MemoryRouter>
-        );
+        render(<UserManagementWithCreateButton />);
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
@@ -199,11 +213,7 @@ describe('UserManagement', () => {
         mockListUsers.mockResolvedValueOnce([]);
         mockCreateUser.mockRejectedValueOnce(new Error('Passwords do not match'));
 
-        render(
-            <MemoryRouter>
-                <UserManagement />
-            </MemoryRouter>
-        );
+        render(<UserManagementWithCreateButton />);
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();

@@ -2,7 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
 
-import { Button, Input } from '@/presentation/components/atoms';
+import { Button, Input, TableLoadingRow } from '@/presentation/components/atoms';
 import { DeleteConfirmationModal } from '@/presentation/components/organisms';
 import { adminUserApi } from '@/services/adminUserApi';
 import { getTopmostModal } from '@/shared/modalUtils';
@@ -14,6 +14,12 @@ interface FormState {
     success: boolean;
     message: string;
     user: AdminUser | null;
+}
+
+interface UserManagementProps {
+    isCreateModalOpen?: boolean;
+    onOpenCreateModal?: () => void;
+    onCloseCreateModal?: () => void;
 }
 
 async function createUserAction(_prevState: FormState, formData: FormData): Promise<FormState> {
@@ -34,10 +40,14 @@ async function createUserAction(_prevState: FormState, formData: FormData): Prom
     }
 }
 
-export function UserManagement() {
+export function UserManagement({
+    isCreateModalOpen = false,
+    onOpenCreateModal,
+    onCloseCreateModal,
+}: UserManagementProps) {
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [listError, setListError] = useState<string | null>(null);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const createModalRef = useRef<HTMLElement>(null);
     const [formState, formAction, isPending] = useActionState<FormState, FormData>(
         createUserAction,
@@ -49,10 +59,22 @@ export function UserManagement() {
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleteSuccess, setDeleteSuccess] = useState(false);
     const [userIdToDelete, setUserIdToDelete] = useState<string | null>(null);
+    const onCloseCreateModalRef = useRef(onCloseCreateModal);
+    const lastCreatedUserId = useRef<string | null>(null);
+
+    onCloseCreateModalRef.current = onCloseCreateModal;
+
+    const closeCreateModal = useCallback(() => {
+        if (isPending) {
+            return;
+        }
+        onCloseCreateModalRef.current?.();
+    }, [isPending]);
 
     useEffect(() => {
         let cancelled = false;
 
+        setIsLoading(true);
         adminUserApi
             .listUsers()
             .then((data) => {
@@ -65,6 +87,11 @@ export function UserManagement() {
                 if (!cancelled) {
                     setListError(err instanceof Error ? err.message : 'Error al cargar los usuarios');
                 }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
             });
 
         return () => {
@@ -73,22 +100,12 @@ export function UserManagement() {
     }, []);
 
     useEffect(() => {
-        if (formState.success && formState.user) {
+        if (formState.success && formState.user && formState.user.id !== lastCreatedUserId.current) {
             setUsers((prev) => [...prev, formState.user as AdminUser]);
-            setIsCreateModalOpen(false);
+            lastCreatedUserId.current = formState.user.id;
+            closeCreateModal();
         }
-    }, [formState]);
-
-    const openCreateModal = useCallback(() => {
-        setIsCreateModalOpen(true);
-    }, []);
-
-    const closeCreateModal = useCallback(() => {
-        if (isPending) {
-            return;
-        }
-        setIsCreateModalOpen(false);
-    }, [isPending]);
+    }, [formState, closeCreateModal]);
 
     useEffect(() => {
         if (!isCreateModalOpen) {
@@ -161,7 +178,7 @@ export function UserManagement() {
     return (
         <section aria-label="Administración de usuarios" className="user-management">
             <div className="user-management__toolbar">
-                <Button type="button" onClick={openCreateModal}>
+                <Button type="button" onClick={onOpenCreateModal}>
                     Crear usuario
                 </Button>
             </div>
@@ -179,22 +196,20 @@ export function UserManagement() {
                 <div className="error-message" role="alert">{listError}</div>
             )}
 
-            {!listError && users.length === 0 ? (
-                <div className="user-management__empty-state">
-                    No hay usuarios registrados.
-                </div>
-            ) : (
-                <div className="user-management__table-wrapper">
-                    <table className="user-management__table">
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Rol</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map((user) => (
+            <div className="user-management__table-wrapper">
+                <table className="user-management__table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {isLoading && users.length === 0 ? (
+                            <TableLoadingRow colSpan={3} message="Cargando usuarios..." />
+                        ) : (
+                            users.map((user) => (
                                 <tr key={user.id}>
                                     <td>{user.email}</td>
                                     <td>{user.role}</td>
@@ -208,9 +223,15 @@ export function UserManagement() {
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {!isLoading && !listError && users.length === 0 && (
+                <div className="user-management__empty-state">
+                    No hay usuarios registrados.
                 </div>
             )}
 

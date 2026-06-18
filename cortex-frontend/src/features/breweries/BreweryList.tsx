@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
+import { TableLoadingRow } from '@/presentation/components/atoms';
 import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
@@ -195,10 +196,6 @@ export function BreweryList() {
         setIsFormModalOpen(false);
     };
 
-    if (loading) {
-        return <div className="brewery-list__skeleton-row">Cargando cervecerías...</div>;
-    }
-
     if (error) {
         return <div className="error" role="alert">{error}</div>;
     }
@@ -216,23 +213,25 @@ export function BreweryList() {
                 </button>
             </div>
 
-            {breweries.length === 0 ? (
-                <div className="brewery-list__empty-state">
-                    No hay cervecerías registradas.
-                </div>
-            ) : (
-                <div className="brewery-list__table-wrapper">
-                    <div className="brewery-list__table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Razón Social</th>
-                                    <th>Ciudad</th>
+            <div className="brewery-list__table-wrapper">
+                <div className="brewery-list__table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Razón Social</th>
+                                <th>Ciudad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading && breweries.length === 0 ? (
+                                <TableLoadingRow colSpan={3} message="Cargando cervecerías..." />
+                            ) : breweries.length === 0 ? (
+                                <tr className="brewery-list__empty-state">
+                                    <td colSpan={3}>No hay cervecerías registradas.</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {breweries.map((brewery) => (
+                            ) : (
+                                breweries.map((brewery) => (
                                     <tr
                                         key={brewery.id}
                                         className="brewery-list__row"
@@ -254,12 +253,12 @@ export function BreweryList() {
                                         <td>{brewery.razon_social || '-'}</td>
                                         <td>{brewery.ciudad || '-'}</td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
+            </div>
 
             {selectedBrewery && (
                 <EntityDetailModal

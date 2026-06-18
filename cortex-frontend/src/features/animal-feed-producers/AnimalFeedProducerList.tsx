@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
+import { TableLoadingRow } from '@/presentation/components/atoms';
 import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
@@ -152,14 +153,6 @@ export function AnimalFeedProducerList() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="animal-feed-producer-list__skeleton-row">
-                Cargando productores de alimentos para animales...
-            </div>
-        );
-    }
-
     if (error) {
         return <div className="error" role="alert">{error}</div>;
     }
@@ -177,23 +170,25 @@ export function AnimalFeedProducerList() {
                 </button>
             </div>
 
-            {producers.length === 0 ? (
-                <div className="animal-feed-producer-list__empty-state">
-                    No hay productores de alimentos para animales registrados.
-                </div>
-            ) : (
-                <div className="animal-feed-producer-list__table-wrapper">
-                    <div className="animal-feed-producer-list__table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Identificación</th>
-                                    <th>Razón Social</th>
-                                    <th>Ciudad</th>
+            <div className="animal-feed-producer-list__table-wrapper">
+                <div className="animal-feed-producer-list__table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Identificación</th>
+                                <th>Razón Social</th>
+                                <th>Ciudad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading && producers.length === 0 ? (
+                                <TableLoadingRow colSpan={3} message="Cargando productores de alimentos para animales..." />
+                            ) : producers.length === 0 ? (
+                                <tr className="animal-feed-producer-list__empty-state">
+                                    <td colSpan={3}>No hay productores de alimentos para animales registrados.</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {producers.map((producer) => (
+                            ) : (
+                                producers.map((producer) => (
                                     <tr
                                         key={producer.id}
                                         className="animal-feed-producer-list__row"
@@ -215,12 +210,12 @@ export function AnimalFeedProducerList() {
                                         <td>{producer.razon_social}</td>
                                         <td>{producer.ciudad || '-'}</td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
+            </div>
 
             {selectedProducer && (
                 <EntityDetailModal

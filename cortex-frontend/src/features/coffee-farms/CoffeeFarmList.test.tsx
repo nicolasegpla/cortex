@@ -304,6 +304,17 @@ describe('CoffeeFarmList', () => {
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
 
+    it('shows a loading row inside the table while data is loading', async () => {
+        globalThis.fetch = vi.fn(() => new Promise(() => {}));
+
+        renderWithRouter(<CoffeeFarmList />);
+
+        expect(screen.getByRole('table')).toBeInTheDocument();
+        expect(screen.getAllByRole('columnheader')).toHaveLength(3);
+        expect(screen.getByText('Cargando fincas de café...')).toBeInTheDocument();
+        expect(screen.queryByText('No hay fincas de café registradas.')).not.toBeInTheDocument();
+    });
+
     it('shows an empty state when no coffee farms are returned', async () => {
         globalThis.fetch = vi.fn().mockResolvedValue(
             new Response(JSON.stringify([]), {

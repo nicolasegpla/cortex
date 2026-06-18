@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
+import { TableLoadingRow } from '@/presentation/components/atoms';
 import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
 
@@ -173,10 +174,6 @@ export function CoffeeFarmList() {
         }
     };
 
-    if (loading) {
-        return <div className="coffee-farm-list__skeleton-row">Cargando fincas de café...</div>;
-    }
-
     if (error) {
         return <div className="error" role="alert">{error}</div>;
     }
@@ -194,23 +191,25 @@ export function CoffeeFarmList() {
                 </button>
             </div>
 
-            {farms.length === 0 ? (
-                <div className="coffee-farm-list__empty-state">
-                    No hay fincas de café registradas.
-                </div>
-            ) : (
-                <div className="coffee-farm-list__table-wrapper">
-                    <div className="coffee-farm-list__table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Razón Social</th>
-                                    <th>Ciudad</th>
+            <div className="coffee-farm-list__table-wrapper">
+                <div className="coffee-farm-list__table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Razón Social</th>
+                                <th>Ciudad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading && farms.length === 0 ? (
+                                <TableLoadingRow colSpan={3} message="Cargando fincas de café..." />
+                            ) : farms.length === 0 ? (
+                                <tr className="coffee-farm-list__empty-state">
+                                    <td colSpan={3}>No hay fincas de café registradas.</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {farms.map((farm) => (
+                            ) : (
+                                farms.map((farm) => (
                                     <tr
                                         key={farm.id}
                                         className="coffee-farm-list__row"
@@ -232,12 +231,12 @@ export function CoffeeFarmList() {
                                         <td>{farm.razon_social || '-'}</td>
                                         <td>{farm.ciudad || '-'}</td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
+            </div>
 
             {selectedFarm && (
                 <EntityDetailModal

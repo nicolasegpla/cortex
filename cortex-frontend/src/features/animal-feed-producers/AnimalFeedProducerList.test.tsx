@@ -313,6 +313,19 @@ describe('AnimalFeedProducerList', () => {
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
 
+    it('shows a loading row inside the table while data is loading', async () => {
+        globalThis.fetch = vi.fn(() => new Promise(() => {}));
+
+        renderWithRouter(<AnimalFeedProducerList />);
+
+        expect(screen.getByRole('table')).toBeInTheDocument();
+        expect(screen.getAllByRole('columnheader')).toHaveLength(3);
+        expect(screen.getByText('Cargando productores de alimentos para animales...')).toBeInTheDocument();
+        expect(
+            screen.queryByText('No hay productores de alimentos para animales registrados.')
+        ).not.toBeInTheDocument();
+    });
+
     it('shows an empty state when no producers are returned', async () => {
         globalThis.fetch = vi.fn().mockResolvedValue(
             new Response(JSON.stringify([]), {

@@ -1,0 +1,11 @@
+@use '@/presentation/styles/variables' as vars;
+
+.table-loading-row {
+    &__cell {
+        text-align: center;
+        padding: vars.$space-xl;
+        color: vars.$color-text-muted;
+        font-size: 0.9375rem;
+        white-space: normal;
+    }
+}
