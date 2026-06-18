@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
-import { DeleteConfirmationModal, EntityDetailModal } from '@/presentation/components/organisms';
+import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
 import { apiClient } from '@/services/api/client';
+
+import { BreweryForm } from './BreweryForm';
 
 import './BreweryList.scss';
 
@@ -40,13 +42,17 @@ export interface Brewery {
 }
 
 export function BreweryList() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [breweries, setBreweries] = useState<Brewery[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedBrewery, setSelectedBrewery] = useState<Brewery | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-    const navigate = useNavigate();
+    const modalParam = searchParams.get('modal');
+    const editId = searchParams.get('id');
+    const isFormModalOpen = modalParam === 'new' || modalParam === 'edit';
+    const isEditMode = modalParam === 'edit';
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/breweries', (id) => {
@@ -165,7 +171,8 @@ export function BreweryList() {
 
     const handleEdit = () => {
         if (selectedBrewery) {
-            navigate(`/breweries/${selectedBrewery.id}/edit`);
+            setIsDetailOpen(false);
+            setSearchParams({ modal: 'edit', id: selectedBrewery.id }, { replace: true });
         }
     };
 
@@ -174,6 +181,15 @@ export function BreweryList() {
             setIsDetailOpen(false);
             openModal(selectedBrewery.id);
         }
+    };
+
+    const handleCloseFormModal = () => {
+        setSearchParams({}, { replace: true });
+    };
+
+    const handleFormSuccess = async () => {
+        await loadBreweries();
+        setSearchParams({}, { replace: true });
     };
 
     if (loading) {
@@ -256,6 +272,20 @@ export function BreweryList() {
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
             />
+
+            <EntityFormModal
+                isOpen={isFormModalOpen}
+                title={isEditMode ? 'Editar Cervecería' : 'Crear Cervecería'}
+                onClose={handleCloseFormModal}
+                isLoading={false}
+            >
+                <BreweryForm
+                    id={isEditMode ? editId ?? undefined : undefined}
+                    initialData={isEditMode ? selectedBrewery ?? undefined : undefined}
+                    onSuccess={handleFormSuccess}
+                    onCancel={handleCloseFormModal}
+                />
+            </EntityFormModal>
         </div>
     );
 }

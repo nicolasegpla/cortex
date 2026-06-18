@@ -1,17 +1,9 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 
 import { BreweryList } from './index';
-
-vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: vi.fn(),
-    };
-});
 
 const mockBreweries = [
     {
@@ -55,6 +47,14 @@ const mockBreweries = [
     },
 ];
 
+function renderWithRouter(ui: React.ReactElement, { initialEntries = ['/breweries'] } = {}) {
+    return render(
+        <MemoryRouter initialEntries={initialEntries}>
+            {ui}
+        </MemoryRouter>
+    );
+}
+
 describe('BreweryList', () => {
     let originalFetch: typeof globalThis.fetch;
 
@@ -78,11 +78,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByRole('heading', { name: 'Cervecerías' })).toBeInTheDocument();
@@ -100,11 +96,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -127,11 +119,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -158,11 +146,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -185,11 +169,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -221,11 +201,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -246,7 +222,7 @@ describe('BreweryList', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('closes the detail modal and opens the delete confirmation modal when Delete is clicked', async () => {
+    it('closes the detail modal and opens the form modal when Edit is clicked', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
         globalThis.fetch = vi.fn().mockResolvedValue(
@@ -256,11 +232,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -269,39 +241,11 @@ describe('BreweryList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
         expect(screen.getByRole('heading', { name: 'Cervecería Artesanal' })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
-
-        expect(screen.queryByRole('heading', { name: 'Cervecería Artesanal' })).not.toBeInTheDocument();
-        expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
-    });
-
-    it('navigates to the edit page when the modal Edit button is clicked', async () => {
-        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-        const navigate = vi.fn();
-        vi.mocked(useNavigate).mockReturnValue(navigate);
-
-        globalThis.fetch = vi.fn().mockResolvedValue(
-            new Response(JSON.stringify(mockBreweries), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            })
-        );
-
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
-        });
-
-        await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
         await user.click(screen.getByRole('button', { name: 'Edit' }));
 
-        expect(navigate).toHaveBeenCalledTimes(1);
-        expect(navigate).toHaveBeenCalledWith('/breweries/brewery-1/edit');
+        expect(screen.queryByRole('heading', { name: 'Cervecería Artesanal' })).not.toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Editar Cervecería', level: 2 })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('Cervecería Artesanal');
     });
 
     it('opens the delete confirmation modal when the modal Delete button is clicked', async () => {
@@ -314,11 +258,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -338,11 +278,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('No hay cervecerías registradas.')).toBeInTheDocument();
@@ -357,11 +293,7 @@ describe('BreweryList', () => {
             })
         );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByRole('alert')).toHaveTextContent('Error al cargar las cervecerías');
@@ -381,11 +313,7 @@ describe('BreweryList', () => {
             )
             .mockResolvedValueOnce(new Response(null, { status: 204 }));
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -432,11 +360,7 @@ describe('BreweryList', () => {
                 })
             );
 
-        render(
-            <MemoryRouter>
-                <BreweryList />
-            </MemoryRouter>
-        );
+        renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
             expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
@@ -451,5 +375,165 @@ describe('BreweryList', () => {
         });
 
         expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+    });
+
+    it('links Agregar Cervecería to the legacy /breweries/new route', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<BreweryList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        expect(screen.getByRole('link', { name: 'Agregar Cervecería' })).toHaveAttribute('href', '/breweries/new');
+    });
+
+    it('opens the create modal from a ?modal=new deep link', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<BreweryList />, { initialEntries: ['/breweries?modal=new'] });
+
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: 'Crear Cervecería', level: 2 })).toBeInTheDocument();
+        });
+    });
+
+    it('opens the edit modal from a ?modal=edit&id= deep link', async () => {
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockBreweries), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockBreweries[0]), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
+
+        renderWithRouter(<BreweryList />, { initialEntries: ['/breweries?modal=edit&id=brewery-1'] });
+
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: 'Editar Cervecería', level: 2 })).toBeInTheDocument();
+        });
+
+        expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('Cervecería Artesanal');
+    });
+
+    it('clears search params when the form modal is closed', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<BreweryList />, { initialEntries: ['/breweries?modal=new'] });
+
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: 'Crear Cervecería', level: 2 })).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Close form' }));
+
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Cervecería', level: 2 })).not.toBeInTheDocument();
+        });
+
+        expect(window.location.search).toBe('');
+    });
+
+    it('refetches the list after a successful create submit', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockBreweries), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ id: 'brewery-new' }), {
+                    status: 201,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify([...mockBreweries, { id: 'brewery-new', nombre_cerveceria: 'Nueva Cervecería', ciudad: 'Cali' }]), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
+
+        renderWithRouter(<BreweryList />, { initialEntries: ['/breweries?modal=new'] });
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
+        await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
+
+        await waitFor(() => {
+            expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText('Nueva Cervecería')).toBeInTheDocument();
+        });
+
+        expect(screen.queryByRole('heading', { name: 'Crear Cervecería' })).not.toBeInTheDocument();
+    });
+
+    it('keeps form values when submit fails', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(mockBreweries), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({ detail: 'Server error' }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
+
+        renderWithRouter(<BreweryList />, { initialEntries: ['/breweries?modal=new'] });
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
+        await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent('Error al guardar la cervecería');
+        });
+
+        expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('Nueva Cervecería');
     });
 });

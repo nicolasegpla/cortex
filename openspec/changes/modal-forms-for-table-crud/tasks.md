@@ -53,8 +53,8 @@ Chain strategy: pending
 
 ## Phase 4: Integration — BreweryList with Modal State
 
-- [ ] 4.1 **Modify `BreweryList.tsx`** — add `useSearchParams` hook. Read `modal` and `id` search params. Mount `EntityFormModal` (from Phase 1) with `BreweryForm` (from Phase 2) when `modal` param is set. `onClose` clears params via `setSearchParams({}, {replace:true})`. `onSuccess` calls `loadBreweries()` then clears params. (est. ~40 lines)
-- [ ] 4.2 **Rewrite `BreweryList.test.tsx`** — update navigation assertions (tests #6, #7) to test modal open/close via search params. Add: `?modal=new` renders create modal, `?modal=edit&id=x` renders edit modal, close clears params, submit triggers refetch, failed submit retains values. Keep existing 13 tests for delete/detail flows unchanged. (est. ~100 lines)
+- [x] 4.1 **Modify `BreweryList.tsx`** — add `useSearchParams` hook. Read `modal` and `id` search params. Mount `EntityFormModal` (from Phase 1) with `BreweryForm` (from Phase 2) when `modal` param is set. `onClose` clears params via `setSearchParams({}, {replace:true})`. `onSuccess` calls `loadBreweries()` then clears params. (est. ~40 lines)
+- [x] 4.2 **Rewrite `BreweryList.test.tsx`** — update navigation assertions (tests #6, #7) to test modal open/close via search params. Add: `?modal=new` renders create modal, `?modal=edit&id=x` renders edit modal, close clears params, submit triggers refetch, failed submit retains values. Keep existing 13 tests for delete/detail flows unchanged. (est. ~100 lines)
 
 **Dependencies:** Phase 1, Phase 2, Phase 3 (BreweryList needs EntityFormModal, BreweryForm, and router in place).
 
