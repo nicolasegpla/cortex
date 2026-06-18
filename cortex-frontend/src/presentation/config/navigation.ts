@@ -2,7 +2,6 @@ import type { ComponentType, SVGProps } from 'react';
 
 import { Chat } from '@/presentation/components/atoms/Icon/Chat';
 import { Database } from '@/presentation/components/atoms/Icon/Database';
-import { Sessions } from '@/presentation/components/atoms/Icon/Sessions';
 import { Config } from '@/presentation/components/atoms/Icon/Config';
 
 export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
@@ -56,12 +55,6 @@ export const navigationConfig: NavSection[] = [
                 kind: NAV_ITEM_KIND.route,
                 to: '/databases',
                 icon: Database,
-            },
-            {
-                label: 'Sesiones',
-                kind: NAV_ITEM_KIND.route,
-                to: '/sessions',
-                icon: Sessions,
             },
         ],
     },

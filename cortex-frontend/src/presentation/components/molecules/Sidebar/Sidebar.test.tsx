@@ -136,8 +136,8 @@ describe('Sidebar', () => {
             </MemoryRouter>
         );
 
-        const sessionsLink = screen.getByRole('link', { name: /Sesiones/i });
-        expect(sessionsLink).not.toHaveAttribute('aria-current');
+        const chatLink = screen.getByRole('link', { name: /Chat/i });
+        expect(chatLink).not.toHaveAttribute('aria-current');
     });
 
     it('should render config as an action button', () => {
