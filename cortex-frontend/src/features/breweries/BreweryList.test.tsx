@@ -86,6 +86,7 @@ describe('BreweryList', () => {
 
         expect(screen.getByText('Brew House')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Agregar Cervecería' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Crear Cervecería', level: 2 })).not.toBeInTheDocument();
     });
 
     it('renders exactly three summary columns', async () => {
