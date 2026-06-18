@@ -1,0 +1,31 @@
+@use '@/presentation/styles/variables' as vars;
+
+.theme-toggle {
+    align-items: center;
+    background: transparent;
+    border: none;
+    border-radius: vars.$radius-md;
+    cursor: pointer;
+    display: inline-flex;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+    width: 36px;
+
+    &:hover,
+    &:focus-visible {
+        background-color: rgba(vars.$color-text-primary, 0.08);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(vars.$color-text-primary, 0.2);
+        outline-offset: 2px;
+    }
+
+    &__icon {
+        display: block;
+        height: 20px;
+        object-fit: contain;
+        width: 20px;
+    }
+}
