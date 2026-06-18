@@ -62,9 +62,9 @@ Chain strategy: pending
 
 ## Phase 5: Cleanup — Remove Stale Pages
 
-- [ ] 5.1 **Delete `BreweryCreate.tsx`** — removed; replaced by `BreweryForm` in modal. (est. ~0 lines, deletion)
-- [ ] 5.2 **Delete `BreweryEdit.tsx`** — removed; replaced by `BreweryForm` in modal. (est. ~0 lines, deletion)
-- [ ] 5.3 **Delete `BreweryEdit.test.tsx`** — replaced by `BreweryForm.test.tsx` from Phase 2. (est. ~0 lines, deletion)
+- [x] 5.1 **Delete `BreweryCreate.tsx`** — removed; replaced by `BreweryForm` in modal. (est. ~0 lines, deletion)
+- [x] 5.2 **Delete `BreweryEdit.tsx`** — removed; replaced by `BreweryForm` in modal. (est. ~0 lines, deletion)
+- [x] 5.3 **Delete `BreweryEdit.test.tsx`** — replaced by `BreweryForm.test.tsx` from Phase 2. (est. ~0 lines, deletion)
 
 **Dependencies:** Phase 2 (form extracted), Phase 4 (integration complete).
 
