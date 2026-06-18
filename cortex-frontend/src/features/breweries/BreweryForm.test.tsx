@@ -248,4 +248,25 @@ describe('BreweryForm', () => {
 
         expect(apiClient.get).toHaveBeenCalledWith('/breweries/missing-id');
     });
+
+    it('resets to an empty create form when switching from edit mode to create mode', () => {
+        const { rerender } = render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} initialData={mockBrewery} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('heading', { name: 'Editar Cervecería' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('Cervecería Artesanal');
+
+        rerender(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('heading', { name: 'Crear Cervecería' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('');
+        expect(screen.getByLabelText(/Malta que Utiliza/i)).toHaveValue('');
+    });
 });

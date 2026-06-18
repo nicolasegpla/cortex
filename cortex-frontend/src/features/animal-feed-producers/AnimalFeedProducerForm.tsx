@@ -61,10 +61,15 @@ export function AnimalFeedProducerForm({ initialData, id, onSuccess, onCancel, o
     useEffect(() => {
         if (initialData) {
             setFormData(transformForForm(initialData));
+            setLoading(false);
+            setNotFound(false);
             return;
         }
 
         if (!id) {
+            setFormData({ ...EMPTY_FORM });
+            setLoading(false);
+            setNotFound(false);
             return;
         }
 

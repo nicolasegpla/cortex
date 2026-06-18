@@ -85,10 +85,15 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChan
     useEffect(() => {
         if (initialData) {
             setFormData(transformForForm(initialData));
+            setLoading(false);
+            setNotFound(false);
             return;
         }
 
         if (!id) {
+            setFormData({ ...EMPTY_FORM });
+            setLoading(false);
+            setNotFound(false);
             return;
         }
 

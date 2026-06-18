@@ -268,4 +268,25 @@ describe('WineProducerForm', () => {
 
         expect(apiClient.get).toHaveBeenCalledWith('/wine-producers/missing-id');
     });
+
+    it('resets to an empty create form when switching from edit mode to create mode', () => {
+        const { rerender } = render(
+            <MemoryRouter>
+                <WineProducerForm {...baseProps} initialData={mockProducer} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('heading', { name: 'Editar Productor de Vino' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('Viñedo Real');
+
+        rerender(
+            <MemoryRouter>
+                <WineProducerForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('heading', { name: 'Crear Productor de Vino' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('');
+        expect(screen.getByLabelText(/Tipo de Uva/i)).toHaveValue('');
+    });
 });

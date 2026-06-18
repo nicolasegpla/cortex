@@ -77,10 +77,15 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
     useEffect(() => {
         if (initialData) {
             setFormData(transformForForm(initialData));
+            setLoading(false);
+            setNotFound(false);
             return;
         }
 
         if (!id) {
+            setFormData({ ...EMPTY_FORM });
+            setLoading(false);
+            setNotFound(false);
             return;
         }
 

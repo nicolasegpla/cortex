@@ -238,4 +238,25 @@ describe('AnimalFeedProducerForm', () => {
 
         expect(apiClient.get).toHaveBeenCalledWith('/animal-feed-producers/missing-id');
     });
+
+    it('resets to an empty create form when switching from edit mode to create mode', () => {
+        const { rerender } = render(
+            <MemoryRouter>
+                <AnimalFeedProducerForm {...baseProps} initialData={mockProducer} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('heading', { name: 'Editar Productor de Alimentos para Animales' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Razón Social/i)).toHaveValue('Nutrición Animal S.A.');
+
+        rerender(
+            <MemoryRouter>
+                <AnimalFeedProducerForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('heading', { name: 'Crear Productor de Alimentos para Animales' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Razón Social/i)).toHaveValue('');
+        expect(screen.getByLabelText(/Especies Manejadas/i)).toHaveValue('');
+    });
 });

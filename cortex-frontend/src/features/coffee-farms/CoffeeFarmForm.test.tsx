@@ -279,4 +279,25 @@ describe('CoffeeFarmForm', () => {
 
         expect(apiClient.get).toHaveBeenCalledWith('/coffee-farms/missing-id');
     });
+
+    it('resets to an empty create form when switching from edit mode to create mode', () => {
+        const { rerender } = render(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} initialData={mockFarm} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('heading', { name: 'Editar Finca de Café' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre de la Finca/i)).toHaveValue('Finca Primavera');
+
+        rerender(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('heading', { name: 'Crear Finca de Café' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre de la Finca/i)).toHaveValue('');
+        expect(screen.getByLabelText(/Variedades Sembradas/i)).toHaveValue('');
+    });
 });
