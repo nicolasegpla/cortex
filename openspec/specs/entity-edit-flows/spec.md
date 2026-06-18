@@ -6,6 +6,15 @@ Provide authenticated edit-route parity for coffee farms, wine producers, brewer
 
 ## Requirements
 
+### Requirement: Brewery edit routes become modal entry points
+
+The system MUST preserve `/breweries/:id/edit` as a deep-linkable entry point, but SHALL resolve it into the brewery list plus an edit modal driven by search-param-compatible state.
+
+#### Scenario: Browser back closes the modal
+- GIVEN the user reached brewery create/edit through modal navigation
+- WHEN the user presses the browser back button
+- THEN the modal closes and the URL returns to clean `/breweries`
+
 ### Requirement: Entity edit route entry and prefill
 
 The system MUST expose authenticated `/coffee-farms/:id/edit`, `/wine-producers/:id/edit`, `/breweries/:id/edit`, and `/animal-feed-producers/:id/edit` routes. Each route MUST load the record by id, prefill the same editable fields as its create form, and render array-backed values in the create-form input format.
