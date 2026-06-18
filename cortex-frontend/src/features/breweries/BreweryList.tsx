@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
 import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
@@ -43,6 +43,7 @@ export interface Brewery {
 
 export function BreweryList() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [breweries, setBreweries] = useState<Brewery[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -185,12 +186,12 @@ export function BreweryList() {
     };
 
     const handleCloseFormModal = () => {
-        setSearchParams({}, { replace: true });
+        navigate('/breweries', { replace: true });
     };
 
     const handleFormSuccess = async () => {
         await loadBreweries();
-        setSearchParams({}, { replace: true });
+        navigate('/breweries', { replace: true });
     };
 
     if (loading) {

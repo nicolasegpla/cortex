@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 import { BreweryList } from './index';
 
@@ -48,11 +48,13 @@ const mockBreweries = [
 ];
 
 function renderWithRouter(ui: React.ReactElement, { initialEntries = ['/breweries'] } = {}) {
-    return render(
-        <MemoryRouter initialEntries={initialEntries}>
-            {ui}
-        </MemoryRouter>
+    const router = createMemoryRouter(
+        [
+            { path: '*', element: ui },
+        ],
+        { initialEntries }
     );
+    return { router, ...render(<RouterProvider router={router} />) };
 }
 
 function renderWithRouterHistory(ui: React.ReactElement, { initialEntries = ['/breweries'] } = {}) {
@@ -475,7 +477,7 @@ describe('BreweryList', () => {
         expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('Cervecería Artesanal');
     });
 
-    it('clears search params when the form modal is closed', async () => {
+    it('closes the create modal after navigating from /breweries/new redirect', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
         globalThis.fetch = vi.fn().mockResolvedValue(
@@ -485,7 +487,18 @@ describe('BreweryList', () => {
             })
         );
 
-        renderWithRouter(<BreweryList />, { initialEntries: ['/breweries?modal=new'] });
+        const router = createMemoryRouter(
+            [
+                { path: '*', element: <BreweryList /> },
+                {
+                    path: 'breweries/new',
+                    element: <Navigate to="/breweries?modal=new" replace />,
+                },
+            ],
+            { initialEntries: ['/breweries/new'] }
+        );
+
+        render(<RouterProvider router={router} />);
 
         await waitFor(() => {
             expect(screen.getByRole('heading', { name: 'Crear Cervecería', level: 2 })).toBeInTheDocument();
@@ -497,7 +510,7 @@ describe('BreweryList', () => {
             expect(screen.queryByRole('heading', { name: 'Crear Cervecería', level: 2 })).not.toBeInTheDocument();
         });
 
-        expect(window.location.search).toBe('');
+        expect(router.state.location.search).toBe('');
     });
 
     it('refetches the list after a successful create submit', async () => {
