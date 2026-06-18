@@ -91,7 +91,7 @@ export function EntityDetailModal({
                         type="button"
                         className="entity-detail-modal__close"
                         onClick={onClose}
-                        aria-label="Close details"
+                        aria-label="Cerrar detalles"
                     >
                         ×
                     </button>
@@ -115,10 +115,10 @@ export function EntityDetailModal({
 
                 <div className="entity-detail-modal__actions">
                     <Button variant="primary" onClick={onEdit}>
-                        Edit
+                        Editar
                     </Button>
                     <Button variant="secondary" onClick={onDelete}>
-                        Delete
+                        Eliminar
                     </Button>
                 </div>
             </div>

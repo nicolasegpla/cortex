@@ -224,7 +224,7 @@ describe('AnimalFeedProducerList', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText('Ana López')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
 
         button.focus();
         await user.keyboard(' ');
@@ -255,7 +255,7 @@ describe('AnimalFeedProducerList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
         expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
@@ -290,7 +290,7 @@ describe('AnimalFeedProducerList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
         expect(screen.getByRole('heading', { name: 'NutriAnimal' })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.queryByRole('heading', { name: 'NutriAnimal' })).not.toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -319,7 +319,7 @@ describe('AnimalFeedProducerList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
-        await user.click(screen.getByRole('button', { name: 'Edit' }));
+        await user.click(screen.getByRole('button', { name: 'Editar' }));
 
         expect(navigate).toHaveBeenCalledTimes(1);
         expect(navigate).toHaveBeenCalledWith('/animal-feed-producers/producer-1/edit');
@@ -346,7 +346,7 @@ describe('AnimalFeedProducerList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
@@ -415,7 +415,7 @@ describe('AnimalFeedProducerList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -466,7 +466,7 @@ describe('AnimalFeedProducerList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
         await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {

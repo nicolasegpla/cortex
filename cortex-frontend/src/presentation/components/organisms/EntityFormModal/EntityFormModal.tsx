@@ -97,7 +97,7 @@ export function EntityFormModal({
                         type="button"
                         className="entity-form-modal__close"
                         onClick={onClose}
-                        aria-label="Close form"
+                        aria-label="Cerrar formulario"
                         disabled={isLoading}
                     >
                         ×
@@ -111,7 +111,7 @@ export function EntityFormModal({
                 {isLoading && (
                     <div className="entity-form-modal__overlay" aria-hidden="true">
                         <span className="entity-form-modal__spinner" />
-                        <span>Saving...</span>
+                        <span>Guardando...</span>
                     </div>
                 )}
             </div>

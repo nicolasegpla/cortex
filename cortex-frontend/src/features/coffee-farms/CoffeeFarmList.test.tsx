@@ -199,7 +199,7 @@ describe('CoffeeFarmList', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
 
         button.focus();
         await user.keyboard(' ');
@@ -230,7 +230,7 @@ describe('CoffeeFarmList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
         expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
@@ -265,7 +265,7 @@ describe('CoffeeFarmList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
         expect(screen.getByRole('heading', { name: 'Finca Primavera' })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.queryByRole('heading', { name: 'Finca Primavera' })).not.toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -294,7 +294,7 @@ describe('CoffeeFarmList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
-        await user.click(screen.getByRole('button', { name: 'Edit' }));
+        await user.click(screen.getByRole('button', { name: 'Editar' }));
 
         expect(navigate).toHaveBeenCalledTimes(1);
         expect(navigate).toHaveBeenCalledWith('/coffee-farms/farm-1/edit');
@@ -321,7 +321,7 @@ describe('CoffeeFarmList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
@@ -388,7 +388,7 @@ describe('CoffeeFarmList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -434,7 +434,7 @@ describe('CoffeeFarmList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
         await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
@@ -480,7 +480,7 @@ describe('CoffeeFarmList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
         await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {

@@ -192,7 +192,7 @@ describe('BreweryList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
         expect(screen.getByRole('heading', { name: 'Cervecería Artesanal' })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
         await waitFor(() => {
             expect(screen.queryByRole('heading', { name: 'Cervecería Artesanal' })).not.toBeInTheDocument();
         });
@@ -227,7 +227,7 @@ describe('BreweryList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
         expect(screen.getByRole('heading', { name: 'Cervecería Artesanal' })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Edit' }));
+        await user.click(screen.getByRole('button', { name: 'Editar' }));
 
         expect(screen.queryByRole('heading', { name: 'Cervecería Artesanal' })).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Editar Cervecería', level: 2 })).toBeInTheDocument();
@@ -274,7 +274,7 @@ describe('BreweryList', () => {
         await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
         expect(screen.getByRole('heading', { name: 'Crear Cervecería', level: 2 })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Close form' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar formulario' }));
         await waitFor(() => {
             expect(screen.queryByRole('heading', { name: 'Crear Cervecería', level: 2 })).not.toBeInTheDocument();
         });
@@ -303,7 +303,7 @@ describe('BreweryList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
@@ -357,7 +357,7 @@ describe('BreweryList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
         await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
@@ -392,7 +392,7 @@ describe('BreweryList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
         await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
@@ -487,7 +487,7 @@ describe('BreweryList', () => {
         await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
 
         await waitFor(() => {
-            expect(screen.getByText('Saving...')).toBeInTheDocument();
+            expect(screen.getByText('Guardando...')).toBeInTheDocument();
             expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'true');
         });
 
@@ -496,7 +496,7 @@ describe('BreweryList', () => {
         });
 
         await waitFor(() => {
-            expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
+            expect(screen.queryByText('Guardando...')).not.toBeInTheDocument();
             expect(screen.queryByRole('heading', { name: 'Crear Cervecería', level: 2 })).not.toBeInTheDocument();
         });
     });

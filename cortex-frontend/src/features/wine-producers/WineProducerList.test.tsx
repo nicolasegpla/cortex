@@ -198,7 +198,7 @@ describe('WineProducerList', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText('Carlos López')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
 
         button.focus();
         await user.keyboard(' ');
@@ -267,7 +267,7 @@ describe('WineProducerList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
         expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
@@ -302,7 +302,7 @@ describe('WineProducerList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
         expect(screen.getByRole('heading', { name: 'Viñedo Real' })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.queryByRole('heading', { name: 'Viñedo Real' })).not.toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -331,7 +331,7 @@ describe('WineProducerList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
-        await user.click(screen.getByRole('button', { name: 'Edit' }));
+        await user.click(screen.getByRole('button', { name: 'Editar' }));
 
         expect(navigate).toHaveBeenCalledTimes(1);
         expect(navigate).toHaveBeenCalledWith('/wine-producers/producer-1/edit');
@@ -358,7 +358,7 @@ describe('WineProducerList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
     });
@@ -425,7 +425,7 @@ describe('WineProducerList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText(/¿Estás seguro de eliminar/)).toBeInTheDocument();
@@ -476,7 +476,7 @@ describe('WineProducerList', () => {
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
         await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {

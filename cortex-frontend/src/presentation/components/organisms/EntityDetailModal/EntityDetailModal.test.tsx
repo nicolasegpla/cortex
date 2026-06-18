@@ -72,7 +72,7 @@ describe('EntityDetailModal', () => {
 
         render(<EntityDetailModal {...baseProps} onEdit={onEdit} />);
 
-        await user.click(screen.getByRole('button', { name: 'Edit' }));
+        await user.click(screen.getByRole('button', { name: 'Editar' }));
 
         expect(onEdit).toHaveBeenCalledTimes(1);
     });
@@ -83,7 +83,7 @@ describe('EntityDetailModal', () => {
 
         render(<EntityDetailModal {...baseProps} onDelete={onDelete} />);
 
-        await user.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         expect(onDelete).toHaveBeenCalledTimes(1);
     });
@@ -94,7 +94,7 @@ describe('EntityDetailModal', () => {
 
         render(<EntityDetailModal {...baseProps} onClose={onClose} />);
 
-        await user.click(screen.getByRole('button', { name: 'Close details' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar detalles' }));
 
         expect(onClose).toHaveBeenCalledTimes(1);
     });

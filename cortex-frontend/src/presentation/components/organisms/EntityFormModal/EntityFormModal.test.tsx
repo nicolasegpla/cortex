@@ -50,7 +50,7 @@ describe('EntityFormModal', () => {
 
         render(<EntityFormModal {...baseProps} onClose={onClose} />);
 
-        await user.click(screen.getByRole('button', { name: 'Close form' }));
+        await user.click(screen.getByRole('button', { name: 'Cerrar formulario' }));
 
         expect(onClose).toHaveBeenCalledTimes(1);
     });
@@ -102,14 +102,14 @@ describe('EntityFormModal', () => {
         render(<EntityFormModal {...baseProps} isLoading />);
 
         expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'true');
-        expect(screen.getByText('Saving...')).toBeInTheDocument();
+        expect(screen.getByText('Guardando...')).toBeInTheDocument();
     });
 
     it('does not show a loading indicator when isLoading is false', () => {
         render(<EntityFormModal {...baseProps} />);
 
         expect(screen.getByRole('dialog')).toHaveAttribute('aria-busy', 'false');
-        expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
+        expect(screen.queryByText('Guardando...')).not.toBeInTheDocument();
     });
 
     it('returns focus to the triggering element when the modal closes', () => {
@@ -138,7 +138,7 @@ describe('EntityFormModal', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
 
         // Simulate the browser moving focus into the modal after showModal().
-        const closeButton = screen.getByRole('button', { name: 'Close form' });
+        const closeButton = screen.getByRole('button', { name: 'Cerrar formulario' });
         closeButton.focus();
         expect(trigger).not.toHaveFocus();
 
@@ -180,7 +180,7 @@ describe('EntityFormModal', () => {
         expect(dialog).toBeInTheDocument();
 
         // Simulate the browser moving focus into the modal after showModal().
-        const closeButton = screen.getByRole('button', { name: 'Close form' });
+        const closeButton = screen.getByRole('button', { name: 'Cerrar formulario' });
         closeButton.focus();
         expect(trigger).not.toHaveFocus();
 
