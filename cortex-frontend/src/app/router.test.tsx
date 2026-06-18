@@ -87,33 +87,13 @@ describe('appRoutes', () => {
         expect(container.querySelector('.app-shell')).not.toBeInTheDocument();
     });
 
-    it('redirects /breweries/new to /breweries?modal=new', async () => {
-        const router = createMemoryRouter(appRoutes, { initialEntries: ['/breweries/new'] });
+    it('renders the brewery list at /breweries without modal query params', async () => {
+        const router = createMemoryRouter(appRoutes, { initialEntries: ['/breweries'] });
         render(<RouterProvider router={router} />);
 
         await waitFor(() => {
             expect(router.state.location.pathname).toBe('/breweries');
-            expect(router.state.location.search).toBe('?modal=new');
-        });
-    });
-
-    it('redirects /breweries/:id/edit to /breweries?modal=edit&id=:id', async () => {
-        const router = createMemoryRouter(appRoutes, { initialEntries: ['/breweries/brewery-1/edit'] });
-        render(<RouterProvider router={router} />);
-
-        await waitFor(() => {
-            expect(router.state.location.pathname).toBe('/breweries');
-            expect(router.state.location.search).toBe('?modal=edit&id=brewery-1');
-        });
-    });
-
-    it('redirects an invalid /breweries/:id/edit id through the same redirect', async () => {
-        const router = createMemoryRouter(appRoutes, { initialEntries: ['/breweries/unknown-id/edit'] });
-        render(<RouterProvider router={router} />);
-
-        await waitFor(() => {
-            expect(router.state.location.pathname).toBe('/breweries');
-            expect(router.state.location.search).toBe('?modal=edit&id=unknown-id');
+            expect(router.state.location.search).toBe('');
         });
     });
 });

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
 import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
@@ -42,19 +41,14 @@ export interface Brewery {
 }
 
 export function BreweryList() {
-    const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
     const [breweries, setBreweries] = useState<Brewery[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedBrewery, setSelectedBrewery] = useState<Brewery | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isFormLoading, setIsFormLoading] = useState(false);
-
-    const modalParam = searchParams.get('modal');
-    const editId = searchParams.get('id');
-    const isFormModalOpen = modalParam === 'new' || modalParam === 'edit';
-    const isEditMode = modalParam === 'edit';
+    const [isEditMode, setIsEditMode] = useState(false);
 
     const { isOpen, isDeleting, error: deleteError, success, itemId, openModal, confirmDelete, cancelDelete } =
         useDeleteRecord('/breweries', (id) => {
@@ -171,10 +165,17 @@ export function BreweryList() {
         setIsDetailOpen(false);
     };
 
+    const handleCreate = () => {
+        setSelectedBrewery(null);
+        setIsEditMode(false);
+        setIsFormModalOpen(true);
+    };
+
     const handleEdit = () => {
         if (selectedBrewery) {
             setIsDetailOpen(false);
-            setSearchParams({ modal: 'edit', id: selectedBrewery.id });
+            setIsEditMode(true);
+            setIsFormModalOpen(true);
         }
     };
 
@@ -186,12 +187,12 @@ export function BreweryList() {
     };
 
     const handleCloseFormModal = () => {
-        navigate('/breweries', { replace: true });
+        setIsFormModalOpen(false);
     };
 
     const handleFormSuccess = async () => {
         await loadBreweries();
-        navigate('/breweries', { replace: true });
+        setIsFormModalOpen(false);
     };
 
     if (loading) {
@@ -206,7 +207,13 @@ export function BreweryList() {
         <div className="brewery-list">
             <div className="brewery-list__header">
                 <h2>Cervecerías</h2>
-                <Link to="/breweries/new" className="brewery-list__add-button">Agregar Cervecería</Link>
+                <button
+                    type="button"
+                    className="brewery-list__add-button"
+                    onClick={handleCreate}
+                >
+                    Agregar Cervecería
+                </button>
             </div>
 
             {breweries.length === 0 ? (
@@ -282,7 +289,7 @@ export function BreweryList() {
                 isLoading={isFormLoading}
             >
                 <BreweryForm
-                    id={isEditMode ? editId ?? undefined : undefined}
+                    id={isEditMode ? selectedBrewery?.id ?? undefined : undefined}
                     initialData={isEditMode ? selectedBrewery ?? undefined : undefined}
                     onSuccess={handleFormSuccess}
                     onCancel={handleCloseFormModal}
