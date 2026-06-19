@@ -27,7 +27,7 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
         saveCredential,
         clearError,
     } = useCredentialsStore();
-    const { setActiveProvider, setActiveModel } = useChatStore();
+    const { setActiveModel } = useChatStore();
 
     const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
     const [apiKeys, setApiKeys] = useState<Partial<Record<Provider, string>>>({});
@@ -43,7 +43,6 @@ export function ChatSettings({ headingId = 'config-provider-settings-title' }: C
 
         await saveCredential(provider, key);
         const providerInfo = PROVIDERS.find((item) => item.id === provider);
-        setActiveProvider(provider);
         if (providerInfo) {
             setActiveModel(providerInfo.defaultModel);
         }

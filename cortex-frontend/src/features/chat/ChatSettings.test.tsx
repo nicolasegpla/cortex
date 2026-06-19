@@ -29,14 +29,12 @@ describe('ChatSettings', () => {
     const mockFetchCredentials = vi.fn();
     const mockSaveCredential = vi.fn();
     const mockClearError = vi.fn();
-    const mockSetActiveProvider = vi.fn();
     const mockSetActiveModel = vi.fn();
 
     beforeEach(() => {
         cleanup();
         vi.clearAllMocks();
         mockUseChatStore.mockReturnValue({
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
         } as unknown as ReturnType<typeof useChatStore>);
         mockUseCredentialsStore.mockReturnValue({
@@ -120,7 +118,6 @@ describe('ChatSettings', () => {
         await waitFor(() => {
             expect(mockSaveCredential).toHaveBeenCalledWith('openai', 'sk-test-key-123');
         });
-        expect(mockSetActiveProvider).toHaveBeenCalledWith('openai');
         expect(mockSetActiveModel).toHaveBeenCalledWith('gpt-4o');
     });
 

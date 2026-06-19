@@ -37,12 +37,23 @@ export const PROVIDER_MODELS: Record<Provider, ModelOption[]> = {
     ],
 };
 
-const DEFAULT_MODELS: Record<Provider, string> = {
+export const DEFAULT_MODELS: Record<Provider, string> = {
     openai: 'gpt-4o',
     anthropic: 'claude-3-5-sonnet-20241022',
     gemini: 'gemini-2.0-flash',
     deepseek: 'deepseek-v4-flash',
 };
+
+export const MODEL_PROVIDER_MAP: Record<string, Provider> = Object.entries(
+    PROVIDER_MODELS
+).reduce<Record<string, Provider>>((map, [provider, models]) => {
+    for (const model of models) {
+        if (!map[model.id]) {
+            map[model.id] = provider as Provider;
+        }
+    }
+    return map;
+}, {});
 
 interface ChatState {
     messages: ChatMessage[];
@@ -56,9 +67,8 @@ interface ChatState {
     sendMessage: (text: string) => Promise<void>;
     abort: () => void;
     clearMessages: () => void;
-    setActiveProvider: (provider: Provider) => void;
     setActiveModel: (model: string) => void;
-    hydrate: (provider: Provider, model: string) => void;
+    hydrate: (model: string) => void;
     clearError: () => void;
 }
 
@@ -113,12 +123,20 @@ async function* readSSEChunks(stream: ReadableStream<Uint8Array>): AsyncGenerato
     }
 }
 
-function sanitizePersistedSelection(provider: Provider, model: string) {
-    const validModels = PROVIDER_MODELS[provider].map((option) => option.id);
+function resolveSelection(model: string): { activeProvider: Provider; activeModel: string } {
+    const provider = MODEL_PROVIDER_MAP[model];
+
+    if (provider) {
+        const validModels = PROVIDER_MODELS[provider].map((option) => option.id);
+        return {
+            activeProvider: provider,
+            activeModel: validModels.includes(model) ? model : DEFAULT_MODELS[provider],
+        };
+    }
 
     return {
-        activeProvider: provider,
-        activeModel: validModels.includes(model) ? model : DEFAULT_MODELS[provider],
+        activeProvider: 'openai',
+        activeModel: DEFAULT_MODELS['openai'],
     };
 }
 
@@ -213,24 +231,14 @@ export const useChatStore = create<ChatState>()(
 
         clearMessages: () => set({ messages: [], error: null }),
 
-        setActiveProvider: (provider) =>
-            set((state) => {
-                const currentModelBelongsToProvider = PROVIDER_MODELS[provider].some(
-                    (option) => option.id === state.activeModel
-                );
+        setActiveModel: (model) =>
+            set((state) => ({
+                activeModel: model,
+                activeProvider: MODEL_PROVIDER_MAP[model] ?? state.activeProvider,
+            })),
 
-                return {
-                    activeProvider: provider,
-                    activeModel: currentModelBelongsToProvider
-                        ? state.activeModel
-                        : DEFAULT_MODELS[provider],
-                };
-            }),
-
-        setActiveModel: (model) => set({ activeModel: model }),
-
-        hydrate: (provider, model) => {
-            const selection = sanitizePersistedSelection(provider, model);
+        hydrate: (model) => {
+            const selection = resolveSelection(model);
             set({
                 activeProvider: selection.activeProvider,
                 activeModel: selection.activeModel,
@@ -242,13 +250,13 @@ export const useChatStore = create<ChatState>()(
     }), {
         name: 'cortex-chat-preferences',
         partialize: (state) => ({
-            activeProvider: state.activeProvider,
             activeModel: state.activeModel,
         }),
         onRehydrateStorage: () => (state) => {
             if (!state) return;
 
-            state.hydrate(state.activeProvider, state.activeModel);
+            const persistedModel = state.activeModel ?? DEFAULT_MODELS['openai'];
+            state.hydrate(persistedModel);
         },
     })
 );
