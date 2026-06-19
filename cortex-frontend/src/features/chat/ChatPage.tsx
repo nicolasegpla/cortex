@@ -1,30 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useChatStore, PROVIDER_MODELS } from './store';
-import { useCredentialsStore, type Provider } from './credentialsStore';
+import { useChatStore, DEFAULT_MODELS, MODEL_PROVIDER_MAP } from './store';
+import { useCredentialsStore } from './credentialsStore';
 import { MarkdownContent } from './MarkdownContent';
+import { ModelSelector } from '@/presentation/components/molecules/ModelSelector/ModelSelector';
 
 import './ChatPage.scss';
-
-const PROVIDER_LABELS: Record<Provider, string> = {
-    openai: 'OpenAI',
-    anthropic: 'Anthropic',
-    gemini: 'Google Gemini',
-    deepseek: 'DeepSeek',
-};
 
 export function ChatPage() {
     const {
         messages,
         isLoading,
         error,
-        activeProvider,
         activeModel,
         hydrated,
         sendMessage,
         abort,
         clearMessages,
-        setActiveProvider,
         setActiveModel,
         clearError,
     } = useChatStore();
@@ -53,9 +45,12 @@ export function ChatPage() {
     useEffect(() => {
         if (!hydrated) return;
         if (validatedProviders.length === 0) return;
-        if (validatedProviders.includes(activeProvider)) return;
-        setActiveProvider(validatedProviders[0]);
-    }, [activeProvider, hydrated, setActiveProvider, validatedProviders]);
+
+        const activeProvider = MODEL_PROVIDER_MAP[activeModel];
+        if (activeProvider && validatedProviders.includes(activeProvider)) return;
+
+        setActiveModel(DEFAULT_MODELS[validatedProviders[0]]);
+    }, [activeModel, hydrated, setActiveModel, validatedProviders]);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -90,36 +85,7 @@ export function ChatPage() {
         <div className={`chat-page ${hasMessages ? 'chat-page--has-messages' : ''}`}>
             {/* Top bar */}
             <div className="chat-page__top-bar">
-                <div className="chat-page__top-bar-left">
-                    {validatedProviders.length > 0 && (
-                        <div className="chat-page__selectors">
-                            <select
-                                value={activeProvider}
-                                onChange={(e) => setActiveProvider(e.target.value as Provider)}
-                                className="chat-page__select"
-                                aria-label="Seleccionar proveedor"
-                            >
-                                {validatedProviders.map((provider) => (
-                                    <option key={provider} value={provider}>
-                                        {PROVIDER_LABELS[provider]}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={activeModel}
-                                onChange={(e) => setActiveModel(e.target.value)}
-                                className="chat-page__select"
-                                aria-label="Seleccionar modelo"
-                            >
-                                {PROVIDER_MODELS[activeProvider]?.map((model) => (
-                                    <option key={model.id} value={model.id}>
-                                        {model.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-                </div>
+                <div className="chat-page__top-bar-left" />
                 <div className="chat-page__top-bar-right">
                     {hasMessages && (
                         <button
@@ -182,6 +148,13 @@ export function ChatPage() {
             {/* Input area */}
             <div className="chat-page__input-area">
                 <div className="chat-page__input-box">
+                    <div className="chat-page__model-selector">
+                        <ModelSelector
+                            activeModel={activeModel}
+                            validatedProviders={validatedProviders}
+                            onSelect={setActiveModel}
+                        />
+                    </div>
                     <textarea
                         ref={textareaRef}
                         value={input}

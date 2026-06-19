@@ -38,7 +38,6 @@ describe('ChatPage', () => {
     const mockSendMessage = vi.fn();
     const mockAbort = vi.fn();
     const mockClearMessages = vi.fn();
-    const mockSetActiveProvider = vi.fn();
     const mockSetActiveModel = vi.fn();
 
     beforeEach(() => {
@@ -54,7 +53,6 @@ describe('ChatPage', () => {
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -114,7 +112,6 @@ describe('ChatPage', () => {
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -140,7 +137,6 @@ describe('ChatPage', () => {
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -173,7 +169,6 @@ describe('ChatPage', () => {
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -229,7 +224,6 @@ describe('ChatPage', () => {
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -252,7 +246,6 @@ describe('ChatPage', () => {
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -277,7 +270,6 @@ describe('ChatPage', () => {
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -288,7 +280,7 @@ describe('ChatPage', () => {
         expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     });
 
-    it('should show provider selector with validated providers', () => {
+    it('should render ModelSelector badge with active model in input bar', () => {
         mockUseChatStore.mockReturnValue({
             messages: [],
             isLoading: false,
@@ -299,7 +291,6 @@ describe('ChatPage', () => {
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -307,7 +298,6 @@ describe('ChatPage', () => {
         mockUseCredentialsStore.mockReturnValue({
             providers: {
                 openai: { id: '1', provider: 'openai', label: 'Key', validated_at: '2024-01-01T00:00:00Z' },
-                anthropic: { id: '2', provider: 'anthropic', label: 'Key', validated_at: null },
             },
             isLoading: false,
             error: null,
@@ -321,42 +311,22 @@ describe('ChatPage', () => {
 
         renderChatPage();
 
-        expect(screen.getAllByLabelText('Seleccionar proveedor')[0]).toBeInTheDocument();
-        expect(screen.getAllByLabelText('Seleccionar modelo')[0]).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /GPT-4o/i })).toBeInTheDocument();
+        expect(screen.queryByLabelText('Seleccionar proveedor')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Seleccionar modelo')).not.toBeInTheDocument();
     });
 
-    it('should switch to first validated provider when active provider is unavailable', () => {
-        mockUseCredentialsStore.mockReturnValue({
-            providers: {
-                gemini: { id: '1', provider: 'gemini', label: 'cortex', validated_at: '2024-01-01T00:00:00Z' },
-            },
-            isLoading: false,
-            error: null,
-            fetchCredentials: vi.fn(),
-            saveCredential: vi.fn(),
-            deleteCredential: vi.fn(),
-            testCredential: vi.fn(),
-            getValidatedProviders: () => ['gemini'],
-            clearError: vi.fn(),
-        });
-
-        renderChatPage();
-
-        expect(mockSetActiveProvider).toHaveBeenCalledWith('gemini');
-    });
-
-    it('should not switch provider before chat store hydration completes', () => {
+    it('should switch to the first validated provider default model when active provider is unavailable', () => {
         mockUseChatStore.mockReturnValue({
             messages: [],
             isLoading: false,
             error: null,
             activeProvider: 'openai',
             activeModel: 'gpt-4o',
-            hydrated: false,
+            hydrated: true,
             sendMessage: mockSendMessage,
             abort: mockAbort,
             clearMessages: mockClearMessages,
-            setActiveProvider: mockSetActiveProvider,
             setActiveModel: mockSetActiveModel,
             clearError: vi.fn(),
             _abortController: null,
@@ -377,7 +347,84 @@ describe('ChatPage', () => {
 
         renderChatPage();
 
-        expect(mockSetActiveProvider).not.toHaveBeenCalled();
+        expect(mockSetActiveModel).toHaveBeenCalledWith('gemini-2.0-flash');
+    });
+
+    it('should not switch model before chat store hydration completes', () => {
+        mockUseChatStore.mockReturnValue({
+            messages: [],
+            isLoading: false,
+            error: null,
+            activeProvider: 'openai',
+            activeModel: 'gpt-4o',
+            hydrated: false,
+            sendMessage: mockSendMessage,
+            abort: mockAbort,
+            clearMessages: mockClearMessages,
+            setActiveModel: mockSetActiveModel,
+            clearError: vi.fn(),
+            _abortController: null,
+        });
+        mockUseCredentialsStore.mockReturnValue({
+            providers: {
+                gemini: { id: '1', provider: 'gemini', label: 'cortex', validated_at: '2024-01-01T00:00:00Z' },
+            },
+            isLoading: false,
+            error: null,
+            fetchCredentials: vi.fn(),
+            saveCredential: vi.fn(),
+            deleteCredential: vi.fn(),
+            testCredential: vi.fn(),
+            getValidatedProviders: () => ['gemini'],
+            clearError: vi.fn(),
+        });
+
+        renderChatPage();
+
+        expect(mockSetActiveModel).not.toHaveBeenCalled();
+    });
+
+    it('should call setActiveModel when selecting a model from the badge popover', async () => {
+        const user = userEvent.setup();
+
+        mockUseChatStore.mockReturnValue({
+            messages: [],
+            isLoading: false,
+            error: null,
+            activeProvider: 'openai',
+            activeModel: 'gpt-4o',
+            hydrated: true,
+            sendMessage: mockSendMessage,
+            abort: mockAbort,
+            clearMessages: mockClearMessages,
+            setActiveModel: mockSetActiveModel,
+            clearError: vi.fn(),
+            _abortController: null,
+        });
+        mockUseCredentialsStore.mockReturnValue({
+            providers: {
+                openai: { id: '1', provider: 'openai', label: 'Key', validated_at: '2024-01-01T00:00:00Z' },
+                deepseek: { id: '2', provider: 'deepseek', label: 'Key', validated_at: '2024-01-01T00:00:00Z' },
+            },
+            isLoading: false,
+            error: null,
+            fetchCredentials: vi.fn(),
+            saveCredential: vi.fn(),
+            deleteCredential: vi.fn(),
+            testCredential: vi.fn(),
+            getValidatedProviders: () => ['openai', 'deepseek'],
+            clearError: vi.fn(),
+        });
+
+        renderChatPage();
+
+        await user.click(screen.getByRole('button', { name: /GPT-4o/i }));
+        const option = screen.getByRole('menuitemradio', { name: /DeepSeek V4 Flash/i });
+        await user.click(option);
+
+        await waitFor(() => {
+            expect(mockSetActiveModel).toHaveBeenCalledWith('deepseek-v4-flash');
+        });
     });
 
     it('should direct users to config when no credentials are available', () => {
