@@ -229,6 +229,64 @@ describe('WineProducerList', () => {
         expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('Viñedo Real');
     });
 
+    it('clears create form fields after closing and reopening the modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+        await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Viñedo Temporal');
+
+        await user.click(screen.getByRole('button', { name: 'Cerrar formulario' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).not.toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+
+        expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('');
+    });
+
+    it('clears create form fields after closing with Cancel and reopening the modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+        await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Viñedo Temporal');
+
+        await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).not.toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+
+        expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('');
+    });
+
     it('opens the create form modal when Agregar Productor is clicked', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 

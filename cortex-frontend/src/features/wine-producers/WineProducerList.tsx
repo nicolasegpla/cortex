@@ -259,13 +259,15 @@ export function WineProducerList() {
                 onClose={handleCloseFormModal}
                 isLoading={isFormLoading}
             >
-                <WineProducerForm
-                    id={isEditMode ? selectedProducer?.id ?? undefined : undefined}
-                    initialData={isEditMode ? selectedProducer ?? undefined : undefined}
-                    onSuccess={handleFormSuccess}
-                    onCancel={handleCloseFormModal}
-                    onSavingChange={setIsFormLoading}
-                />
+                {isFormModalOpen && (
+                    <WineProducerForm
+                        id={isEditMode ? selectedProducer?.id ?? undefined : undefined}
+                        initialData={isEditMode ? selectedProducer ?? undefined : undefined}
+                        onSuccess={handleFormSuccess}
+                        onCancel={handleCloseFormModal}
+                        onSavingChange={setIsFormLoading}
+                    />
+                )}
             </EntityFormModal>
         </div>
     );

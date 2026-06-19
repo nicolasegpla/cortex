@@ -265,13 +265,15 @@ export function CoffeeFarmList() {
                 onClose={handleCloseFormModal}
                 isLoading={isFormLoading}
             >
-                <CoffeeFarmForm
-                    id={isEditMode ? selectedFarm?.id ?? undefined : undefined}
-                    initialData={isEditMode ? selectedFarm ?? undefined : undefined}
-                    onSuccess={handleFormSuccess}
-                    onCancel={handleCloseFormModal}
-                    onSavingChange={setIsFormLoading}
-                />
+                {isFormModalOpen && (
+                    <CoffeeFarmForm
+                        id={isEditMode ? selectedFarm?.id ?? undefined : undefined}
+                        initialData={isEditMode ? selectedFarm ?? undefined : undefined}
+                        onSuccess={handleFormSuccess}
+                        onCancel={handleCloseFormModal}
+                        onSavingChange={setIsFormLoading}
+                    />
+                )}
             </EntityFormModal>
         </div>
     );

@@ -20,6 +20,7 @@ export function EntityFormModal({
     children,
 }: EntityFormModalProps) {
     const dialogRef = useRef<HTMLDialogElement>(null);
+    const bodyRef = useRef<HTMLDivElement>(null);
     const headingId = useId();
     const previouslyFocusedElement = useRef<HTMLElement | null>(null);
     const wasOpen = useRef(false);
@@ -51,6 +52,12 @@ export function EntityFormModal({
                 dialog.close();
             }
             restoreFocus();
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen && bodyRef.current) {
+            bodyRef.current.scrollTop = 0;
         }
     }, [isOpen]);
 
@@ -104,7 +111,7 @@ export function EntityFormModal({
                     </button>
                 </div>
 
-                <div className="entity-form-modal__body">
+                <div className="entity-form-modal__body" ref={bodyRef} data-testid="entity-form-modal-body">
                     {children}
                 </div>
 

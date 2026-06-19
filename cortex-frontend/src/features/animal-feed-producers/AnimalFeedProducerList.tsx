@@ -244,13 +244,15 @@ export function AnimalFeedProducerList() {
                 onClose={handleCloseFormModal}
                 isLoading={isFormLoading}
             >
-                <AnimalFeedProducerForm
-                    id={isEditMode ? selectedProducer?.id ?? undefined : undefined}
-                    initialData={isEditMode ? selectedProducer ?? undefined : undefined}
-                    onSuccess={handleFormSuccess}
-                    onCancel={handleCloseFormModal}
-                    onSavingChange={setIsFormLoading}
-                />
+                {isFormModalOpen && (
+                    <AnimalFeedProducerForm
+                        id={isEditMode ? selectedProducer?.id ?? undefined : undefined}
+                        initialData={isEditMode ? selectedProducer ?? undefined : undefined}
+                        onSuccess={handleFormSuccess}
+                        onCancel={handleCloseFormModal}
+                        onSavingChange={setIsFormLoading}
+                    />
+                )}
             </EntityFormModal>
         </div>
     );

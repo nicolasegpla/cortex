@@ -239,6 +239,64 @@ describe('AnimalFeedProducerList', () => {
         expect(screen.getByLabelText(/Razón Social/i)).toHaveValue('Nutrición Animal S.A.');
     });
 
+    it('clears create form fields after closing and reopening the modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<AnimalFeedProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+        await user.type(screen.getByLabelText(/Razón Social/i), 'Nutrición Temporal');
+
+        await user.click(screen.getByRole('button', { name: 'Cerrar formulario' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Productor de Alimentos para Animales', level: 2 })).not.toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+
+        expect(screen.getByLabelText(/Razón Social/i)).toHaveValue('');
+    });
+
+    it('clears create form fields after closing with Cancel and reopening the modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<AnimalFeedProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+        await user.type(screen.getByLabelText(/Razón Social/i), 'Nutrición Temporal');
+
+        await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Productor de Alimentos para Animales', level: 2 })).not.toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
+
+        expect(screen.getByLabelText(/Razón Social/i)).toHaveValue('');
+    });
+
     it('opens the create form modal when Agregar Productor is clicked', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 

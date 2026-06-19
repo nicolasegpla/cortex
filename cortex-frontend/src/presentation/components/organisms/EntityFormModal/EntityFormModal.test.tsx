@@ -112,6 +112,26 @@ describe('EntityFormModal', () => {
         expect(screen.queryByText('Guardando...')).not.toBeInTheDocument();
     });
 
+    it('resets the modal body scroll position when the modal reopens', () => {
+        const { rerender } = render(<EntityFormModal {...baseProps} />);
+
+        const body = screen.getByTestId('entity-form-modal-body');
+        body.scrollTop = 200;
+
+        rerender(<EntityFormModal {...baseProps} isOpen={false} />);
+        rerender(<EntityFormModal {...baseProps} isOpen />);
+
+        expect(body.scrollTop).toBe(0);
+    });
+
+    it('starts the modal body scroll at the top on a fresh open', () => {
+        render(<EntityFormModal {...baseProps} />);
+
+        const body = screen.getByTestId('entity-form-modal-body');
+
+        expect(body.scrollTop).toBe(0);
+    });
+
     it('returns focus to the triggering element when the modal closes', () => {
         const showModalSpy = vi.spyOn(HTMLDialogElement.prototype, 'showModal').mockImplementation(function (this: HTMLDialogElement) {
             this.setAttribute('open', '');

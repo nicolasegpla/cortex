@@ -234,6 +234,64 @@ describe('BreweryList', () => {
         expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('Cervecería Artesanal');
     });
 
+    it('clears create form fields after closing and reopening the modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<BreweryList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Cervecería Temporal');
+
+        await user.click(screen.getByRole('button', { name: 'Cerrar formulario' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Cervecería', level: 2 })).not.toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
+
+        expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('');
+    });
+
+    it('clears create form fields after closing with Cancel and reopening the modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<BreweryList />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Cervecería Temporal');
+
+        await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Crear Cervecería', level: 2 })).not.toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
+
+        expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('');
+    });
+
     it('opens the create form modal when Agregar Cervecería is clicked', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 

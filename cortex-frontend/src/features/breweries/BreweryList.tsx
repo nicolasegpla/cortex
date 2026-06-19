@@ -287,13 +287,15 @@ export function BreweryList() {
                 onClose={handleCloseFormModal}
                 isLoading={isFormLoading}
             >
-                <BreweryForm
-                    id={isEditMode ? selectedBrewery?.id ?? undefined : undefined}
-                    initialData={isEditMode ? selectedBrewery ?? undefined : undefined}
-                    onSuccess={handleFormSuccess}
-                    onCancel={handleCloseFormModal}
-                    onSavingChange={setIsFormLoading}
-                />
+                {isFormModalOpen && (
+                    <BreweryForm
+                        id={isEditMode ? selectedBrewery?.id ?? undefined : undefined}
+                        initialData={isEditMode ? selectedBrewery ?? undefined : undefined}
+                        onSuccess={handleFormSuccess}
+                        onCancel={handleCloseFormModal}
+                        onSavingChange={setIsFormLoading}
+                    />
+                )}
             </EntityFormModal>
         </div>
     );
