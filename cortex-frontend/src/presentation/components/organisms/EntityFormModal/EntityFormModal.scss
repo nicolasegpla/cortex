@@ -36,6 +36,7 @@
         flex-direction: column;
         width: min(720px, calc(100% - (#{$space-lg} + #{$space-lg})));
         max-height: 80vh;
+        max-height: 80dvh;
         text-align: left;
         overflow: hidden;
     }

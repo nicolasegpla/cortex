@@ -2,6 +2,7 @@
     display: grid;
     grid-template-columns: 240px 1fr;
     height: 100vh;
+    height: 100dvh;
     background-color: var(--color-surface-canvas);
     transition: grid-template-columns 200ms ease;
     overflow: hidden;
@@ -104,6 +105,7 @@
     width: min(1080px, 100%);
     height: 100%;
     max-height: min(760px, calc(100vh - (var(--space-xl) * 2)));
+    max-height: min(760px, calc(100dvh - (var(--space-xl) * 2)));
     min-height: 520px;
     min-width: 0;
     overflow: hidden;
@@ -348,6 +350,8 @@
         top: 0;
         bottom: 0;
         z-index: 50;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
         transform: translateX(0);
         transition: transform 200ms ease;
     }
@@ -373,12 +377,14 @@
 
     .app-shell__modal-overlay {
         padding: var(--space-md);
+        padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
         align-items: flex-end;
     }
 
     .app-shell__modal-dialog {
         width: 100%;
         max-height: calc(100vh - (var(--space-md) * 2));
+        max-height: calc(100dvh - (var(--space-md) * 2) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
         min-height: auto;
     }
 }
