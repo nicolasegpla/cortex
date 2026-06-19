@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.1.2] - 2026-06-19
+
+### Added
+
+- Future-facing phased PWA plan at `docs/PWA_PLAN.md` to guide later installability, resilient connected behavior, and business-driven offline work.
+
+### Fixed
+
+- Mobile layout height handling now uses dynamic viewport units and safe-area-aware spacing to behave better across iPhone/Android browser chrome variations.
+- Form controls now use 16px text on mobile, preventing Safari on iPhone from auto-zooming when inputs, selects, or textareas receive focus.
+
+### Changed
+
+- Local Docker/LAN development now relies on env-driven frontend/backend URLs instead of hardcoded `localhost` overrides, making same-network phone testing easier.
+- `README.md`, frontend/backend `.env.example`, and Vite dev config now document the LAN testing flow.
+- `VERSION` file updated to `0.1.2`.
+
 ## [0.1.1] - 2026-06-19
 
 ### Added
