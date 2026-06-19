@@ -59,6 +59,17 @@ describe('BreweryForm', () => {
         cleanup();
     });
 
+    it('renders country and city as dependent selects', () => {
+        render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/País/i)).toBeInstanceOf(HTMLSelectElement);
+        expect(screen.getByLabelText(/Ciudad/i)).toBeInstanceOf(HTMLSelectElement);
+    });
+
     it('renders empty create form when no initialData or id is provided', () => {
         render(
             <MemoryRouter>
@@ -81,6 +92,8 @@ describe('BreweryForm', () => {
         expect(screen.getByRole('heading', { name: 'Editar Cervecería' })).toBeInTheDocument();
         expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('Cervecería Artesanal');
         expect(screen.getByLabelText(/Malta que Utiliza/i)).toHaveValue('Pilsner, Munich');
+        expect(screen.getByLabelText(/País/i)).toHaveValue('Colombia');
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Medellín');
         expect(apiClient.get).not.toHaveBeenCalled();
     });
 
@@ -117,6 +130,8 @@ describe('BreweryForm', () => {
         await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
         await user.type(screen.getByLabelText(/Malta que Utiliza/i), 'Pale Ale, Caramelo');
         await user.type(screen.getByLabelText(/Litros que Hace al Mes/i), '500');
+        await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Medellín');
 
         await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
 
@@ -130,6 +145,8 @@ describe('BreweryForm', () => {
             nombre_cerveceria: 'Nueva Cervecería',
             maltas_utilizadas: ['Pale Ale', 'Caramelo'],
             litros_mes: 500,
+            pais: 'Colombia',
+            ciudad: 'Medellín',
         });
 
         await waitFor(() => {
@@ -268,5 +285,18 @@ describe('BreweryForm', () => {
         expect(screen.getByRole('heading', { name: 'Crear Cervecería' })).toBeInTheDocument();
         expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('');
         expect(screen.getByLabelText(/Malta que Utiliza/i)).toHaveValue('');
+    });
+
+    it('renders a legacy city as a transient option in edit mode', () => {
+        const legacyBrewery = { ...mockBrewery, ciudad: 'Palmira' };
+
+        render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} initialData={legacyBrewery} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Palmira');
+        expect(screen.getByRole('option', { name: 'Palmira' })).toBeInTheDocument();
     });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Button, Input } from '@/presentation/components/atoms';
+import { CountryCitySelect } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { apiClient } from '@/services/api/client';
 
@@ -210,16 +211,9 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChan
                     value={formData.direccion}
                     onChange={handleChange}
                 />
-                <Input
-                    label="Ciudad"
-                    name="ciudad"
-                    value={formData.ciudad}
-                    onChange={handleChange}
-                />
-                <Input
-                    label="País"
-                    name="pais"
-                    value={formData.pais}
+                <CountryCitySelect
+                    pais={formData.pais}
+                    ciudad={formData.ciudad}
                     onChange={handleChange}
                 />
             </fieldset>

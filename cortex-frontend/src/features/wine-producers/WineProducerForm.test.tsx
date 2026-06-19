@@ -54,6 +54,17 @@ describe('WineProducerForm', () => {
         cleanup();
     });
 
+    it('renders country and city as dependent selects', () => {
+        render(
+            <MemoryRouter>
+                <WineProducerForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/País/i)).toBeInstanceOf(HTMLSelectElement);
+        expect(screen.getByLabelText(/Ciudad/i)).toBeInstanceOf(HTMLSelectElement);
+    });
+
     it('renders empty create form when no initialData or id is provided', () => {
         render(
             <MemoryRouter>
@@ -87,6 +98,8 @@ describe('WineProducerForm', () => {
         expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('Viñedo Real');
         expect(screen.getByLabelText(/Tipo de Uva/i)).toHaveValue('Cabernet Sauvignon, Merlot');
         expect(screen.getByLabelText(/Marcas/i)).toHaveValue('Real, Reserva');
+        expect(screen.getByLabelText(/País/i)).toHaveValue('Colombia');
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Medellín');
         expect(apiClient.get).not.toHaveBeenCalled();
     });
 
@@ -121,7 +134,8 @@ describe('WineProducerForm', () => {
         );
 
         await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Viñedo Real');
-        await user.type(screen.getByLabelText(/Ciudad/i), 'Medellín');
+        await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Medellín');
         await user.type(screen.getByLabelText(/Tipo de Uva/i), 'Cabernet Sauvignon, Merlot');
         await user.type(screen.getByLabelText(/Levaduras Utilizadas/i), 'Levadura 1, Levadura 2');
         await user.type(screen.getByLabelText(/Tipo de Vino/i), 'Tinto, Rosado');
@@ -141,6 +155,8 @@ describe('WineProducerForm', () => {
         expect(endpoint).toBe('/wine-producers');
         expect(payload).toMatchObject({
             nombre_comercial: 'Viñedo Real',
+            pais: 'Colombia',
+            ciudad: 'Medellín',
             tipo_uva: ['Cabernet Sauvignon', 'Merlot'],
             levaduras_utilizadas: ['Levadura 1', 'Levadura 2'],
             tipo_vino: ['Tinto', 'Rosado'],
@@ -288,5 +304,37 @@ describe('WineProducerForm', () => {
         expect(screen.getByRole('heading', { name: 'Crear Productor de Vino' })).toBeInTheDocument();
         expect(screen.getByLabelText(/Nombre Comercial/i)).toHaveValue('');
         expect(screen.getByLabelText(/Tipo de Uva/i)).toHaveValue('');
+    });
+
+    it('clears the selected city when the country changes', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <MemoryRouter>
+                <WineProducerForm {...baseProps} initialData={mockProducer} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Medellín');
+
+        await user.selectOptions(screen.getByLabelText(/País/i), 'Venezuela');
+
+        expect(screen.getByLabelText(/País/i)).toHaveValue('Venezuela');
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('');
+        expect(screen.getByRole('option', { name: 'Caracas' })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'Medellín' })).not.toBeInTheDocument();
+    });
+
+    it('renders a legacy city as a transient option in edit mode', () => {
+        const legacyProducer = { ...mockProducer, ciudad: 'Palmira' };
+
+        render(
+            <MemoryRouter>
+                <WineProducerForm {...baseProps} initialData={legacyProducer} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Palmira');
+        expect(screen.getByRole('option', { name: 'Palmira' })).toBeInTheDocument();
     });
 });

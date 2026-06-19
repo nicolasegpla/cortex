@@ -55,6 +55,17 @@ describe('CoffeeFarmForm', () => {
         cleanup();
     });
 
+    it('renders country and city as dependent selects', () => {
+        render(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/País/i)).toBeInstanceOf(HTMLSelectElement);
+        expect(screen.getByLabelText(/Ciudad/i)).toBeInstanceOf(HTMLSelectElement);
+    });
+
     it('renders empty create form when no initialData or id is provided', () => {
         render(
             <MemoryRouter>
@@ -78,6 +89,8 @@ describe('CoffeeFarmForm', () => {
         expect(screen.getByLabelText(/Nombre de la Finca/i)).toHaveValue('Finca Primavera');
         expect(screen.getByLabelText(/Variedades Sembradas/i)).toHaveValue('Castillo, Caturra');
         expect(screen.getByLabelText(/Equipos/i)).toHaveValue('Secadero, Despulpadora');
+        expect(screen.getByLabelText(/País/i)).toHaveValue('Colombia');
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Pitalito');
         expect(apiClient.get).not.toHaveBeenCalled();
     });
 
@@ -113,7 +126,8 @@ describe('CoffeeFarmForm', () => {
 
         await user.type(screen.getByLabelText(/Nombre de la Finca/i), 'Finca Esperanza');
         await user.type(screen.getByLabelText(/Marca/i), 'Café Primavera');
-        await user.type(screen.getByLabelText(/Ciudad/i), 'Pitalito');
+        await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Medellín');
         await user.type(screen.getByLabelText(/Variedades Sembradas/i), 'Castillo, Caturra');
         await user.type(screen.getByLabelText(/Equipos/i), 'Secadero, Despulpadora');
 
@@ -128,6 +142,8 @@ describe('CoffeeFarmForm', () => {
         expect(payload).toMatchObject({
             nombre_finca: 'Finca Esperanza',
             marca: 'Café Primavera',
+            pais: 'Colombia',
+            ciudad: 'Medellín',
             variedades_sembradas: ['Castillo', 'Caturra'],
             equipos: ['Secadero', 'Despulpadora'],
         });
@@ -299,5 +315,18 @@ describe('CoffeeFarmForm', () => {
         expect(screen.getByRole('heading', { name: 'Crear Finca de Café' })).toBeInTheDocument();
         expect(screen.getByLabelText(/Nombre de la Finca/i)).toHaveValue('');
         expect(screen.getByLabelText(/Variedades Sembradas/i)).toHaveValue('');
+    });
+
+    it('renders a legacy city as a transient option in edit mode', () => {
+        const legacyFarm = { ...mockFarm, ciudad: 'Palmira' };
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} initialData={legacyFarm} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Palmira');
+        expect(screen.getByRole('option', { name: 'Palmira' })).toBeInTheDocument();
     });
 });

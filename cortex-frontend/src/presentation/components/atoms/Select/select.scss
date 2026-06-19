@@ -1,0 +1,32 @@
+@use '@/presentation/styles/variables' as vars;
+
+.select-field {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-sm;
+}
+
+.select-field__label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: vars.$color-text-primary;
+}
+
+.select-field__control {
+    background-color: vars.$color-surface-primary;
+    border: 1px solid vars.$color-border-divider;
+    border-radius: vars.$radius-md;
+    min-height: 40px;
+    padding: vars.$space-xs vars.$space-sm;
+    color: vars.$color-text-primary;
+    font-size: 0.8125rem;
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.select-field__control:focus {
+    border-color: vars.$color-accent-primary;
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
+    outline: none;
+}

@@ -47,6 +47,17 @@ describe('AnimalFeedProducerForm', () => {
         cleanup();
     });
 
+    it('renders country and city as dependent selects', () => {
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/País/i)).toBeInstanceOf(HTMLSelectElement);
+        expect(screen.getByLabelText(/Ciudad/i)).toBeInstanceOf(HTMLSelectElement);
+    });
+
     it('renders empty create form when no initialData or id is provided', () => {
         render(
             <MemoryRouter>
@@ -70,6 +81,8 @@ describe('AnimalFeedProducerForm', () => {
         expect(screen.getByLabelText(/Razón Social/i)).toHaveValue('Nutrición Animal S.A.');
         expect(screen.getByLabelText(/Especies Manejadas/i)).toHaveValue('Bovinos, Porcinos');
         expect(screen.getByLabelText(/Productos Fabricados/i)).toHaveValue('Concentrado, Premezcla');
+        expect(screen.getByLabelText(/País/i)).toHaveValue('Colombia');
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Medellín');
         expect(apiClient.get).not.toHaveBeenCalled();
     });
 
@@ -104,7 +117,8 @@ describe('AnimalFeedProducerForm', () => {
         );
 
         await user.type(screen.getByLabelText(/Razón Social/i), 'Nutrición Animal S.A.');
-        await user.type(screen.getByLabelText(/Ciudad/i), 'Medellín');
+        await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Medellín');
         await user.type(screen.getByLabelText(/Especies Manejadas/i), 'Bovinos, Porcinos');
         await user.type(screen.getByLabelText(/Productos Fabricados/i), 'Concentrado, Premezcla');
 
@@ -118,6 +132,8 @@ describe('AnimalFeedProducerForm', () => {
         expect(endpoint).toBe('/animal-feed-producers');
         expect(payload).toMatchObject({
             razon_social: 'Nutrición Animal S.A.',
+            pais: 'Colombia',
+            ciudad: 'Medellín',
             especies_manejadas: ['Bovinos', 'Porcinos'],
             productos_fabricados: ['Concentrado', 'Premezcla'],
         });
@@ -258,5 +274,37 @@ describe('AnimalFeedProducerForm', () => {
         expect(screen.getByRole('heading', { name: 'Crear Productor de Alimentos para Animales' })).toBeInTheDocument();
         expect(screen.getByLabelText(/Razón Social/i)).toHaveValue('');
         expect(screen.getByLabelText(/Especies Manejadas/i)).toHaveValue('');
+    });
+
+    it('clears the selected city when the country changes', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerForm {...baseProps} initialData={mockProducer} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Medellín');
+
+        await user.selectOptions(screen.getByLabelText(/País/i), 'Venezuela');
+
+        expect(screen.getByLabelText(/País/i)).toHaveValue('Venezuela');
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('');
+        expect(screen.getByRole('option', { name: 'Caracas' })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'Medellín' })).not.toBeInTheDocument();
+    });
+
+    it('renders a legacy city as a transient option in edit mode', () => {
+        const legacyProducer = { ...mockProducer, ciudad: 'Palmira' };
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerForm {...baseProps} initialData={legacyProducer} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Palmira');
+        expect(screen.getByRole('option', { name: 'Palmira' })).toBeInTheDocument();
     });
 });

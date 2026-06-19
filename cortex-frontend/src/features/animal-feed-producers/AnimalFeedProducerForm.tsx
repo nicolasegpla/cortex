@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Button, Input } from '@/presentation/components/atoms';
+import { CountryCitySelect } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { apiClient } from '@/services/api/client';
 
@@ -90,7 +91,7 @@ export function AnimalFeedProducerForm({ initialData, id, onSuccess, onCancel, o
         loadProducer();
     }, [initialData, id]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
@@ -182,16 +183,9 @@ export function AnimalFeedProducerForm({ initialData, id, onSuccess, onCancel, o
                     value={formData.departamento}
                     onChange={handleChange}
                 />
-                <Input
-                    label="Ciudad"
-                    name="ciudad"
-                    value={formData.ciudad}
-                    onChange={handleChange}
-                />
-                <Input
-                    label="País"
-                    name="pais"
-                    value={formData.pais}
+                <CountryCitySelect
+                    pais={formData.pais}
+                    ciudad={formData.ciudad}
                     onChange={handleChange}
                 />
             </fieldset>

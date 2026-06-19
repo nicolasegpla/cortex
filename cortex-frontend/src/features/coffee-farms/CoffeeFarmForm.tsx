@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Button, Input } from '@/presentation/components/atoms';
+import { CountryCitySelect } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { apiClient } from '@/services/api/client';
 
@@ -208,16 +209,9 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
                     value={formData.departamento}
                     onChange={handleChange}
                 />
-                <Input
-                    label="Ciudad"
-                    name="ciudad"
-                    value={formData.ciudad}
-                    onChange={handleChange}
-                />
-                <Input
-                    label="País"
-                    name="pais"
-                    value={formData.pais}
+                <CountryCitySelect
+                    pais={formData.pais}
+                    ciudad={formData.ciudad}
                     onChange={handleChange}
                 />
             </fieldset>
