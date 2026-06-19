@@ -66,7 +66,8 @@ The system MUST expose an authenticated `/coffee-farms` page and mark the coffee
 
 ### Requirement: Manual coffee farm creation flow
 
-The system MUST expose an authenticated `/coffee-farms/new` form for the initial manual slice. The form MUST require `nombre_finca`, submit supported fields to the API, normalize comma-separated array inputs for list fields, and redirect to `/coffee-farms` after successful creation.
+The system MUST expose an authenticated `/coffee-farms/new` form for the initial manual slice. The form MUST require `nombre_finca`, submit supported fields to the API, normalize comma-separated array inputs for list fields, and redirect to `/coffee-farms` after successful creation. When the create form is rendered in the list modal, it MUST yield a clean form with scroll at top on every open per the `form-modal-state-reset` capability, and closing then reopening MUST NOT retain previously typed values.
+(Previously: The requirement only covered route form submission and redirection, without specifying clean state or scroll reset on modal reopen.)
 
 #### Scenario: Successful create redirects to list
 - GIVEN an authenticated user completes a valid form
@@ -77,6 +78,16 @@ The system MUST expose an authenticated `/coffee-farms/new` form for the initial
 - GIVEN the create request fails
 - WHEN the user submits the form
 - THEN the page shows an error message and preserves the workflow on `/coffee-farms/new`
+
+#### Scenario: Reopen create modal shows clean state and scroll at top
+- GIVEN the coffee farm create modal was filled and closed
+- WHEN the user reopens the create modal
+- THEN all fields are empty matching `EMPTY_FORM` and the modal body `scrollTop` is `0`
+
+#### Scenario: Coffee farm edit is not polluted by prior create state
+- GIVEN the coffee farm create modal was filled and closed
+- WHEN the user opens an edit modal for an existing coffee farm
+- THEN the form is prefilled with that coffee farm's data, not the prior create input
 
 ### Requirement: Advanced parity remains deferred
 
@@ -100,3 +111,12 @@ The `/coffee-farms` list MUST use the shared `record-deletion-ux` flow for hard-
 - GIVEN an authenticated user confirms deletion but the request fails
 - WHEN the API returns `403` or another error
 - THEN the modal shows the error and the row remains visible
+
+### Requirement: Coffee farm form MUST use dependent country/city selects
+
+The coffee farm create and edit forms MUST replace free-text `pais`/`ciudad` inputs with the shared `CountryCitySelect` molecule.
+
+#### Scenario: Coffee farm form renders dependent selects
+- GIVEN the coffee farm create form is opened
+- WHEN the form renders the location fields
+- THEN country and city render as dependent selects

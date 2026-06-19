@@ -57,7 +57,8 @@ The system MUST expose an authenticated `/animal-feed-producers` page and mark t
 
 ### Requirement: Manual animal feed producer creation flow
 
-The system MUST expose an authenticated `/animal-feed-producers/new` form for the initial manual slice. The form MUST require `razon_social`, normalize comma-separated values for `especies_manejadas` and `productos_fabricados`, submit supported fields to the API, and redirect to `/animal-feed-producers` after successful creation.
+The system MUST expose an authenticated `/animal-feed-producers/new` form for the initial manual slice. The form MUST require `razon_social`, normalize comma-separated values for `especies_manejadas` and `productos_fabricados`, submit supported fields to the API, and redirect to `/animal-feed-producers` after successful creation. When the create form is rendered in the list modal, it MUST yield a clean form with scroll at top on every open per the `form-modal-state-reset` capability, and closing then reopening MUST NOT retain previously typed values.
+(Previously: The requirement only covered route form submission and redirection, without specifying clean state or scroll reset on modal reopen.)
 
 #### Scenario: Successful create redirects to list
 - GIVEN an authenticated user completes a valid form
@@ -66,8 +67,18 @@ The system MUST expose an authenticated `/animal-feed-producers/new` form for th
 
 #### Scenario: Create failure keeps the user on the form
 - GIVEN the create request fails
-- WHEN the user submits the producer form
+- WHEN the user submits the form
 - THEN the page shows an error message and preserves the workflow on `/animal-feed-producers/new`
+
+#### Scenario: Reopen create modal shows clean state and scroll at top
+- GIVEN the animal feed producer create modal was filled and closed
+- WHEN the user reopens the create modal
+- THEN all fields are empty matching `EMPTY_FORM` and the modal body `scrollTop` is `0`
+
+#### Scenario: Animal feed producer edit is not polluted by prior create state
+- GIVEN the animal feed producer create modal was filled and closed
+- WHEN the user opens an edit modal for an existing producer
+- THEN the form is prefilled with that producer's data, not the prior create input
 
 ### Requirement: Advanced parity remains deferred for the first connection
 
@@ -91,3 +102,12 @@ The `/animal-feed-producers` list MUST use the shared `record-deletion-ux` flow 
 - GIVEN an authenticated user confirms deletion but the request fails
 - WHEN the API returns `403` or another error
 - THEN the modal shows the error and the row remains visible
+
+### Requirement: Animal feed producer form MUST use dependent country/city selects
+
+The animal feed producer create and edit forms MUST replace free-text `pais`/`ciudad` inputs with the shared `CountryCitySelect` molecule. The form's `handleChange` MUST accept `HTMLSelectElement` events in addition to `HTMLInputElement`.
+
+#### Scenario: Animal feed producer form renders dependent selects
+- GIVEN the animal feed producer create form is opened
+- WHEN the form renders the location fields
+- THEN country and city render as dependent selects and handleChange handles select events

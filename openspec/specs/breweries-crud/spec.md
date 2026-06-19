@@ -17,7 +17,8 @@ The system MUST expose authenticated `POST /breweries`, `GET /breweries`, `GET /
 
 ### Requirement: Brewery create-from-table and modal lifecycle
 
-The system MUST open brewery create inside a reusable modal from `/breweries`, SHALL preserve the mounted list behind the modal, and MUST close without route reload when the user cancels, presses Escape on the topmost modal, clicks the backdrop, or submits successfully.
+The system MUST open brewery create inside a reusable modal from `/breweries`, SHALL preserve the mounted list behind the modal, MUST close without route reload when the user cancels, presses Escape on the topmost modal, clicks the backdrop, or submits successfully, and MUST yield a clean form with scroll at top on every open per the `form-modal-state-reset` capability. Closing then reopening the create modal MUST NOT retain previously typed values.
+(Previously: The requirement only covered open/close lifecycle without specifying clean state or scroll reset on reopen.)
 
 #### Scenario: Create from table
 - GIVEN the brewery list is loaded
@@ -28,6 +29,16 @@ The system MUST open brewery create inside a reusable modal from `/breweries`, S
 - GIVEN the create modal is open and nothing was submitted
 - WHEN the user closes the topmost modal
 - THEN the modal closes and the list data remains unchanged
+
+#### Scenario: Reopen create modal shows clean state and scroll at top
+- GIVEN the brewery create modal was filled and closed
+- WHEN the user reopens the create modal
+- THEN all fields are empty matching `EMPTY_FORM` and the modal body `scrollTop` is `0`
+
+#### Scenario: Brewery edit is not polluted by prior create state
+- GIVEN the brewery create modal was filled and closed
+- WHEN the user opens an edit modal for an existing brewery
+- THEN the form is prefilled with that brewery's data, not the prior create input
 
 ### Requirement: Brewery list refresh after modal submit
 
@@ -75,3 +86,12 @@ The system MUST open brewery Edit from the detail modal as a form modal over the
 - GIVEN the brewery detail modal is open
 - WHEN the user selects Delete
 - THEN the shared delete confirmation flow opens for that same brewery record
+
+### Requirement: Brewery form MUST use dependent country/city selects
+
+The brewery create and edit forms MUST replace free-text `pais`/`ciudad` inputs with the shared `CountryCitySelect` molecule. Submitted `pais`/`ciudad` values MUST remain plain strings matching the backend contract.
+
+#### Scenario: Brewery form renders dependent selects
+- GIVEN the brewery create form is opened
+- WHEN the form renders the location fields
+- THEN country and city render as dependent selects, not text inputs
