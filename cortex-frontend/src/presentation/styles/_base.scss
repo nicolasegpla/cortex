@@ -112,11 +112,16 @@ select {
     min-height: 40px;
     padding: var(--space-xs) var(--space-sm);
     color: var(--color-text-primary);
-    font-size: 0.8125rem;
+    // Use 16px on mobile to prevent Safari iPhone auto-zoom on focus.
+    font-size: 1rem;
     font-family: inherit;
     transition:
         border-color 150ms ease,
         box-shadow 150ms ease;
+
+    @media (min-width: 768px) {
+        font-size: 0.8125rem;
+    }
 }
 
 .form-field select:focus,

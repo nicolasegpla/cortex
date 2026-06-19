@@ -19,10 +19,15 @@
     min-height: 40px;
     padding: vars.$space-xs vars.$space-sm;
     color: vars.$color-text-primary;
-    font-size: 0.8125rem;
+    // Use 16px on mobile to prevent Safari iPhone auto-zoom on focus.
+    font-size: 1rem;
     transition:
         border-color 150ms ease,
         box-shadow 150ms ease;
+
+    @media (min-width: 768px) {
+        font-size: 0.8125rem;
+    }
 }
 
 .input-field__control::placeholder {
