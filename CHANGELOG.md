@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.1.1] - 2026-06-19
+
+### Added
+
+- Railway backend deployment configuration for the monorepo (`railway.json` and `cortex-backend/Dockerfile.railway`).
+- Netlify frontend deployment configuration for the monorepo (`cortex-frontend/netlify.toml`).
+- Practical deployment guide at `docs/DEPLOYMENT.md` covering Railway backend, Netlify frontend, Supabase integrations, environment variables, and troubleshooting.
+- `docs/README.md` now references the deployment guide.
+- Root `README.md` documentation section now mentions the deployment guide.
+
+### Fixed
+
+- Breweries router now supports both `/breweries` and `/breweries/` paths directly, eliminating the production redirect that caused mixed-content failures in hosted environments.
+
+### Changed
+
+- `VERSION` file updated to `0.1.1`.
+
 ## [0.1.0] - 2026-06-19
 
 ### Added
