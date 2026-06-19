@@ -24,7 +24,8 @@ def get_brewery_service() -> BreweryService:
     return BreweryService(client)
 
 
-@router.post('/', response_model=BreweryResponse, status_code=status.HTTP_201_CREATED)
+@router.post('', response_model=BreweryResponse, status_code=status.HTTP_201_CREATED)
+@router.post('/', response_model=BreweryResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def create_brewery(
     payload: BreweryCreate,
     _: User = Depends(get_current_user),
@@ -37,7 +38,8 @@ def create_brewery(
     return service.create(payload)
 
 
-@router.get('/', response_model=list[BreweryResponse])
+@router.get('', response_model=list[BreweryResponse])
+@router.get('/', response_model=list[BreweryResponse], include_in_schema=False)
 def list_breweries(
     _: User = Depends(get_current_user),
     service: BreweryService = Depends(get_brewery_service),

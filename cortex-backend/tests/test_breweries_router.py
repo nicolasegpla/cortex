@@ -126,6 +126,103 @@ class TestBreweriesRouter:
         data = response.json()
         assert len(data) == 2
 
+    def test_list_breweries_does_not_redirect(
+        self, client: TestClient, admin_token: str, monkeypatch
+    ) -> None:
+        """Ensure /breweries matches the other routers and returns 200, not 307."""
+
+        def mock_list_all(_self):
+            return []
+
+        monkeypatch.setattr(
+            "app.services.brewery_service.BreweryService.list_all", mock_list_all
+        )
+
+        response = client.get(
+            "/breweries",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers.get("location") is None
+
+    def test_list_breweries_with_trailing_slash_does_not_redirect(
+        self, client: TestClient, admin_token: str, monkeypatch
+    ) -> None:
+        def mock_list_all(_self):
+            return []
+
+        monkeypatch.setattr(
+            "app.services.brewery_service.BreweryService.list_all", mock_list_all
+        )
+
+        response = client.get(
+            "/breweries/",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers.get("location") is None
+
+    def test_create_brewery_does_not_redirect(
+        self, client: TestClient, admin_token: str, monkeypatch
+    ) -> None:
+        """Ensure POST /breweries matches the other routers and returns 201, not 307."""
+        from datetime import datetime, timezone
+
+        def mock_create(_self, payload):
+            return {
+                "id": str(uuid4()),
+                "nombre_cerveceria": payload.nombre_cerveceria,
+                "ciudad": payload.ciudad,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+        monkeypatch.setattr(
+            "app.services.brewery_service.BreweryService.create", mock_create
+        )
+
+        response = client.post(
+            "/breweries",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"nombre_cerveceria": "New Brewery", "ciudad": "Medellín"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.headers.get("location") is None
+
+    def test_create_brewery_with_trailing_slash_does_not_redirect(
+        self, client: TestClient, admin_token: str, monkeypatch
+    ) -> None:
+        from datetime import datetime, timezone
+
+        def mock_create(_self, payload):
+            return {
+                "id": str(uuid4()),
+                "nombre_cerveceria": payload.nombre_cerveceria,
+                "ciudad": payload.ciudad,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+        monkeypatch.setattr(
+            "app.services.brewery_service.BreweryService.create", mock_create
+        )
+
+        response = client.post(
+            "/breweries/",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"nombre_cerveceria": "New Brewery", "ciudad": "Medellín"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.headers.get("location") is None
+
     def test_get_brewery_by_id_returns_200(self, client: TestClient, admin_token: str, sample_brewery_id: UUID, sample_brewery: dict, monkeypatch) -> None:
         def mock_get_by_id(_self, brewery_id):
             if brewery_id == sample_brewery_id:
