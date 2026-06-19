@@ -1,0 +1,32 @@
+schema: spec-driven
+changeName: reorganizar-vista-chat-selector-modelos
+status: archived
+archivedAt: "2026-06-18"
+phases:
+  proposal: done
+  specs: done
+  design: done
+  tasks: done
+  apply: done
+  verify: done
+  archive: done
+verdict: PASS
+adjustments:
+  - date: "2026-06-18"
+    description: "Popover opens upward by default with downward fallback"
+  - date: "2026-06-18"
+    description: "ModelSelector positioned left of send button; horizontal viewport clamping with 8px padding"
+taskSummary:
+  total: 12
+  completed: 12
+  incomplete: 0
+testSummary:
+  total: 405
+  passed: 405
+  failed: 0
+  skipped: 0
+buildStatus: PASS
+commitRefs:
+  - fe7c6bc
+  - 9e82f75
+  - 5bda2ab

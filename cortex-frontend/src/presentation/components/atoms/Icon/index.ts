@@ -5,6 +5,7 @@ export { Config } from './Config';
 export { Admin } from './Admin';
 export { ChevronLeft } from './ChevronLeft';
 export { ChevronDown } from './ChevronDown';
+export { ChevronUp } from './ChevronUp';
 export { Menu } from './Menu';
 export { X } from './X';
 export { Sun } from './Sun';

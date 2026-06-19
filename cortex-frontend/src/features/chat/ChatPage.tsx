@@ -148,13 +148,6 @@ export function ChatPage() {
             {/* Input area */}
             <div className="chat-page__input-area">
                 <div className="chat-page__input-box">
-                    <div className="chat-page__model-selector">
-                        <ModelSelector
-                            activeModel={activeModel}
-                            validatedProviders={validatedProviders}
-                            onSelect={setActiveModel}
-                        />
-                    </div>
                     <textarea
                         ref={textareaRef}
                         value={input}
@@ -169,30 +162,40 @@ export function ChatPage() {
                         disabled={isLoading || validatedProviders.length === 0}
                         className="chat-page__textarea"
                     />
-                    <div className="chat-page__input-actions">
-                        {isLoading ? (
-                            <button
-                                onClick={abort}
-                                className="chat-page__stop-btn"
-                                title="Detener generación"
-                                aria-label="Detener generación"
-                            >
-                                <div className="chat-page__stop-icon" />
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => handleSubmit()}
-                                disabled={!input.trim() || validatedProviders.length === 0}
-                                className="chat-page__send-btn"
-                                title="Enviar mensaje"
-                                aria-label="Enviar mensaje"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="22" y1="2" x2="11" y2="13"/>
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                                </svg>
-                            </button>
-                        )}
+                    <div className="chat-page__input-toolbar">
+                        <div className="chat-page__model-selector">
+                            <ModelSelector
+                                activeModel={activeModel}
+                                validatedProviders={validatedProviders}
+                                onSelect={setActiveModel}
+                            />
+                        </div>
+                        
+                        <div className="chat-page__input-actions">
+                            {isLoading ? (
+                                <button
+                                    onClick={abort}
+                                    className="chat-page__stop-btn"
+                                    title="Detener generación"
+                                    aria-label="Detener generación"
+                                >
+                                    <div className="chat-page__stop-icon" />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => handleSubmit()}
+                                    disabled={!input.trim() || validatedProviders.length === 0}
+                                    className="chat-page__send-btn"
+                                    title="Enviar mensaje"
+                                    aria-label="Enviar mensaje"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"/>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

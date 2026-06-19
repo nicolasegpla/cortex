@@ -1,25 +1,6 @@
-# Chat Session Specification
+# Delta for Chat Session
 
-## Purpose
-
-Define the phase-1 chat-first workspace where conversation is primary, manual browse remains available, and all LLM traffic is mediated by Cortex.
-
-## Requirements
-
-### Requirement: Chat-First Workspace Entry
-
-The system MUST present chat as the primary authenticated workspace and SHALL keep manual browse/navigation available as a secondary fallback path.
-
-#### Scenario: User lands in chat first
-- GIVEN an authenticated user opens the workspace
-- WHEN the default application route resolves
-- THEN the primary content is the chat workspace
-- AND the user can still navigate to a manual browse view
-
-#### Scenario: User needs manual fallback
-- GIVEN the user is in the chat workspace
-- WHEN they choose the secondary browse/navigation path
-- THEN the manual browse view is reachable without leaving the authenticated workspace
+## MODIFIED Requirements
 
 ### Requirement: Backend-Mediated Multi-Provider Chat
 
@@ -28,52 +9,45 @@ The system MUST send all chat traffic through the Cortex backend and SHALL suppo
 (Previously: V1 provider selection was a direct user action via a separate top-bar provider select, alongside a separate model select.)
 
 #### Scenario: Stream a provider response
+
 - GIVEN the user has a valid credential for the provider of the selected model
 - WHEN the user sends a message
 - THEN Cortex routes the request through the derived provider adapter
 - AND the assistant response is streamed back incrementally to the workspace
 
 #### Scenario: Provider derived from selected model
+
 - GIVEN the user selects a model belonging to provider P
 - WHEN the selection is applied
 - THEN the active provider becomes P without a separate provider action
 
 #### Scenario: Prevent direct provider access from browser
+
 - GIVEN a browser session uses the chat workspace
 - WHEN a message is sent
 - THEN the browser never sends the provider credential or vendor-bound request directly to an external LLM provider
 
 #### Scenario: Use registered-entity database-backed answers
+
 - GIVEN a user asks a factual question for a registered entity in a tool-enabled session
 - WHEN tool-backed behavior is available
 - THEN Cortex may answer using that entity's approved tools and registry metadata
 - AND the request does not expand to unrestricted SQL or unregistered entities
+
+## ADDED Requirements
 
 ### Requirement: Active Model as Single Source of Truth
 
 The system MUST treat the active model as the authoritative selection. The active provider MUST be a derived value of the active model, not an independently user-settable state. Persisted selections MUST be sanitized on rehydration: an invalid persisted model MUST resolve to a valid model/provider pair.
 
 #### Scenario: Invalid persisted model is sanitized
+
 - GIVEN a persisted model no longer exists in any validated provider's model list
 - WHEN the store rehydrates
 - THEN a valid default model/provider pair is restored
 
 #### Scenario: Model belonging to unvalidated provider
+
 - GIVEN the active model belongs to a provider without valid credentials
 - WHEN the chat workspace loads
 - THEN the selection is sanitized to a validated provider's default model
-
-### Requirement: Conversation Status and Phase-1 Session Behavior
-
-The system MUST expose testable sending, streaming, stopped, and failed states, and SHALL keep the active conversation available only for the current in-memory phase-1 session.
-
-#### Scenario: User stops a response
-- GIVEN an assistant response is currently streaming
-- WHEN the user stops generation
-- THEN streaming ends promptly
-- AND the conversation retains the content received before the stop action
-
-#### Scenario: User reloads in phase 1
-- GIVEN the user has an active conversation in the current browser session
-- WHEN the workspace is fully reloaded
-- THEN prior conversation history is not required to be restored in phase 1

@@ -28,7 +28,7 @@ describe('ModelSelector', () => {
         const badge = screen.getByRole('button', { name: /GPT-4o/i });
         expect(badge).toBeInTheDocument();
         expect(badge).toHaveAttribute('aria-haspopup', 'menu');
-        expect(within(badge).getByTestId('chevron-down')).toBeInTheDocument();
+        expect(within(badge).getByTestId('chevron-up')).toBeInTheDocument();
     });
 
     it('should disable the badge when no providers are validated', () => {
@@ -137,12 +137,14 @@ describe('ModelSelector', () => {
         );
 
         const badge = screen.getByRole('button', { name: /GPT-4o/i });
-        await user.click(badge);
+        badge.focus();
+        await user.keyboard('{ArrowUp}');
 
         const options = screen.getAllByRole('menuitemradio');
         expect(options).toHaveLength(2);
+        expect(options[1]).toHaveClass('model-selector__option--highlighted');
 
-        await user.keyboard('{ArrowDown}{Enter}');
+        await user.keyboard('{Enter}');
 
         expect(mockOnSelect).toHaveBeenCalledWith('gpt-4o-mini');
         expect(screen.queryByRole('menu')).not.toBeInTheDocument();
@@ -176,5 +178,54 @@ describe('ModelSelector', () => {
         );
 
         expect(screen.getByRole('button', { name: /DeepSeek V4 Flash/i })).toBeInTheDocument();
+    });
+
+    it('should keep the popover inside the viewport when the badge is near the right edge', async () => {
+        const user = userEvent.setup();
+
+        // Simulate a narrow viewport and a badge flush against the right edge.
+        const originalInnerWidth = window.innerWidth;
+        Object.defineProperty(window, 'innerWidth', {
+            writable: true,
+            configurable: true,
+            value: 400,
+        });
+
+        const { container } = render(
+            <ModelSelector
+                activeModel="gpt-4o"
+                validatedProviders={['openai']}
+                onSelect={mockOnSelect}
+            />
+        );
+
+        const badge = screen.getByRole('button', { name: /GPT-4o/i });
+        badge.getBoundingClientRect = () =>
+            ({
+                top: 300,
+                bottom: 330,
+                left: 350,
+                right: 400,
+                width: 50,
+                height: 30,
+                x: 350,
+                y: 300,
+                toJSON: () => '',
+            } as DOMRect);
+
+        await user.click(badge);
+
+        const menu = screen.getByRole('menu');
+        const left = parseFloat(menu.style.left);
+        const width = parseFloat(menu.style.width);
+        expect(left + width).toBeLessThanOrEqual(window.innerWidth - 8);
+
+        Object.defineProperty(window, 'innerWidth', {
+            writable: true,
+            configurable: true,
+            value: originalInnerWidth,
+        });
+
+        cleanup();
     });
 });

@@ -427,6 +427,86 @@ describe('ChatPage', () => {
         });
     });
 
+    it('should position ModelSelector to the left of the send button', () => {
+        mockUseChatStore.mockReturnValue({
+            messages: [],
+            isLoading: false,
+            error: null,
+            activeProvider: 'openai',
+            activeModel: 'gpt-4o',
+            hydrated: true,
+            sendMessage: mockSendMessage,
+            abort: mockAbort,
+            clearMessages: mockClearMessages,
+            setActiveModel: mockSetActiveModel,
+            clearError: vi.fn(),
+            _abortController: null,
+        });
+        mockUseCredentialsStore.mockReturnValue({
+            providers: {
+                openai: { id: '1', provider: 'openai', label: 'Key', validated_at: '2024-01-01T00:00:00Z' },
+            },
+            isLoading: false,
+            error: null,
+            fetchCredentials: vi.fn(),
+            saveCredential: vi.fn(),
+            deleteCredential: vi.fn(),
+            testCredential: vi.fn(),
+            getValidatedProviders: () => ['openai'],
+            clearError: vi.fn(),
+        });
+
+        const { container } = renderChatPage();
+        const toolbar = container.querySelector('.chat-page__input-toolbar');
+        const sendButton = toolbar?.querySelector('.chat-page__send-btn');
+        const modelSelector = toolbar?.querySelector('.chat-page__model-selector');
+
+        expect(sendButton).toBeInTheDocument();
+        expect(modelSelector).toBeInTheDocument();
+
+        const children = Array.from(toolbar?.children ?? []);
+        const sendIndex = children.findIndex((child) => child.contains(sendButton));
+        const selectorIndex = children.findIndex((child) => child.contains(modelSelector));
+
+        expect(selectorIndex).toBeLessThan(sendIndex);
+    });
+
+    it('should constrain input box width with the expected layout classes', () => {
+        mockUseChatStore.mockReturnValue({
+            messages: [],
+            isLoading: false,
+            error: null,
+            activeProvider: 'openai',
+            activeModel: 'gpt-4o',
+            hydrated: true,
+            sendMessage: mockSendMessage,
+            abort: mockAbort,
+            clearMessages: mockClearMessages,
+            setActiveModel: mockSetActiveModel,
+            clearError: vi.fn(),
+            _abortController: null,
+        });
+        mockUseCredentialsStore.mockReturnValue({
+            providers: {
+                openai: { id: '1', provider: 'openai', label: 'Key', validated_at: '2024-01-01T00:00:00Z' },
+            },
+            isLoading: false,
+            error: null,
+            fetchCredentials: vi.fn(),
+            saveCredential: vi.fn(),
+            deleteCredential: vi.fn(),
+            testCredential: vi.fn(),
+            getValidatedProviders: () => ['openai'],
+            clearError: vi.fn(),
+        });
+
+        const { container } = renderChatPage();
+        const inputBox = container.querySelector('.chat-page__input-box');
+        const inputArea = container.querySelector('.chat-page__input-area');
+        expect(inputArea).toHaveClass('chat-page__input-area');
+        expect(inputBox).toHaveClass('chat-page__input-box');
+    });
+
     it('should direct users to config when no credentials are available', () => {
         renderChatPage();
 
