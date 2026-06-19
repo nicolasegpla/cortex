@@ -12,8 +12,6 @@ services:
       - frontend_node_modules:/app/node_modules
     env_file:
       - ./cortex-frontend/.env
-    environment:
-      VITE_API_BASE_URL: http://localhost:8000
     depends_on:
       - backend
 
@@ -29,9 +27,6 @@ services:
       - ./cortex-backend:/app
     env_file:
       - ./cortex-backend/.env
-    environment:
-      APP_ENV: development
-      CORS_ORIGINS: http://localhost:5173
 
 volumes:
   frontend_node_modules:

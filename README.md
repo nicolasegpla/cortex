@@ -125,6 +125,14 @@ pytest --tb=short
 docker compose up --build
 ```
 
+To test from a phone on the same LAN, update both `.env` files with the host
+machine's LAN IP instead of `localhost`, then restart the stack:
+
+- `cortex-frontend/.env`: `VITE_API_BASE_URL=http://<lan-ip>:8000`
+- `cortex-backend/.env`: `CORS_ORIGINS=http://<lan-ip>:5173,http://localhost:5173`
+
+Leave `VITE_DEV_HOST` empty unless HMR fails from the mobile browser.
+
 ## Environment variables
 
 ### Frontend
