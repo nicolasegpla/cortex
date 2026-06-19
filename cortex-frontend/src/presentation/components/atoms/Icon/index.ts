@@ -4,6 +4,7 @@ export { Sessions } from './Sessions';
 export { Config } from './Config';
 export { Admin } from './Admin';
 export { ChevronLeft } from './ChevronLeft';
+export { ChevronDown } from './ChevronDown';
 export { Menu } from './Menu';
 export { X } from './X';
 export { Sun } from './Sun';

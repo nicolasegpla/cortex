@@ -44,6 +44,17 @@ const DEFAULT_MODELS: Record<Provider, string> = {
     deepseek: 'deepseek-v4-flash',
 };
 
+export const MODEL_PROVIDER_MAP: Record<string, Provider> = Object.entries(
+    PROVIDER_MODELS
+).reduce<Record<string, Provider>>((map, [provider, models]) => {
+    for (const model of models) {
+        if (!map[model.id]) {
+            map[model.id] = provider as Provider;
+        }
+    }
+    return map;
+}, {});
+
 interface ChatState {
     messages: ChatMessage[];
     isLoading: boolean;
@@ -227,7 +238,11 @@ export const useChatStore = create<ChatState>()(
                 };
             }),
 
-        setActiveModel: (model) => set({ activeModel: model }),
+        setActiveModel: (model) =>
+            set((state) => ({
+                activeModel: model,
+                activeProvider: MODEL_PROVIDER_MAP[model] ?? state.activeProvider,
+            })),
 
         hydrate: (provider, model) => {
             const selection = sanitizePersistedSelection(provider, model);

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { apiClient } from '@/services/api/client';
-import { useChatStore, PROVIDER_MODELS } from './store';
+import { useChatStore, PROVIDER_MODELS, MODEL_PROVIDER_MAP } from './store';
 
 vi.mock('@/services/api/client', async () => {
     const actual = await vi.importActual('@/services/api/client');
@@ -273,10 +273,25 @@ describe('useChatStore', () => {
             expect(useChatStore.getState().activeModel).toBe('deepseek-v4-pro');
         });
 
-        it('should persist provider and model selection to localStorage', async () => {
-            const { setActiveProvider, setActiveModel } = useChatStore.getState();
+        it('should derive active provider from selected model', () => {
+            const { setActiveModel } = useChatStore.getState();
+            setActiveModel('claude-3-5-sonnet-20241022');
 
-            setActiveProvider('deepseek');
+            expect(useChatStore.getState().activeProvider).toBe('anthropic');
+            expect(useChatStore.getState().activeModel).toBe('claude-3-5-sonnet-20241022');
+        });
+
+        it('should derive deepseek provider from deepseek model', () => {
+            const { setActiveModel } = useChatStore.getState();
+            setActiveModel('deepseek-chat');
+
+            expect(useChatStore.getState().activeProvider).toBe('deepseek');
+            expect(useChatStore.getState().activeModel).toBe('deepseek-chat');
+        });
+
+        it('should persist provider and model selection to localStorage', async () => {
+            const { setActiveModel } = useChatStore.getState();
+
             setActiveModel('deepseek-v4-pro');
 
             await new Promise((resolve) => setTimeout(resolve, 10));
@@ -330,6 +345,26 @@ describe('useChatStore', () => {
             const reasoner = PROVIDER_MODELS.deepseek.find((m) => m.id === 'deepseek-reasoner');
             expect(chat?.preferred).toBeUndefined();
             expect(reasoner?.preferred).toBeUndefined();
+        });
+    });
+
+    describe('MODEL_PROVIDER_MAP', () => {
+        it('should map every model id to its provider', () => {
+            for (const [provider, models] of Object.entries(PROVIDER_MODELS)) {
+                for (const model of models) {
+                    expect(MODEL_PROVIDER_MAP[model.id]).toBe(provider);
+                }
+            }
+        });
+
+        it('should derive openai provider for gpt models', () => {
+            expect(MODEL_PROVIDER_MAP['gpt-4o']).toBe('openai');
+            expect(MODEL_PROVIDER_MAP['gpt-4o-mini']).toBe('openai');
+        });
+
+        it('should derive gemini provider for gemini models', () => {
+            expect(MODEL_PROVIDER_MAP['gemini-2.0-flash']).toBe('gemini');
+            expect(MODEL_PROVIDER_MAP['gemini-1.5-pro']).toBe('gemini');
         });
     });
 });
