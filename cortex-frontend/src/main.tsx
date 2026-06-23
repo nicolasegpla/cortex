@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { router } from '@/app/router';
 import { useAuthStore } from '@/features/auth/store';
 import '@/presentation/styles/index.scss';
+import { registerServiceWorker } from '@/services/pwa/registerSW';
 
 import { RouterProvider } from 'react-router-dom';
 
@@ -21,3 +22,5 @@ createRoot(rootElement).render(
         <RouterProvider router={router} />
     </StrictMode>,
 );
+
+registerServiceWorker();
