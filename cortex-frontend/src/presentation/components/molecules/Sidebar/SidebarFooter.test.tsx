@@ -22,6 +22,19 @@ vi.mock('@/services/supabase/client', () => ({
     },
 }));
 
+const mockUsePWAInstall = vi.hoisted(() =>
+    vi.fn(() => ({
+        isInstallable: false,
+        isInstalled: false,
+        isManualInstallEligible: false,
+        promptInstall: vi.fn(),
+    })),
+);
+
+vi.mock('@/services/pwa/usePWAInstall', () => ({
+    usePWAInstall: mockUsePWAInstall,
+}));
+
 import { SidebarFooter } from './SidebarFooter';
 
 describe('SidebarFooter', () => {
@@ -207,5 +220,253 @@ describe('SidebarFooter', () => {
 
         const emailElement = screen.getByText(longEmail);
         expect(emailElement).toHaveStyle({ textOverflow: 'ellipsis' });
+    });
+});
+
+describe('SidebarFooter install button', () => {
+    const mockPromptInstall = vi.fn();
+
+    beforeEach(() => {
+        cleanup();
+        mockPromptInstall.mockClear();
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: false,
+            isInstalled: false,
+            isManualInstallEligible: false,
+            promptInstall: mockPromptInstall,
+        });
+        useAuthStore.setState({
+            user: { id: '1', email: 'user@cortex.ai' },
+            role: 'super_admin',
+            session: null,
+            isLoading: false,
+            isInitialized: false,
+        });
+    });
+
+    it('does not render the install button when installation is unavailable', () => {
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        expect(screen.queryByRole('button', { name: /instalar aplicación/i })).not.toBeInTheDocument();
+    });
+
+    it('renders the install button when the app can be installed', () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: true,
+            isInstalled: false,
+            isManualInstallEligible: false,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('button', { name: /instalar aplicación/i })).toBeInTheDocument();
+    });
+
+    it('hides the install button after the app has been installed', () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: false,
+            isInstalled: true,
+            isManualInstallEligible: false,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        expect(screen.queryByRole('button', { name: /instalar aplicación/i })).not.toBeInTheDocument();
+    });
+
+    it('triggers the install prompt when the button is clicked', async () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: true,
+            isInstalled: false,
+            isManualInstallEligible: false,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        const user = (await import('@testing-library/user-event')).default.setup();
+        await user.click(screen.getByRole('button', { name: /instalar aplicación/i }));
+
+        expect(mockPromptInstall).toHaveBeenCalledOnce();
+    });
+
+    it('keeps the install button accessible in collapsed mode', () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: true,
+            isInstalled: false,
+            isManualInstallEligible: false,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={true} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('button', { name: /instalar aplicación/i })).toBeInTheDocument();
+    });
+});
+
+describe('SidebarFooter iOS fallback hint', () => {
+    const mockPromptInstall = vi.fn();
+
+    beforeEach(() => {
+        cleanup();
+        mockPromptInstall.mockClear();
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: false,
+            isInstalled: false,
+            isManualInstallEligible: false,
+            promptInstall: mockPromptInstall,
+        });
+        useAuthStore.setState({
+            user: { id: '1', email: 'user@cortex.ai' },
+            role: 'super_admin',
+            session: null,
+            isLoading: false,
+            isInitialized: false,
+        });
+    });
+
+    it('does not render the iOS fallback when manual install is not eligible', () => {
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        expect(screen.queryByRole('button', { name: /mostrar instrucciones de instalación/i })).not.toBeInTheDocument();
+    });
+
+    it('does not render the iOS fallback when the native install prompt is available', () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: true,
+            isInstalled: false,
+            isManualInstallEligible: true,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        expect(screen.queryByRole('button', { name: /mostrar instrucciones de instalación/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /instalar aplicación/i })).toBeInTheDocument();
+    });
+
+    it('does not render the iOS fallback when the app is already installed', () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: false,
+            isInstalled: true,
+            isManualInstallEligible: true,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        expect(screen.queryByRole('button', { name: /mostrar instrucciones de instalación/i })).not.toBeInTheDocument();
+    });
+
+    it('renders the iOS fallback button when manual install is eligible and native prompt is unavailable', () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: false,
+            isInstalled: false,
+            isManualInstallEligible: true,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('button', { name: /mostrar instrucciones de instalación/i })).toBeInTheDocument();
+    });
+
+    it('shows the install hint when the iOS fallback button is clicked', async () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: false,
+            isInstalled: false,
+            isManualInstallEligible: true,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        const user = (await import('@testing-library/user-event')).default.setup();
+        await user.click(screen.getByRole('button', { name: /mostrar instrucciones de instalación/i }));
+
+        expect(screen.getByRole('tooltip')).toHaveTextContent( /compartir en safari/i);
+    });
+
+    it('hides the install hint when the iOS fallback button loses focus', async () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: false,
+            isInstalled: false,
+            isManualInstallEligible: true,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={false} />
+            </MemoryRouter>
+        );
+
+        const user = (await import('@testing-library/user-event')).default.setup();
+        const button = screen.getByRole('button', { name: /mostrar instrucciones de instalación/i });
+
+        await user.click(button);
+        expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+        await user.tab();
+        expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+
+    it('keeps the iOS fallback button accessible in collapsed mode', () => {
+        mockUsePWAInstall.mockReturnValue({
+            isInstallable: false,
+            isInstalled: false,
+            isManualInstallEligible: true,
+            promptInstall: mockPromptInstall,
+        });
+
+        render(
+            <MemoryRouter>
+                <SidebarFooter collapsed={true} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('button', { name: /mostrar instrucciones de instalación/i })).toBeInTheDocument();
     });
 });

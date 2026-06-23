@@ -10,4 +10,6 @@ export { Menu } from './Menu';
 export { X } from './X';
 export { Sun } from './Sun';
 export { Moon } from './Moon';
+export { Download } from './Download';
 export { Logout } from './Logout';
+export { Share } from './Share';
