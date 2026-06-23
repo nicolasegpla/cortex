@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.2.0] - 2026-06-23
+
+### Added
+
+- Phase 1 PWA frontend support with `manifest.json`, install icons, Apple touch icon, and a basic service worker for same-origin static asset caching.
+- Browser-aware install UX in the authenticated app shell, including a native install CTA for supported browsers and a manual install hint for iPhone Safari.
+
+### Changed
+
+- `docs/PWA_PLAN.md` now marks Phase 1 as implemented and positions Phase 2 as the next product decision point.
+- `VERSION` file updated to `0.2.0`.
+
 ## [0.1.2] - 2026-06-19
 
 ### Added
