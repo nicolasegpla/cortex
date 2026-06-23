@@ -1,4 +1,4 @@
-# CORTEX v0.1.2
+# CORTEX v0.2.0
 
 Reusable single-tenant foundation for client deployments. This release documents the state of the codebase as it works today.
 
@@ -8,7 +8,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 2. Run frontend tests: `cd cortex-frontend && pnpm test`
 3. Run backend tests: `cd cortex-backend && pytest`
 
-## What works in v0.1.2
+## What works in v0.2.0
 
 ### Frontend
 
@@ -18,6 +18,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 - Configuration screen for LLM provider API keys (OpenAI, Anthropic, Google Gemini, DeepSeek).
 - User management screen (super_admin only) to create and delete managed users.
 - Database hub and full CRUD lists/forms for four entity tables: breweries, coffee farms, wine producers, and animal feed producers.
+- Phase 1 PWA support: installable app manifest, service worker for same-origin static asset caching, native install prompt on supported browsers, and manual install guidance for iPhone Safari.
 
 ### Backend
 
@@ -89,7 +90,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 │   ├── CORTEX.md              # System overview
 │   ├── chat-db-readonly-access.md  # Chat DB access guardrails
 │   └── CORTEX_VISION.md       # Product vision
-└── VERSION                    # Single source of truth: 0.1.2
+└── VERSION                    # Single source of truth: 0.2.0
 ```
 
 ## Commands
@@ -170,4 +171,4 @@ See the `.env.example` files inside `cortex-frontend/` and `cortex-backend/`.
 
 ## Version
 
-This release is `v0.1.2`. The `VERSION` file at the repository root is the source of truth.
+This release is `v0.2.0`. The `VERSION` file at the repository root is the source of truth.
