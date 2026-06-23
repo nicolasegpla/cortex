@@ -14,6 +14,11 @@ Improve daily operational usability without overcommitting to full offline behav
 
 ## Phase 1 — Lightweight PWA
 
+Status:
+
+- Implemented on branch `feat/pwa-phase-1`
+- Ready for merge/release as the first PWA milestone
+
 Scope:
 
 - Web app manifest
@@ -83,4 +88,4 @@ Risks:
 
 ## Recommended next step
 
-When the product is more stable, implement **Phase 1 only** as the first PWA milestone.
+Phase 1 is now the current implementation baseline. The next product decision is whether to continue with **Phase 2** (resilient connected experience) based on real user needs and connection reliability.
