@@ -1,6 +1,6 @@
 # CORTEX Deployment Guide
 
-This guide documents the real deployment process for CORTEX v0.1.x.
+This guide documents the real deployment process for CORTEX v0.2.0.
 
 Hosting architecture:
 
@@ -34,6 +34,8 @@ Before deploying, make sure you have:
 | `SUPABASE_JWT_SECRET` | JWT secret used to validate Supabase Auth tokens | `your-jwt-secret` |
 | `SUPABASE_ANON_KEY` | Supabase anon key | `eyJ...` |
 | `SUPABASE_INVITE_REDIRECT_URL` | Frontend URL where Supabase redirects after an invite email | `https://cortex-app.netlify.app/auth/invite` |
+| `RESEND_API_KEY` | Resend API key for sending application-controlled invite emails | `re_...` |
+| `RESEND_FROM_EMAIL` | Verified sender address used for invite emails | `invites@your-domain.com` |
 | `ENCRYPTION_KEY` | Base64-encoded Fernet key for provider API keys | `base64...` |
 | `PORT` | Injected by Railway automatically | `8000` |
 
@@ -69,9 +71,57 @@ Set these in the Netlify site **Site configuration > Environment variables** pan
 
 ---
 
-## 3. Railway backend deploy
+## 3. User invitation and activation flow
 
-### 3.1 Monorepo root configuration
+CORTEX does **not** allow public self-registration. New users are provisioned by an existing `super_admin`.
+
+### 3.1 Flow overview
+
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | Frontend | A `super_admin` submits the invite form in the user-management screen. |
+| 2 | Backend | `POST /admin/users` requires `super_admin` role, then calls Supabase `auth.admin.generate_link(type="invite")` with the target role in `user_metadata`. |
+| 3 | Supabase | Supabase creates the user and returns a one-time invite link that redirects to `SUPABASE_INVITE_REDIRECT_URL`. |
+| 4 | Backend | The backend sends the invite email through Resend using the branded template in `app/services/email_service.py`. |
+| 5 | User | The invited user clicks the email button and lands on `/auth/invite?code=...&type=invite`. |
+| 6 | Frontend | `InvitePage` exchanges the code for a session and lets the user set a password. |
+
+### 3.2 Required backend configuration
+
+- `SUPABASE_INVITE_REDIRECT_URL` must point to the production `/auth/invite` path, e.g. `https://cortex-app.netlify.app/auth/invite`.
+- `RESEND_API_KEY` must be a live Resend API key.
+- `RESEND_FROM_EMAIL` must be a verified domain or address in the Resend account. Emails sent from an unverified address are rejected by Resend.
+
+If the email service is not configured, `POST /admin/users` returns HTTP 503 with the message "El servicio de email no está configurado".
+
+### 3.3 Supabase Auth redirect allow-list
+
+The invite link only works if its final redirect URL is allow-listed:
+
+1. Go to **Authentication > URL Configuration**.
+2. Set **Site URL** to the Netlify site URL, for example:
+   - `https://cortex-app.netlify.app`
+3. Add the invite callback path as an additional redirect URL:
+   - `https://cortex-app.netlify.app/auth/invite`
+
+Make sure `SUPABASE_INVITE_REDIRECT_URL` in Railway matches this exact URL.
+
+If this value is missing or still points to `localhost` in production, Supabase can send valid invite emails with a broken redirect target. That means the email arrives, but the invited user lands on the wrong URL and cannot complete activation.
+
+If you use magic links or OAuth through Supabase Auth, the same redirect URL allow-list applies; the `**` wildcard can cover React Router paths when needed.
+
+### 3.4 Common caveats
+
+- **No self-registration**: there is no public sign-up page. If `SUPABASE_INVITE_REDIRECT_URL` is misconfigured, the invite link may redirect to a non-existent route and the user cannot set a password.
+- **Resend sender verification**: `RESEND_FROM_EMAIL` must be verified in Resend. Sending from an unverified address returns a Resend error and the backend surfaces HTTP 502.
+- **Backend owns the invite email**: Supabase does not send the invite email automatically. The backend constructs and sends it via Resend, so `RESEND_API_KEY` is required even if Supabase Auth email templates are enabled.
+- **Role is set at invite time**: the target role (`super_admin` or `operativo`) is stored in `user_metadata` when the invite link is generated. It is not chosen by the invited user.
+
+---
+
+## 4. Railway backend deploy
+
+### 4.1 Monorepo root configuration
 
 Because this repository is a monorepo, Railway needs an explicit root-level configuration file to know where the backend lives.
 
@@ -95,7 +145,7 @@ Because this repository is a monorepo, Railway needs an explicit root-level conf
 
 Without this file, Railway scans the repo root and fails to detect the backend automatically.
 
-### 3.2 Production Dockerfile
+### 4.2 Production Dockerfile
 
 `cortex-backend/Dockerfile.railway` builds the backend from the monorepo root:
 
@@ -121,7 +171,7 @@ Key points:
 - It uses `${PORT}` so Railway can inject the platform port.
 - It does **not** use `--reload`; that is reserved for local development.
 
-### 3.3 Service settings
+### 4.3 Service settings
 
 In the Railway service panel:
 
@@ -129,7 +179,7 @@ In the Railway service panel:
 2. **Custom domain** (optional): generate a Railway domain or attach your own.
 3. **Healthcheck**: Railway uses `/health` as configured in `railway.json`.
 
-### 3.4 Deploy flow
+### 4.4 Deploy flow
 
 1. Push changes to the connected branch.
 2. Railway triggers a new deploy automatically.
@@ -138,9 +188,9 @@ In the Railway service panel:
 
 ---
 
-## 4. Netlify frontend deploy
+## 5. Netlify frontend deploy
 
-### 4.1 Build configuration
+### 5.1 Build configuration
 
 `cortex-frontend/netlify.toml`:
 
@@ -173,7 +223,7 @@ Key points:
 - `publish` uses the `dist` folder generated by Vite.
 - The `redirects` rule enables React Router client-side routing.
 
-### 4.2 Site settings
+### 5.2 Site settings
 
 In the Netlify site panel:
 
@@ -187,7 +237,7 @@ If the Netlify UI does not let you clear the package directory field cleanly, us
 - **Package directory**: `cortex-frontend`
 - **Publish directory**: `cortex-frontend/dist`
 
-### 4.3 Deploy flow
+### 5.3 Deploy flow
 
 1. Push changes to the connected branch.
 2. Netlify installs dependencies and runs `pnpm run build`.
@@ -196,9 +246,9 @@ If the Netlify UI does not let you clear the package directory field cleanly, us
 
 ---
 
-## 5. External integrations
+## 6. External integrations
 
-### 5.1 Backend CORS
+### 6.1 Backend CORS
 
 The backend allows cross-origin requests from the origins listed in `CORS_ORIGINS`. After deploying the frontend, update the backend variable with the exact Netlify domain:
 
@@ -208,25 +258,15 @@ CORS_ORIGINS=https://cortex-app.netlify.app
 
 Then trigger a Railway redeploy so the change is picked up.
 
-### 5.2 Supabase Auth redirect URLs
+### 6.2 Supabase Auth redirect URLs
 
-The invite/activation flow requires the production redirect URL to be allow-listed in Supabase:
+If you use magic links or OAuth through Supabase Auth, add the production callback paths to **Authentication > URL Configuration** as additional redirect URLs. The `**` wildcard can cover React Router paths when needed.
 
-1. Go to **Authentication > URL Configuration**.
-2. Set **Site URL** to the Netlify site URL, for example:
-   - `https://cortex-app.netlify.app`
-3. Add the invite callback path as an additional redirect URL:
-   - `https://cortex-app.netlify.app/auth/invite`
-
-Make sure `SUPABASE_INVITE_REDIRECT_URL` in Railway matches this exact URL.
-
-If this value is missing or still points to `localhost` in production, Supabase can send valid invite emails with a broken redirect target. That means the email arrives, but the invited user lands on the wrong URL and cannot complete activation.
-
-If you use magic links or OAuth through Supabase Auth, the same redirect URL allow-list applies; the `**` wildcard can cover React Router paths when needed.
+The invite/activation flow is covered in [section 3](#3-user-invitation-and-activation-flow).
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 ### Railway: "No app detected" at monorepo root
 
@@ -267,23 +307,21 @@ If you use magic links or OAuth through Supabase Auth, the same redirect URL all
 
 ---
 
-## 7. Post-deploy checklist
+## 8. Post-deploy checklist
 
 Use this list after both Railway and Netlify report a successful deploy.
 
 - [ ] Railway `/health` returns `200 OK`.
 - [ ] Backend environment variables are set and the container started without errors.
 - [ ] `CORS_ORIGINS` includes the exact Netlify production URL.
-- [ ] `SUPABASE_INVITE_REDIRECT_URL` matches the production frontend invite page exactly.
+- [ ] `SUPABASE_INVITE_REDIRECT_URL` matches the production `/auth/invite` callback URL.
 - [ ] Netlify build log shows `pnpm run build` completed and published `dist/`.
 - [ ] Frontend environment variables use `https://` for `VITE_API_BASE_URL`.
-- [ ] Supabase Auth allow-list includes the same `/auth/invite` production URL.
+- [ ] Supabase Auth URL Configuration allow-lists the same `/auth/invite` production URL.
 - [ ] Login works from the Netlify URL.
 - [ ] Chat returns a streamed response.
 - [ ] All four entity lists load: breweries, coffee farms, wine producers, animal feed producers.
 - [ ] Entity create/update/delete flows work for at least one table.
-- [ ] Supabase Auth redirect URLs include the Netlify production domain and `/auth/invite` path.
-- [ ] `SUPABASE_INVITE_REDIRECT_URL` matches the production invite callback URL.
 - [ ] A super_admin can invite a new user and the activation email arrives.
 - [ ] The invited user can set a password at `/auth/invite` and log in.
 

@@ -8,7 +8,7 @@ Documentation map for the project.
 2. Read `chat-db-readonly-access.md` for the current chat-to-database access architecture
 3. Read `CORTEX_VISION.md` for the product and business direction
 4. Read `VERSIONING.md` for the release process and versioning policy
-5. Read `DEPLOYMENT.md` for the practical Railway + Netlify deploy guide
+5. Read `DEPLOYMENT.md` for the practical Railway + Netlify deploy guide, including the user invitation and activation flow
 6. Use the root `README.md` for setup, TDD workflow, and commands
 
 ## Documents
@@ -19,7 +19,7 @@ Documentation map for the project.
 | `chat-db-readonly-access.md` | Current chat database access architecture, read-only guardrails, and safe extension workflow |
 | `CORTEX_VISION.md` | Product vision, value proposition, and single-tenant model |
 | `VERSIONING.md` | Versioning convention, release workflow, and release checklist |
-| `DEPLOYMENT.md` | Practical deployment guide for Railway, Netlify, Supabase, and troubleshooting |
+| `DEPLOYMENT.md` | Practical deployment guide for Railway, Netlify, Supabase, troubleshooting, and user invitation flow |
 
 ## Current rule
 

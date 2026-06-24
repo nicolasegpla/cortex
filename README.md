@@ -25,7 +25,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 - FastAPI modular monolith with CORS configured for the frontend origin.
 - Supabase integration: Auth JWT verification, service-role data access, and a dedicated RPC for schema introspection.
 - Auth endpoints: `/auth/login`, `/auth/me`, `/auth/logout`.
-- Admin user endpoints: `/admin/users` (create, list, delete) with a guard against deleting the last super_admin. Account creation now uses Supabase `generate_link` and sends the invite via Resend instead of relying on Supabase's automatic invite email.
+- Admin user endpoints: `/admin/users` (create, list, delete) with a guard against deleting the last super_admin. User creation is invite-only: a `super_admin` provisions the account, the backend generates a Supabase invite link with `generate_link(type="invite")`, and the branded invite email is sent through Resend. Invited users activate the account at `/auth/invite` and set their password.
 - Four entity routers with full CRUD: `/breweries`, `/coffee-farms`, `/animal-feed-producers`, `/wine-producers`.
 - Chat pipeline: `/chat/stream` orchestrates a read-only SQL flow (schema introspection → LLM-generated SELECT → SQL validation → execution → natural-language synthesis) and streams the result via SSE.
 - Provider credential router: `/provider-credentials` stores API keys encrypted at rest and supports a test endpoint.
@@ -133,6 +133,21 @@ machine's LAN IP instead of `localhost`, then restart the stack:
 - `cortex-backend/.env`: `CORS_ORIGINS=http://<lan-ip>:5173,http://localhost:5173`
 
 Leave `VITE_DEV_HOST` empty unless HMR fails from the mobile browser.
+
+## User provisioning flow
+
+CORTEX does **not** allow self-registration. Only an existing `super_admin` can create managed users from the app.
+
+| Step | System | What happens |
+|------|--------|--------------|
+| 1 | Frontend | A `super_admin` opens the user-management screen and submits the invite form (email + role). |
+| 2 | Backend | `POST /admin/users` validates the request, calls Supabase `auth.admin.generate_link(type="invite")`, and stores the role in `user_metadata`. |
+| 3 | Supabase | Supabase generates a one-time invite link and redirects to `SUPABASE_INVITE_REDIRECT_URL` when the link is followed. |
+| 4 | Backend | The backend sends the invite email through Resend using a branded HTML template that contains the Supabase activation link. |
+| 5 | Frontend | The invited user clicks the email link and lands on `/auth/invite?code=...&type=invite`. |
+| 6 | Frontend | `InvitePage` exchanges the code for a session via `supabaseClient.auth.exchangeCodeForSession`, then lets the user set a password. |
+
+The new user is fully created in Supabase Auth at step 2; steps 5–6 only activate the session and set the password.
 
 ## Environment variables
 
