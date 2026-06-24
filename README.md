@@ -25,7 +25,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 - FastAPI modular monolith with CORS configured for the frontend origin.
 - Supabase integration: Auth JWT verification, service-role data access, and a dedicated RPC for schema introspection.
 - Auth endpoints: `/auth/login`, `/auth/me`, `/auth/logout`.
-- Admin user endpoints: `/admin/users` (create, list, delete) with a guard against deleting the last super_admin.
+- Admin user endpoints: `/admin/users` (create, list, delete) with a guard against deleting the last super_admin. Account creation now uses Supabase `generate_link` and sends the invite via Resend instead of relying on Supabase's automatic invite email.
 - Four entity routers with full CRUD: `/breweries`, `/coffee-farms`, `/animal-feed-producers`, `/wine-producers`.
 - Chat pipeline: `/chat/stream` orchestrates a read-only SQL flow (schema introspection → LLM-generated SELECT → SQL validation → execution → natural-language synthesis) and streams the result via SSE.
 - Provider credential router: `/provider-credentials` stores API keys encrypted at rest and supports a test endpoint.
@@ -150,6 +150,9 @@ Leave `VITE_DEV_HOST` empty unless HMR fails from the mobile browser.
 - `SUPABASE_SERVICE_KEY`
 - `SUPABASE_JWT_SECRET`
 - `SUPABASE_ANON_KEY`
+- `SUPABASE_INVITE_REDIRECT_URL` — frontend URL where Supabase redirects after an invite link is followed (must be allowed in Supabase Auth > URL Configuration)
+- `RESEND_API_KEY` — Resend API key for sending application-controlled invite emails
+- `RESEND_FROM_EMAIL` — verified sender address used for invite emails
 - `ENCRYPTION_KEY`
 
 See the `.env.example` files inside `cortex-frontend/` and `cortex-backend/`.

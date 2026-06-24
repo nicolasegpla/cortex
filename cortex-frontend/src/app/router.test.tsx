@@ -66,6 +66,12 @@ describe('appRoutes', () => {
         expect(paths).not.toContain('register');
     });
 
+    it('exposes a public /auth/invite route for activation', () => {
+        const paths = collectPaths(appRoutes);
+
+        expect(paths).toContain('/auth/invite');
+    });
+
     it('redirects the legacy /admin route to /config', () => {
         const paths = collectPaths(appRoutes);
 

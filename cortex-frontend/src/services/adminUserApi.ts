@@ -6,8 +6,6 @@ export type { AdminUser, CreateUserPayload };
 async function createUser(payload: CreateUserPayload): Promise<AdminUser> {
     const backendPayload = {
         email: payload.email,
-        password: payload.password,
-        password_confirm: payload.passwordConfirm,
         role: payload.role,
     };
 

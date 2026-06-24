@@ -33,10 +33,27 @@ Before deploying, make sure you have:
 | `SUPABASE_SERVICE_KEY` | Supabase service-role key for DB access | `eyJ...` |
 | `SUPABASE_JWT_SECRET` | JWT secret used to validate Supabase Auth tokens | `your-jwt-secret` |
 | `SUPABASE_ANON_KEY` | Supabase anon key | `eyJ...` |
+| `SUPABASE_INVITE_REDIRECT_URL` | Frontend URL where Supabase redirects after an invite email | `https://cortex-app.netlify.app/auth/invite` |
 | `ENCRYPTION_KEY` | Base64-encoded Fernet key for provider API keys | `base64...` |
 | `PORT` | Injected by Railway automatically | `8000` |
 
 Set these in the Railway service **Variables** tab. The `PORT` variable is normally injected by the platform.
+
+For local development, the same backend variables live in `cortex-backend/.env`.
+
+Example local backend invite redirect:
+
+```env
+SUPABASE_INVITE_REDIRECT_URL=http://localhost:5173/auth/invite
+```
+
+Example production backend invite redirect:
+
+```env
+SUPABASE_INVITE_REDIRECT_URL=https://cortex-app.netlify.app/auth/invite
+```
+
+> **Important**: `SUPABASE_INVITE_REDIRECT_URL` is a backend variable, not a frontend one. The backend passes it to Supabase when the `super_admin` sends an invite.
 
 ### Frontend (Netlify)
 
@@ -193,13 +210,19 @@ Then trigger a Railway redeploy so the change is picked up.
 
 ### 5.2 Supabase Auth redirect URLs
 
-If you use magic links or OAuth through Supabase Auth, add the production redirect URLs in Supabase:
+The invite/activation flow requires the production redirect URL to be allow-listed in Supabase:
 
 1. Go to **Authentication > URL Configuration**.
-2. Add the Netlify site URL as a redirect URL, for example:
-   - `https://cortex-app.netlify.app/**`
+2. Set **Site URL** to the Netlify site URL, for example:
+   - `https://cortex-app.netlify.app`
+3. Add the invite callback path as an additional redirect URL:
+   - `https://cortex-app.netlify.app/auth/invite`
 
-The `**` wildcard covers React Router paths.
+Make sure `SUPABASE_INVITE_REDIRECT_URL` in Railway matches this exact URL.
+
+If this value is missing or still points to `localhost` in production, Supabase can send valid invite emails with a broken redirect target. That means the email arrives, but the invited user lands on the wrong URL and cannot complete activation.
+
+If you use magic links or OAuth through Supabase Auth, the same redirect URL allow-list applies; the `**` wildcard can cover React Router paths when needed.
 
 ---
 
@@ -251,12 +274,17 @@ Use this list after both Railway and Netlify report a successful deploy.
 - [ ] Railway `/health` returns `200 OK`.
 - [ ] Backend environment variables are set and the container started without errors.
 - [ ] `CORS_ORIGINS` includes the exact Netlify production URL.
+- [ ] `SUPABASE_INVITE_REDIRECT_URL` matches the production frontend invite page exactly.
 - [ ] Netlify build log shows `pnpm run build` completed and published `dist/`.
 - [ ] Frontend environment variables use `https://` for `VITE_API_BASE_URL`.
+- [ ] Supabase Auth allow-list includes the same `/auth/invite` production URL.
 - [ ] Login works from the Netlify URL.
 - [ ] Chat returns a streamed response.
 - [ ] All four entity lists load: breweries, coffee farms, wine producers, animal feed producers.
 - [ ] Entity create/update/delete flows work for at least one table.
-- [ ] Supabase Auth redirect URLs include the Netlify production domain.
+- [ ] Supabase Auth redirect URLs include the Netlify production domain and `/auth/invite` path.
+- [ ] `SUPABASE_INVITE_REDIRECT_URL` matches the production invite callback URL.
+- [ ] A super_admin can invite a new user and the activation email arrives.
+- [ ] The invited user can set a password at `/auth/invite` and log in.
 
 Once every item passes, the deployment is complete.

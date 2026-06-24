@@ -24,6 +24,22 @@ function translateAuthError(message: string) {
         return 'Email o contraseña incorrectos.';
     }
 
+    if (
+        normalized.includes('email not confirmed') ||
+        normalized.includes('email not yet confirmed') ||
+        normalized.includes('pending activation') ||
+        normalized.includes('not confirmed')
+    ) {
+        return 'Tu cuenta está pendiente de activación. Revisá tu email y completá el proceso de invitación.';
+    }
+
+    if (
+        normalized.includes('user not found') ||
+        normalized.includes('no user')
+    ) {
+        return 'No encontramos una cuenta con ese email.';
+    }
+
     if (normalized.includes('authentication failed')) {
         return 'No se pudo iniciar sesión.';
     }
