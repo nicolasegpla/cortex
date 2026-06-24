@@ -274,4 +274,103 @@ describe('InvitePage', () => {
 
         expect(mockNavigate).not.toHaveBeenCalled();
     });
+
+    it('renders password requirements after a successful code exchange', async () => {
+        mockExchangeCodeForSession.mockResolvedValueOnce({
+            data: {
+                session: { access_token: 'invite-token' },
+                user: { id: 'invited-user', email: 'invited@example.com', user_metadata: { role: 'operativo' } },
+            },
+            error: null,
+        });
+
+        renderWithSearchParams('code=valid-code&type=invite');
+
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: /establecé tu contraseña/i })).toBeInTheDocument();
+        });
+
+        const requirements = screen.getByRole('list', { name: /requisitos de la contraseña/i });
+        expect(requirements).toBeInTheDocument();
+        expect(screen.getByText('Al menos 6 caracteres')).toBeInTheDocument();
+        expect(screen.getByText('Las contraseñas coinciden')).toBeInTheDocument();
+    });
+
+    it('updates password requirement indicators as the user types', async () => {
+        mockExchangeCodeForSession.mockResolvedValueOnce({
+            data: {
+                session: { access_token: 'invite-token' },
+                user: { id: 'invited-user', email: 'invited@example.com', user_metadata: { role: 'operativo' } },
+            },
+            error: null,
+        });
+
+        renderWithSearchParams('code=valid-code&type=invite');
+
+        await waitFor(() => {
+            expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
+        });
+
+        const passwordInput = screen.getByLabelText(/^contraseña$/i);
+        const confirmInput = screen.getByLabelText(/confirmar contraseña/i);
+        const lengthItem = screen.getByText('Al menos 6 caracteres', { exact: false });
+        const matchItem = screen.getByText('Las contraseñas coinciden', { exact: false });
+
+        expect(lengthItem).not.toHaveClass('password-requirements__item--valid');
+        expect(matchItem).not.toHaveClass('password-requirements__item--valid');
+
+        await user.type(passwordInput, 'secret123');
+
+        await waitFor(() => {
+            expect(lengthItem).toHaveClass('password-requirements__item--valid');
+        });
+        expect(matchItem).not.toHaveClass('password-requirements__item--valid');
+
+        await user.type(confirmInput, 'secret123');
+
+        await waitFor(() => {
+            expect(matchItem).toHaveClass('password-requirements__item--valid');
+        });
+    });
+
+    it('toggles password visibility for both password fields', async () => {
+        mockExchangeCodeForSession.mockResolvedValueOnce({
+            data: {
+                session: { access_token: 'invite-token' },
+                user: { id: 'invited-user', email: 'invited@example.com', user_metadata: { role: 'operativo' } },
+            },
+            error: null,
+        });
+
+        renderWithSearchParams('code=valid-code&type=invite');
+
+        await waitFor(() => {
+            expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
+        });
+
+        const passwordInput = screen.getByLabelText(/^contraseña$/i);
+        const confirmInput = screen.getByLabelText(/confirmar contraseña/i);
+
+        expect(passwordInput).toHaveAttribute('type', 'password');
+        expect(confirmInput).toHaveAttribute('type', 'password');
+
+        const showPassword = screen.getByRole('button', { name: 'Mostrar contraseña' });
+        await user.click(showPassword);
+
+        expect(passwordInput).toHaveAttribute('type', 'text');
+        expect(showPassword).toHaveAttribute('aria-pressed', 'true');
+        expect(showPassword).toHaveAttribute('aria-label', 'Ocultar contraseña');
+
+        await user.click(showPassword);
+        expect(passwordInput).toHaveAttribute('type', 'password');
+        expect(showPassword).toHaveAttribute('aria-pressed', 'false');
+
+        const showConfirm = screen.getByRole('button', { name: 'Mostrar contraseña de confirmación' });
+        await user.click(showConfirm);
+        expect(confirmInput).toHaveAttribute('type', 'text');
+        expect(showConfirm).toHaveAttribute('aria-pressed', 'true');
+
+        await user.click(showConfirm);
+        expect(confirmInput).toHaveAttribute('type', 'password');
+    });
 });

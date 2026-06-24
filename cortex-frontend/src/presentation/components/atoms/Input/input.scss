@@ -13,6 +13,7 @@
 }
 
 .input-field__control {
+    width: 100%;
     background-color: vars.$color-surface-primary;
     border: 1px solid vars.$color-border-divider;
     border-radius: vars.$radius-md;
@@ -38,4 +39,31 @@
     border-color: vars.$color-accent-primary;
     box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
     outline: none;
+}
+
+.input-field__control-wrapper {
+    position: relative;
+    display: block;
+}
+
+.input-field__control--with-adornment {
+    // Reserve space for the 28px toggle button placed at right: 16px,
+    // plus the design-system small-space gap.
+    padding-right: 52px;
+}
+
+.input-field__end-adornment {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    pointer-events: none;
+
+    > * {
+        pointer-events: auto;
+    }
 }
