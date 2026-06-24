@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.3.0] - 2026-06-24
+
+### Added
+
+- Admin-only user invite provisioning flow, allowing administrators to create accounts and send invitations to new users.
+- Supabase `generate_link` invite integration for secure, tokenized invitation URLs.
+- Resend-controlled invite email delivery so invitation emails are sent through the project's configured email provider.
+- Branded invite email template matching the Cortex identity.
+- Invite activation page where invited users can accept their invitation and set up their password.
+- Password setup UX improvements for clearer confirmation and validation feedback.
+- Refined role selection during user provisioning and activation.
+
+### Changed
+
+- Deployment documentation and environment-variable examples updated to support the invite flow and email provider configuration.
+- `VERSION` file updated to `0.3.0`.
+
 ## [0.2.0] - 2026-06-23
 
 ### Added

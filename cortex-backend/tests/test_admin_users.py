@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from supabase import AuthApiError
 
 from app.schemas.admin_users import CreateUserRequest, UserListResponse, UserResponse
+from app.services.email_service import EmailService
 
 
 def create_mock_admin_client():
@@ -35,55 +36,47 @@ def create_mock_auth_service(role: str = "super_admin", user_id: str = "a1b2c3d4
     return mock_service
 
 
+def create_mock_generate_link_response(user_id: str, email: str, role: str, action_link: str):
+    """Create a mock Supabase generate_link response."""
+    mock_user = MagicMock()
+    mock_user.id = user_id
+    mock_user.email = email
+    mock_user.user_metadata = {"role": role}
+    mock_properties = MagicMock()
+    mock_properties.action_link = action_link
+    mock_response = MagicMock()
+    mock_response.user = mock_user
+    mock_response.properties = mock_properties
+    return mock_response
+
+
 class TestCreateUserRequestSchema:
     """Test Pydantic schema validation for user creation."""
 
-    def test_valid_request_with_matching_passwords_passes(self) -> None:
+    def test_valid_request_passes(self) -> None:
         request = CreateUserRequest(
             email="new@example.com",
-            password="secret123",
-            password_confirm="secret123",
             role="operativo",
         )
 
         assert request.email == "new@example.com"
-        assert request.password == "secret123"
-        assert request.password_confirm == "secret123"
         assert request.role == "operativo"
 
     def test_default_role_is_operativo(self) -> None:
         request = CreateUserRequest(
             email="new@example.com",
-            password="secret123",
-            password_confirm="secret123",
         )
 
         assert request.role == "operativo"
 
-    def test_mismatched_passwords_raise_validation_error(self) -> None:
-        with pytest.raises(ValidationError) as exc_info:
-            CreateUserRequest(
-                email="new@example.com",
-                password="secret123",
-                password_confirm="different",
-                role="operativo",
-            )
-
-        assert "password" in str(exc_info.value).lower() or "coincid" in str(exc_info.value).lower()
-
-    def test_missing_required_field_raises_validation_error(self) -> None:
+    def test_missing_email_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError):
-            CreateUserRequest(
-                password="secret123",
-                password_confirm="secret123",
-            )
+            CreateUserRequest(role="operativo")
 
     def test_invalid_role_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError) as exc_info:
             CreateUserRequest(
                 email="new@example.com",
-                password="secret123",
-                password_confirm="secret123",
                 role="admin",
             )
 
@@ -92,8 +85,6 @@ class TestCreateUserRequestSchema:
     def test_super_admin_role_is_valid(self) -> None:
         request = CreateUserRequest(
             email="new@example.com",
-            password="secret123",
-            password_confirm="secret123",
             role="super_admin",
         )
 
@@ -142,37 +133,74 @@ class TestAdminUsersEndpoints:
             mock_get_service.return_value = create_mock_auth_service("operativo")
             yield
 
-    def test_create_user_success(self, client: TestClient, admin_auth_patch) -> None:
-        mock_user = MagicMock()
-        mock_user.id = "new-user-123"
-        mock_user.email = "new@example.com"
-        mock_user.user_metadata = {"role": "operativo"}
-        mock_response = MagicMock()
-        mock_response.user = mock_user
+    @pytest.fixture
+    def invite_redirect_url(self):
+        with patch("app.routers.admin_users.get_settings") as mock_settings:
+            settings = MagicMock()
+            settings.supabase_invite_redirect_url = "http://localhost:5173/auth/invite"
+            settings.resend_api_key = "re_test_key"
+            settings.resend_from_email = "invites@cortex.io"
+            mock_settings.return_value = settings
+            yield
+
+    def test_create_user_success(self, client: TestClient, admin_auth_patch, invite_redirect_url) -> None:
+        action_link = "http://localhost:5173/auth/v1/verify?token=hashed-token&type=invite&redirect_to=http://localhost:5173/auth/invite"
+        mock_response = create_mock_generate_link_response(
+            "new-user-123", "new@example.com", "operativo", action_link
+        )
 
         with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:
             mock_supabase = MagicMock()
-            mock_supabase.auth.admin.create_user.return_value = mock_response
+            mock_supabase.auth.admin.generate_link.return_value = mock_response
             mock_get_client.return_value = mock_supabase
 
-            response = client.post(
-                "/admin/users",
-                json={
-                    "email": "new@example.com",
-                    "password": "secret123",
-                    "password_confirm": "secret123",
-                    "role": "operativo",
-                },
-                headers={"Authorization": "Bearer admin-token"},
-            )
+            with patch.object(EmailService, "send_invite_email") as mock_send_invite:
+                response = client.post(
+                    "/admin/users",
+                    json={"email": "new@example.com", "role": "operativo"},
+                    headers={"Authorization": "Bearer admin-token"},
+                )
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["id"] == "new-user-123"
         assert data["email"] == "new@example.com"
         assert data["role"] == "operativo"
+        mock_send_invite.assert_called_once_with("new@example.com", action_link)
 
-    def test_create_user_password_mismatch_returns_422(self, client: TestClient, admin_auth_patch) -> None:
+    def test_create_user_generates_link_and_sends_email(self, client: TestClient, admin_auth_patch, invite_redirect_url) -> None:
+        action_link = "http://localhost:5173/auth/v1/verify?token=admin-token&type=invite&redirect_to=http://localhost:5173/auth/invite"
+        mock_response = create_mock_generate_link_response(
+            "admin-user-456", "admin-user@example.com", "super_admin", action_link
+        )
+
+        with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:
+            mock_supabase = MagicMock()
+            mock_supabase.auth.admin.generate_link.return_value = mock_response
+            mock_get_client.return_value = mock_supabase
+
+            with patch.object(EmailService, "send_invite_email") as mock_send_invite:
+                response = client.post(
+                    "/admin/users",
+                    json={"email": "admin-user@example.com", "role": "super_admin"},
+                    headers={"Authorization": "Bearer admin-token"},
+                )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.json()["role"] == "super_admin"
+        mock_supabase.auth.admin.generate_link.assert_called_once_with(
+            {
+                "type": "invite",
+                "email": "admin-user@example.com",
+                "options": {
+                    "data": {"role": "super_admin"},
+                    "redirect_to": "http://localhost:5173/auth/invite",
+                },
+            }
+        )
+        mock_send_invite.assert_called_once_with("admin-user@example.com", action_link)
+
+    def test_create_user_password_fields_rejected(self, client: TestClient, admin_auth_patch, invite_redirect_url) -> None:
         with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:
             mock_supabase = MagicMock()
             mock_get_client.return_value = mock_supabase
@@ -182,94 +210,77 @@ class TestAdminUsersEndpoints:
                 json={
                     "email": "new@example.com",
                     "password": "secret123",
-                    "password_confirm": "different",
+                    "password_confirm": "secret123",
                     "role": "operativo",
                 },
                 headers={"Authorization": "Bearer admin-token"},
             )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        mock_supabase.auth.admin.create_user.assert_not_called()
+        mock_supabase.auth.admin.generate_link.assert_not_called()
 
-    def test_create_user_with_custom_role(self, client: TestClient, admin_auth_patch) -> None:
-        mock_user = MagicMock()
-        mock_user.id = "admin-user-456"
-        mock_user.email = "admin-user@example.com"
-        mock_user.user_metadata = {"role": "super_admin"}
-        mock_response = MagicMock()
-        mock_response.user = mock_user
-
+    def test_create_user_duplicate_email_returns_409(self, client: TestClient, admin_auth_patch, invite_redirect_url) -> None:
         with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:
             mock_supabase = MagicMock()
-            mock_supabase.auth.admin.create_user.return_value = mock_response
-            mock_get_client.return_value = mock_supabase
-
-            response = client.post(
-                "/admin/users",
-                json={
-                    "email": "admin-user@example.com",
-                    "password": "secret123",
-                    "password_confirm": "secret123",
-                    "role": "super_admin",
-                },
-                headers={"Authorization": "Bearer admin-token"},
-            )
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert response.json()["role"] == "super_admin"
-        mock_supabase.auth.admin.create_user.assert_called_once_with(
-            {
-                "email": "admin-user@example.com",
-                "password": "secret123",
-                "user_metadata": {"role": "super_admin"},
-            }
-        )
-
-    def test_create_user_duplicate_email_returns_409(self, client: TestClient, admin_auth_patch) -> None:
-        with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:
-            mock_supabase = MagicMock()
-            mock_supabase.auth.admin.create_user.side_effect = AuthApiError(
+            mock_supabase.auth.admin.generate_link.side_effect = AuthApiError(
                 "User already registered", 422, None
             )
             mock_get_client.return_value = mock_supabase
 
             response = client.post(
                 "/admin/users",
-                json={
-                    "email": "existing@example.com",
-                    "password": "secret123",
-                    "password_confirm": "secret123",
-                    "role": "operativo",
-                },
+                json={"email": "existing@example.com", "role": "operativo"},
                 headers={"Authorization": "Bearer admin-token"},
             )
 
         assert response.status_code == status.HTTP_409_CONFLICT
         assert "ya existe un usuario" in response.json()["detail"].lower()
-        mock_supabase.auth.admin.create_user.assert_called_once()
+        mock_supabase.auth.admin.generate_link.assert_called_once()
 
-    def test_create_user_upstream_auth_error_returns_502(self, client: TestClient, admin_auth_patch) -> None:
+    def test_create_user_upstream_auth_error_returns_502(self, client: TestClient, admin_auth_patch, invite_redirect_url) -> None:
         with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:
             mock_supabase = MagicMock()
-            mock_supabase.auth.admin.create_user.side_effect = AuthApiError(
+            mock_supabase.auth.admin.generate_link.side_effect = AuthApiError(
                 "Upstream service unavailable", 503, None
             )
             mock_get_client.return_value = mock_supabase
 
             response = client.post(
                 "/admin/users",
-                json={
-                    "email": "new@example.com",
-                    "password": "secret123",
-                    "password_confirm": "secret123",
-                    "role": "operativo",
-                },
+                json={"email": "new@example.com", "role": "operativo"},
                 headers={"Authorization": "Bearer admin-token"},
             )
 
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
         assert response.json()["detail"] == "Error en el servicio de autenticación"
-        mock_supabase.auth.admin.create_user.assert_called_once()
+        mock_supabase.auth.admin.generate_link.assert_called_once()
+
+    def test_create_user_email_send_failure_returns_502(self, client: TestClient, admin_auth_patch, invite_redirect_url) -> None:
+        from resend.exceptions import ResendError
+
+        action_link = "http://localhost:5173/auth/v1/verify?token=token&type=invite&redirect_to=http://localhost:5173/auth/invite"
+        mock_response = create_mock_generate_link_response(
+            "new-user-123", "new@example.com", "operativo", action_link
+        )
+
+        with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:
+            mock_supabase = MagicMock()
+            mock_supabase.auth.admin.generate_link.return_value = mock_response
+            mock_get_client.return_value = mock_supabase
+
+            with patch.object(
+                EmailService, "send_invite_email", side_effect=ResendError(
+                    code=422, error_type="invalid_parameter", message="Invalid to email", suggested_action="Fix it"
+                )
+            ):
+                response = client.post(
+                    "/admin/users",
+                    json={"email": "new@example.com", "role": "operativo"},
+                    headers={"Authorization": "Bearer admin-token"},
+                )
+
+        assert response.status_code == status.HTTP_502_BAD_GATEWAY
+        assert "email" in response.json()["detail"].lower()
 
     def test_list_users_returns_directory(self, client: TestClient, admin_auth_patch) -> None:
         mock_user_one = MagicMock()
@@ -485,24 +496,19 @@ class TestAdminUsersEndpoints:
         assert {status_one, status_two} == {status.HTTP_204_NO_CONTENT, status.HTTP_403_FORBIDDEN}
         assert mock_supabase.auth.admin.delete_user.call_count == 1
 
-    def test_non_super_admin_cannot_create_user(self, client: TestClient, operativo_auth_patch) -> None:
+    def test_non_super_admin_cannot_create_user(self, client: TestClient, operativo_auth_patch, invite_redirect_url) -> None:
         with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:
             mock_supabase = MagicMock()
             mock_get_client.return_value = mock_supabase
 
             response = client.post(
                 "/admin/users",
-                json={
-                    "email": "new@example.com",
-                    "password": "secret123",
-                    "password_confirm": "secret123",
-                    "role": "operativo",
-                },
+                json={"email": "new@example.com", "role": "operativo"},
                 headers={"Authorization": "Bearer operativo-token"},
             )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        mock_supabase.auth.admin.create_user.assert_not_called()
+        mock_supabase.auth.admin.generate_link.assert_not_called()
 
     def test_non_super_admin_cannot_list_users(self, client: TestClient, operativo_auth_patch) -> None:
         with patch("app.routers.admin_users.get_supabase_client") as mock_get_client:

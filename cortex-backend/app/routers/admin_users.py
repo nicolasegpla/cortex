@@ -4,8 +4,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import AuthApiError
 
+from app.core.config import get_settings
 from app.core.security import User, require_role
 from app.schemas.admin_users import CreateUserRequest, UserListResponse, UserResponse
+from app.services.email_service import EmailService
 from app.services.supabase_service import SupabaseService
 
 router = APIRouter(prefix="/admin/users", tags=["admin"])
@@ -25,6 +27,17 @@ def get_supabase_client():
             detail="Supabase no está configurado",
         )
     return client
+
+
+def get_email_service():
+    """Get a configured EmailService for transactional delivery."""
+    service = EmailService(get_settings())
+    if not service.is_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El servicio de email no está configurado",
+        )
+    return service
 
 
 def _error_message(exc: AuthApiError) -> str:
@@ -111,18 +124,38 @@ def _count_super_admins(users: list[Any]) -> int:
 def create_user(
     payload: CreateUserRequest,
     _: User = Depends(require_role(["super_admin"])),
+    email_service: EmailService = Depends(get_email_service),
 ) -> UserResponse:
-    """Create a new managed user with an explicit role."""
+    """Invite a new managed user by email and assign their role.
+
+    Supabase generates an invite link; the backend sends it through Resend.
+    The invited user follows the link, exchanges the one-time code for a
+    session, and sets their password before they can log in.
+    """
     supabase = get_supabase_client()
+    settings = get_settings()
 
     try:
-        response = supabase.auth.admin.create_user({
-            "email": payload.email,
-            "password": payload.password,
-            "user_metadata": {"role": payload.role},
-        })
+        response = supabase.auth.admin.generate_link(
+            {
+                "type": "invite",
+                "email": payload.email,
+                "options": {
+                    "data": {"role": payload.role},
+                    "redirect_to": settings.supabase_invite_redirect_url,
+                },
+            }
+        )
     except AuthApiError as exc:
         _raise_auth_api_error(exc)
+
+    try:
+        email_service.send_invite_email(payload.email, response.properties.action_link)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No se pudo enviar el email de invitación",
+        ) from exc
 
     user = response.user
     return UserResponse(

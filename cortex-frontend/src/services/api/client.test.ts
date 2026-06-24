@@ -13,7 +13,7 @@ vi.mock('@/services/supabase/client', () => ({
 
 import { apiClient } from './client';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 describe('apiClient.delete', () => {
     let originalFetch: typeof globalThis.fetch;

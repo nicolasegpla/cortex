@@ -130,4 +130,29 @@ describe('LoginPage', () => {
             expect(screen.getByRole('alert')).toHaveTextContent('Email o contraseña incorrectos.');
         });
     });
+
+    it('should display a helpful message for pending activation', async () => {
+        mockSignIn.mockResolvedValueOnce({
+            data: { user: null, session: null },
+            error: { message: 'Email not confirmed' },
+        });
+
+        render(
+            <BrowserRouter>
+                <LoginPage />
+            </BrowserRouter>
+        );
+
+        const emailInput = screen.getByLabelText(/email/i);
+        const passwordInput = screen.getByLabelText(/contraseña/i);
+        const submitButton = screen.getByRole('button', { name: /continuar/i });
+
+        await user.type(emailInput, 'pending@example.com');
+        await user.type(passwordInput, 'password123');
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent('pendiente de activación');
+        });
+    });
 });

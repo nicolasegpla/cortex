@@ -1,12 +1,12 @@
-from pydantic import BaseModel, EmailStr, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 ALLOWED_ROLES = ("operativo", "super_admin")
 
 
 class CreateUserRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr
-    password: str
-    password_confirm: str
     role: str = "operativo"
 
     @field_validator("role")
@@ -15,12 +15,6 @@ class CreateUserRequest(BaseModel):
         if value not in ALLOWED_ROLES:
             raise ValueError(f"Rol no válido. Permitidos: {', '.join(ALLOWED_ROLES)}")
         return value
-
-    @model_validator(mode="after")
-    def check_passwords_match(self) -> "CreateUserRequest":
-        if self.password != self.password_confirm:
-            raise ValueError("La confirmación de contraseña no coincide")
-        return self
 
 
 class UserResponse(BaseModel):

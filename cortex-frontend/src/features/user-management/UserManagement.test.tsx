@@ -108,20 +108,20 @@ describe('UserManagement', () => {
         expect(screen.getByRole('table')).toBeInTheDocument();
     });
 
-    it('opens and closes the create-user modal', async () => {
+    it('opens and closes the invite-user modal', async () => {
         render(<UserManagementWithCreateButton />);
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
         });
 
-        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+        await user.click(screen.getByRole('button', { name: /invitar usuario/i }));
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/confirmar contraseña/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/^rol$/i)).toBeInTheDocument();
+        expect(screen.queryByLabelText(/^contraseña$/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/confirmar contraseña/i)).not.toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /cancelar/i }));
 
@@ -130,32 +130,32 @@ describe('UserManagement', () => {
         });
     });
 
-    it('closes the create-user modal when Escape is pressed', async () => {
+    it('closes the invite-user modal when Escape is pressed', async () => {
         render(<UserManagementWithCreateButton />);
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
         });
 
-        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
-        expect(screen.getByRole('dialog', { name: /crear usuario/i })).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /invitar usuario/i }));
+        expect(screen.getByRole('dialog', { name: /invitar usuario/i })).toBeInTheDocument();
 
         await user.keyboard('{Escape}');
 
         await waitFor(() => {
-            expect(screen.queryByRole('dialog', { name: /crear usuario/i })).not.toBeInTheDocument();
+            expect(screen.queryByRole('dialog', { name: /invitar usuario/i })).not.toBeInTheDocument();
         });
     });
 
-    it('closes the create-user modal when the backdrop is clicked', async () => {
+    it('closes the invite-user modal when the backdrop is clicked', async () => {
         render(<UserManagementWithCreateButton />);
 
         await waitFor(() => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
         });
 
-        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
-        const dialog = screen.getByRole('dialog', { name: /crear usuario/i });
+        await user.click(screen.getByRole('button', { name: /invitar usuario/i }));
+        const dialog = screen.getByRole('dialog', { name: /invitar usuario/i });
         expect(dialog).toBeInTheDocument();
 
         const layer = dialog.parentElement;
@@ -163,13 +163,13 @@ describe('UserManagement', () => {
         await user.click(layer!);
 
         await waitFor(() => {
-            expect(screen.queryByRole('dialog', { name: /crear usuario/i })).not.toBeInTheDocument();
+            expect(screen.queryByRole('dialog', { name: /invitar usuario/i })).not.toBeInTheDocument();
         });
     });
 
-    it('creates a user and refreshes the list', async () => {
+    it('invites a user and refreshes the list', async () => {
         mockListUsers.mockResolvedValueOnce([]);
-        mockCreateUser.mockResolvedValueOnce({ id: 'new-user', email: 'new@example.com', role: 'operativo' });
+        mockCreateUser.mockResolvedValueOnce({ id: 'new-user', email: 'new@example.com', role: 'super_admin' });
 
         render(<UserManagementWithCreateButton />);
 
@@ -177,28 +177,21 @@ describe('UserManagement', () => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
         });
 
-        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+        await user.click(screen.getByRole('button', { name: /invitar usuario/i }));
 
         const dialog = screen.getByRole('dialog');
         const emailInput = within(dialog).getByLabelText(/email/i);
-        const passwordInput = within(dialog).getByLabelText(/^contraseña$/i);
-        const confirmInput = within(dialog).getByLabelText(/confirmar contraseña/i);
-        const roleInput = within(dialog).getByLabelText(/^rol$/i);
-        const submitButton = within(dialog).getByRole('button', { name: /crear usuario/i });
+        const roleSelect = within(dialog).getByLabelText(/^rol$/i);
+        const submitButton = within(dialog).getByRole('button', { name: /invitar usuario/i });
 
         await user.type(emailInput, 'new@example.com');
-        await user.type(passwordInput, 'secret123');
-        await user.type(confirmInput, 'secret123');
-        await user.clear(roleInput);
-        await user.type(roleInput, 'operativo');
+        await user.selectOptions(roleSelect, 'super_admin');
         await user.click(submitButton);
 
         await waitFor(() => {
             expect(mockCreateUser).toHaveBeenCalledWith({
                 email: 'new@example.com',
-                password: 'secret123',
-                passwordConfirm: 'secret123',
-                role: 'operativo',
+                role: 'super_admin',
             });
         });
 
@@ -209,9 +202,9 @@ describe('UserManagement', () => {
         expect(screen.getByText('new@example.com')).toBeInTheDocument();
     });
 
-    it('shows an error message when creation fails', async () => {
+    it('shows an error message when invitation fails', async () => {
         mockListUsers.mockResolvedValueOnce([]);
-        mockCreateUser.mockRejectedValueOnce(new Error('Passwords do not match'));
+        mockCreateUser.mockRejectedValueOnce(new Error('User already exists'));
 
         render(<UserManagementWithCreateButton />);
 
@@ -219,21 +212,17 @@ describe('UserManagement', () => {
             expect(screen.getByText(/no hay usuarios registrados/i)).toBeInTheDocument();
         });
 
-        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+        await user.click(screen.getByRole('button', { name: /invitar usuario/i }));
 
         const dialog = screen.getByRole('dialog');
         const emailInput = within(dialog).getByLabelText(/email/i);
-        const passwordInput = within(dialog).getByLabelText(/^contraseña$/i);
-        const confirmInput = within(dialog).getByLabelText(/confirmar contraseña/i);
-        const submitButton = within(dialog).getByRole('button', { name: /crear usuario/i });
+        const submitButton = within(dialog).getByRole('button', { name: /invitar usuario/i });
 
         await user.type(emailInput, 'new@example.com');
-        await user.type(passwordInput, 'secret123');
-        await user.type(confirmInput, 'different');
         await user.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByRole('alert')).toHaveTextContent('Passwords do not match');
+            expect(screen.getByRole('alert')).toHaveTextContent('User already exists');
         });
     });
 

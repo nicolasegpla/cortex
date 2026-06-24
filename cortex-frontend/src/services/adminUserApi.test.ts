@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import { adminUserApi } from './adminUserApi';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 describe('adminUserApi', () => {
     let originalFetch: typeof globalThis.fetch;
@@ -17,7 +17,7 @@ describe('adminUserApi', () => {
     });
 
     describe('createUser', () => {
-        it('sends password_confirm in snake_case to the backend', async () => {
+        it('sends email and role only to the backend', async () => {
             const fetchSpy = vi.fn().mockResolvedValue(
                 new Response(JSON.stringify({ id: 'user-123', email: 'new@example.com', role: 'operativo' }), {
                     status: 201,
@@ -31,8 +31,6 @@ describe('adminUserApi', () => {
 
             await adminUserApi.createUser({
                 email: 'new@example.com',
-                password: 'secret123',
-                passwordConfirm: 'secret123',
                 role: 'operativo',
             });
 
@@ -46,8 +44,6 @@ describe('adminUserApi', () => {
                     }),
                     body: JSON.stringify({
                         email: 'new@example.com',
-                        password: 'secret123',
-                        password_confirm: 'secret123',
                         role: 'operativo',
                     }),
                 })
@@ -56,7 +52,7 @@ describe('adminUserApi', () => {
 
         it('throws when the backend rejects the payload', async () => {
             globalThis.fetch = vi.fn().mockResolvedValue(
-                new Response(JSON.stringify({ detail: 'La confirmación de contraseña no coincide' }), {
+                new Response(JSON.stringify({ detail: 'Rol no válido' }), {
                     status: 422,
                     headers: { 'Content-Type': 'application/json' },
                 })
@@ -65,11 +61,9 @@ describe('adminUserApi', () => {
             await expect(
                 adminUserApi.createUser({
                     email: 'new@example.com',
-                    password: 'secret123',
-                    passwordConfirm: 'different',
-                    role: 'operativo',
+                    role: 'admin',
                 })
-            ).rejects.toThrow('La confirmación de contraseña no coincide');
+            ).rejects.toThrow('Rol no válido');
         });
     });
 

@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     supabase_service_key: str | None = Field(default=None, alias='SUPABASE_SERVICE_KEY')
     supabase_jwt_secret: str | None = Field(default=None, alias='SUPABASE_JWT_SECRET')
     supabase_anon_key: str | None = Field(default=None, alias='SUPABASE_ANON_KEY')
+    supabase_invite_redirect_url: str = Field(
+        default='http://localhost:5173/auth/invite',
+        alias='SUPABASE_INVITE_REDIRECT_URL',
+    )
+    resend_api_key: str | None = Field(default=None, alias='RESEND_API_KEY')
+    resend_from_email: str = Field(default='noreply@cortex.local', alias='RESEND_FROM_EMAIL')
     encryption_key: str | None = Field(default=None, alias='ENCRYPTION_KEY')
 
     @property

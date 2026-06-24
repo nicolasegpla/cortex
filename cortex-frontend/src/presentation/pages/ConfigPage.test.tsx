@@ -128,7 +128,7 @@ describe('ConfigPage', () => {
         await user.click(screen.getByRole('button', { name: 'Usuarios' }));
 
         expect(screen.getByRole('heading', { name: 'Administración de usuarios' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /crear usuario/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /invitar usuario/i })).toBeInTheDocument();
     });
 
     it('keeps a valid accessible label when the Usuarios tab is active', async () => {
@@ -156,10 +156,10 @@ describe('ConfigPage', () => {
         render(<ConfigPage variant="modal" onClose={onClose} />);
 
         await user.click(screen.getByRole('button', { name: 'Usuarios' }));
-        await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+        await user.click(screen.getByRole('button', { name: /invitar usuario/i }));
 
         expect(screen.getByRole('dialog', { name: /administración de usuarios/i })).toBeInTheDocument();
-        expect(screen.getByRole('dialog', { name: /crear usuario/i })).toBeInTheDocument();
+        expect(screen.getByRole('dialog', { name: /invitar usuario/i })).toBeInTheDocument();
         expect(onClose).not.toHaveBeenCalled();
     });
 });

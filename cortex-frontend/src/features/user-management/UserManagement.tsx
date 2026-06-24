@@ -2,7 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
 
-import { Button, Input, TableLoadingRow } from '@/presentation/components/atoms';
+import { Button, Input, Select, TableLoadingRow } from '@/presentation/components/atoms';
 import { DeleteConfirmationModal } from '@/presentation/components/organisms';
 import { adminUserApi } from '@/services/adminUserApi';
 import { getTopmostModal } from '@/shared/modalUtils';
@@ -24,17 +24,15 @@ interface UserManagementProps {
 
 async function createUserAction(_prevState: FormState, formData: FormData): Promise<FormState> {
     const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    const passwordConfirm = formData.get('passwordConfirm') as string;
     const role = formData.get('role') as string;
 
     try {
-        const user = await adminUserApi.createUser({ email, password, passwordConfirm, role });
-        return { success: true, message: 'Usuario creado correctamente.', user };
+        const user = await adminUserApi.createUser({ email, role });
+        return { success: true, message: 'Usuario invitado correctamente.', user };
     } catch (err) {
         return {
             success: false,
-            message: err instanceof Error ? err.message : 'Error al crear el usuario.',
+            message: err instanceof Error ? err.message : 'Error al invitar al usuario.',
             user: null,
         };
     }
@@ -59,10 +57,22 @@ export function UserManagement({
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleteSuccess, setDeleteSuccess] = useState(false);
     const [userIdToDelete, setUserIdToDelete] = useState<string | null>(null);
+    const [selectedRole, setSelectedRole] = useState('operativo');
     const onCloseCreateModalRef = useRef(onCloseCreateModal);
     const lastCreatedUserId = useRef<string | null>(null);
 
     onCloseCreateModalRef.current = onCloseCreateModal;
+
+    const ROLE_OPTIONS = [
+        { value: 'operativo', label: 'Operativo' },
+        { value: 'super_admin', label: 'Super administrador' },
+    ];
+
+    useEffect(() => {
+        if (isCreateModalOpen) {
+            setSelectedRole('operativo');
+        }
+    }, [isCreateModalOpen]);
 
     const closeCreateModal = useCallback(() => {
         if (isPending) {
@@ -179,7 +189,7 @@ export function UserManagement({
         <section aria-label="Administración de usuarios" className="user-management">
             <div className="user-management__toolbar">
                 <Button type="button" onClick={onOpenCreateModal}>
-                    Crear usuario
+                    Invitar usuario
                 </Button>
             </div>
 
@@ -246,7 +256,7 @@ export function UserManagement({
                     >
                         <header className="user-management__modal-header">
                             <h3 id="create-user-title" className="user-management__modal-title">
-                                Crear usuario
+                                Invitar usuario
                             </h3>
                             <button
                                 type="button"
@@ -275,24 +285,17 @@ export function UserManagement({
                                 placeholder="name@company.com"
                                 required
                             />
-                            <Input
-                                label="Contraseña"
-                                name="password"
-                                type="password"
-                                placeholder="Ingresá una contraseña"
+                            <Select
+                                label="Rol"
+                                name="role"
+                                value={selectedRole}
+                                onChange={(e) => setSelectedRole(e.target.value)}
+                                options={ROLE_OPTIONS}
                                 required
                             />
-                            <Input
-                                label="Confirmar contraseña"
-                                name="passwordConfirm"
-                                type="password"
-                                placeholder="Repetí la contraseña"
-                                required
-                            />
-                            <Input label="Rol" name="role" placeholder="operativo" defaultValue="operativo" required />
                             <div className="user-management__form-actions">
                                 <Button type="submit" disabled={isPending}>
-                                    {isPending ? 'Creando...' : 'Crear usuario'}
+                                    {isPending ? 'Invitando...' : 'Invitar usuario'}
                                 </Button>
                                 <Button
                                     type="button"

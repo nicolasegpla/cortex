@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from '@/presentation/layouts/AppShell';
 import { DashboardPage } from '@/presentation/pages/DashboardPage';
 import { LoginPage } from '@/presentation/pages/LoginPage';
+import { InvitePage } from '@/presentation/pages/InvitePage';
 import { DatabasesPage } from '@/presentation/pages/DatabasesPage';
 import { SessionsPage } from '@/presentation/pages/SessionsPage';
 import { ConfigPage } from '@/presentation/pages/ConfigPage';
@@ -18,6 +19,10 @@ export const appRoutes = [
     {
         path: '/login',
         element: <LoginPage />,
+    },
+    {
+        path: '/auth/invite',
+        element: <InvitePage />,
     },
     {
         path: '/',
