@@ -76,6 +76,34 @@ async function* readSSEChunks(stream: ReadableStream<Uint8Array>): AsyncGenerato
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let currentEvent = '';
+    let currentData = '';
+    let pendingEvent: { event: string; data: string } | null = null;
+
+    const processLine = (line: string): void => {
+        if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7);
+        } else if (line.startsWith('data: ')) {
+            currentData += `${currentData ? '\n' : ''}${line.slice(6)}`;
+        } else if (line === '') {
+            if (currentEvent) {
+                pendingEvent = { event: currentEvent, data: currentData };
+                currentEvent = '';
+                currentData = '';
+            }
+        }
+    };
+
+    const flushBuffer = (): void => {
+        if (!buffer.trim()) return;
+
+        const lines = buffer.split('\n');
+        for (const rawLine of lines) {
+            const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+            processLine(line);
+        }
+        buffer = '';
+    };
 
     try {
         while (true) {
@@ -85,38 +113,26 @@ async function* readSSEChunks(stream: ReadableStream<Uint8Array>): AsyncGenerato
             buffer += decoder.decode(value, { stream: true });
 
             const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+            buffer = lines.pop() ?? '';
 
-            let currentEvent = '';
-            let currentData = '';
-
-            for (const line of lines) {
-                if (line.startsWith('event: ')) {
-                    currentEvent = line.slice(7);
-                } else if (line.startsWith('data: ')) {
-                    currentData += `${currentData ? '\n' : ''}${line.slice(6)}`;
-                } else if (line === '' && currentEvent) {
-                    yield { event: currentEvent, data: currentData };
-                    currentEvent = '';
-                    currentData = '';
+            for (const rawLine of lines) {
+                const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+                processLine(line);
+                if (pendingEvent) {
+                    yield pendingEvent;
+                    pendingEvent = null;
                 }
             }
         }
 
-        // Flush remaining buffer
-        if (buffer.trim()) {
-            const lines = buffer.split('\n');
-            let currentEvent = '';
-            let currentData = '';
-            for (const line of lines) {
-                if (line.startsWith('event: ')) {
-                    currentEvent = line.slice(7);
-                } else if (line.startsWith('data: ')) {
-                    currentData += `${currentData ? '\n' : ''}${line.slice(6)}`;
-                } else if (line === '' && currentEvent) {
-                    yield { event: currentEvent, data: currentData };
-                }
-            }
+        flushBuffer();
+        if (pendingEvent) {
+            yield pendingEvent;
+            pendingEvent = null;
+        }
+
+        if (currentEvent) {
+            yield { event: currentEvent, data: currentData };
         }
     } finally {
         reader.releaseLock();

@@ -100,6 +100,10 @@ async def chat_stream(
                 f"provider={request.provider} model={request.model}"
             )
 
+            # Emit a proxy-safe ping before the long-running orchestration so
+            # the connection is established and mobile/proxy buffers are flushed.
+            yield ": ping\n\n"
+
             answer = await SqlOrchestrator().run(
                 user_text=latest_user_content,
                 messages=messages,
@@ -118,4 +122,9 @@ async def chat_stream(
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )

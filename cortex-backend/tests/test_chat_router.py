@@ -158,6 +158,60 @@ class TestChatRouterSolePath:
         assert call_kwargs["api_key"] == "sk-test-key"
         assert len(call_kwargs["request_id"]) == 6
 
+    def test_chat_stream_sse_headers_are_defensive(
+        self,
+        client: TestClient,
+        auth_token: str,
+        mock_sql_orchestrator,
+    ):
+        """SSE responses must disable caching/proxy buffering for mobile delivery."""
+        _, mock_instance = mock_sql_orchestrator
+        mock_instance.run = AsyncMock(return_value="There are 5 breweries.")
+
+        response = client.post(
+            "/chat/stream",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "How many breweries?"}],
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
+        assert "no-cache" in response.headers.get("cache-control", "")
+        assert "no-transform" in response.headers.get("cache-control", "")
+        assert response.headers.get("x-accel-buffering") == "no"
+        assert response.headers.get("connection") == "keep-alive"
+
+    def test_chat_stream_emits_proxy_safe_ping_before_orchestrator(
+        self,
+        client: TestClient,
+        auth_token: str,
+        mock_sql_orchestrator,
+    ):
+        """A comment ping is sent before long processing to keep proxies/mobile alive."""
+        _, mock_instance = mock_sql_orchestrator
+        mock_instance.run = AsyncMock(return_value="There are 5 breweries.")
+
+        response = client.post(
+            "/chat/stream",
+            headers={"Authorization": f"Bearer {auth_token}"},
+            json={
+                "model": "gpt-4o",
+                "provider": "openai",
+                "messages": [{"role": "user", "content": "How many breweries?"}],
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        body = response.text
+        assert body.startswith(": ping\n\n")
+        assert "event: delta" in body
+        assert "There are 5 breweries." in body
+        assert "event: done" in body
+
     def test_chat_stream_sole_path_for_all_providers(
         self,
         client: TestClient,

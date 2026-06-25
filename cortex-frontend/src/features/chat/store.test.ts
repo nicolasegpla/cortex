@@ -97,6 +97,61 @@ describe('useChatStore', () => {
             });
         });
 
+        it('should reassemble an SSE event split across chunk boundaries', async () => {
+            const sseChunks = ['event: del', 'ta\ndata: Hello\n\n'];
+
+            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('test');
+
+            const state = useChatStore.getState();
+            expect(state.messages).toHaveLength(2);
+            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello' });
+        });
+
+        it('should reassemble fragmented data lines across multiple chunks', async () => {
+            const sseChunks = ['event: delta\ndata: He', 'llo\n\nevent: delta\ndata: world\n\n'];
+
+            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('test');
+
+            const state = useChatStore.getState();
+            expect(state.messages).toHaveLength(2);
+            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Helloworld' });
+        });
+
+        it('should preserve multiline data when fragmented mid-line', async () => {
+            const sseChunks = ['event: delta\ndata: Line 1\nda', 'ta: Line 2\n\n'];
+
+            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('test');
+
+            const state = useChatStore.getState();
+            expect(state.messages).toHaveLength(2);
+            expect(state.messages[1]).toEqual({
+                role: 'assistant',
+                content: 'Line 1\nLine 2',
+            });
+        });
+
+        it('should ignore SSE comments and continue parsing fragmented events', async () => {
+            const sseChunks = [': pin', 'g\n\nevent: delta\ndata: Hello\n\n'];
+
+            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('test');
+
+            const state = useChatStore.getState();
+            expect(state.messages).toHaveLength(2);
+            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello' });
+        });
+
         it('should handle streaming error event', async () => {
             const sseChunks = [
                 'event: delta\ndata: Partial\n\n',
