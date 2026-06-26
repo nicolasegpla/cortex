@@ -643,6 +643,41 @@ class TestReprocessEmbedding:
             assert scheduled_call[0][1] == sample_brewery_id
             assert scheduled_call.kwargs.get("force") is True
 
+    def test_reprocess_embedding_fails_when_pending_write_fails(
+        self,
+        client: TestClient,
+        admin_token: str,
+        sample_brewery_id: UUID,
+        sample_brewery: dict,
+        monkeypatch,
+    ) -> None:
+        with patch("app.routers.breweries.BackgroundTasks.add_task") as mock_add_task:
+
+            def mock_get_by_id(_self, brewery_id):
+                if brewery_id == sample_brewery_id:
+                    return sample_brewery
+                return None
+
+            def mock_mark_pending(_self, brewery_id):
+                assert brewery_id == sample_brewery_id
+                return None
+
+            monkeypatch.setattr(
+                "app.services.brewery_service.BreweryService.get_by_id", mock_get_by_id
+            )
+            monkeypatch.setattr(
+                "app.services.brewery_service.BreweryService.mark_embedding_pending",
+                mock_mark_pending,
+            )
+
+            response = client.post(
+                f"/breweries/{sample_brewery_id}/reprocess-embedding",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            mock_add_task.assert_not_called()
+
     def test_reprocess_embedding_operativo_returns_403(
         self,
         client: TestClient,

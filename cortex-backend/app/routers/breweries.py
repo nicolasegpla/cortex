@@ -158,5 +158,12 @@ def reprocess_embedding(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No se encontró la cervecería",
         )
-    service.mark_embedding_pending(brewery_id)
+
+    pending = service.mark_embedding_pending(brewery_id)
+    if not pending:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No se pudo marcar el embedding como pendiente",
+        )
+
     background_tasks.add_task(service.refresh_embedding, brewery_id, force=True)
