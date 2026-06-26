@@ -9,6 +9,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.routers.breweries import _payload_has_semantic_changes
 from app.schemas.breweries import BreweryCreate, BreweryUpdate
 
 
@@ -82,6 +83,45 @@ def sample_brewery(sample_brewery_id: UUID) -> dict:
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+class TestSemanticEmbeddingChanges:
+    """Tests for the semantic-change detector used on brewery updates."""
+
+    def test_empty_payload_has_no_semantic_changes(self) -> None:
+        payload = BreweryUpdate()
+        assert _payload_has_semantic_changes(payload) is False
+
+    def test_excluded_field_only_has_no_semantic_changes(self) -> None:
+        payload = BreweryUpdate(nit="900123456-7", correo="brew@example.com")
+        assert _payload_has_semantic_changes(payload) is False
+
+    def test_direccion_only_has_no_semantic_changes(self) -> None:
+        payload = BreweryUpdate(direccion="Calle 123")
+        assert _payload_has_semantic_changes(payload) is False
+
+    def test_phone_only_has_no_semantic_changes(self) -> None:
+        payload = BreweryUpdate(celular_1="3001234567", celular_2="3007654321")
+        assert _payload_has_semantic_changes(payload) is False
+
+    def test_nombre_contacto_is_semantic(self) -> None:
+        payload = BreweryUpdate(nombre_contacto="Maria Gomez")
+        assert _payload_has_semantic_changes(payload) is True
+
+    def test_semantic_field_triggers_change(self) -> None:
+        payload = BreweryUpdate(nombre_cerveceria="Updated Brewery")
+        assert _payload_has_semantic_changes(payload) is True
+
+    def test_mixed_excluded_and_semantic_triggers_change(self) -> None:
+        payload = BreweryUpdate(
+            nombre_cerveceria="Updated Brewery",
+            nit="900123456-7",
+        )
+        assert _payload_has_semantic_changes(payload) is True
+
+    def test_none_value_for_semantic_field_is_ignored(self) -> None:
+        payload = BreweryUpdate(nombre_cerveceria=None)
+        assert _payload_has_semantic_changes(payload) is False
 
 
 class TestBreweriesRouter:
@@ -261,7 +301,7 @@ class TestBreweriesRouter:
         assert response.json()["detail"] == "No se encontró la cervecería"
 
     def test_update_brewery_returns_200(self, client: TestClient, admin_token: str, sample_brewery_id: UUID, sample_brewery: dict, monkeypatch) -> None:
-        def mock_update(_self, brewery_id, payload):
+        def mock_update(_self, brewery_id, payload, mark_embedding_pending=False):
             if brewery_id == sample_brewery_id:
                 updated = sample_brewery.copy()
                 updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]
@@ -282,7 +322,7 @@ class TestBreweriesRouter:
 
     def test_update_brewery_nonexistent_returns_404(self, client: TestClient, admin_token: str, monkeypatch) -> None:
         monkeypatch.setattr(
-            "app.services.brewery_service.BreweryService.update", lambda _self, _id, _payload: None
+            "app.services.brewery_service.BreweryService.update", lambda _self, _id, _payload, mark_embedding_pending=False: None
         )
 
         response = client.put(
@@ -393,10 +433,11 @@ class TestBreweriesRouter:
         monkeypatch,
         mock_background_tasks: MagicMock,
     ) -> None:
-        def mock_update(_self, brewery_id, payload):
+        def mock_update(_self, brewery_id, payload, mark_embedding_pending=False):
             if brewery_id == sample_brewery_id:
                 updated = sample_brewery.copy()
                 updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]
+                updated["embedding_status"] = "pending" if mark_embedding_pending else updated.get("embedding_status")
                 return updated
             return None
 
@@ -413,10 +454,79 @@ class TestBreweriesRouter:
         )
 
         assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["embedding_status"] == "pending"
         mock_background_tasks.assert_called_once()
         scheduled_call = mock_background_tasks.call_args
         assert scheduled_call[0][0].__func__.__name__ == "refresh_embedding"
         assert scheduled_call[0][1] == str(sample_brewery_id)
+
+    def test_update_brewery_excluded_field_does_not_schedule_embedding_refresh(
+        self,
+        client: TestClient,
+        admin_token: str,
+        sample_brewery_id: UUID,
+        sample_brewery: dict,
+        monkeypatch,
+        mock_background_tasks: MagicMock,
+    ) -> None:
+        def mock_update(_self, brewery_id, payload, mark_embedding_pending=False):
+            if brewery_id == sample_brewery_id:
+                updated = sample_brewery.copy()
+                updated["nit"] = payload.nit or updated.get("nit")
+                updated["embedding_status"] = (
+                    "pending" if mark_embedding_pending else updated.get("embedding_status")
+                )
+                return updated
+            return None
+
+        monkeypatch.setattr("app.services.brewery_service.BreweryService.update", mock_update)
+
+        mock_settings = MagicMock()
+        mock_settings.embeddings_enabled = True
+        monkeypatch.setattr("app.routers.breweries.get_settings", lambda: mock_settings)
+
+        response = client.put(
+            f"/breweries/{sample_brewery_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"nit": "900999999-9"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["embedding_status"] is None
+        mock_background_tasks.assert_not_called()
+
+    def test_update_brewery_disabled_embeddings_keeps_existing_status(
+        self,
+        client: TestClient,
+        admin_token: str,
+        sample_brewery_id: UUID,
+        sample_brewery: dict,
+        monkeypatch,
+        mock_background_tasks: MagicMock,
+    ) -> None:
+        def mock_update(_self, brewery_id, payload, mark_embedding_pending=False):
+            if brewery_id == sample_brewery_id:
+                updated = sample_brewery.copy()
+                updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]
+                return updated
+            return None
+
+        monkeypatch.setattr("app.services.brewery_service.BreweryService.update", mock_update)
+
+        mock_settings = MagicMock()
+        mock_settings.embeddings_enabled = False
+        monkeypatch.setattr("app.routers.breweries.get_settings", lambda: mock_settings)
+
+        response = client.put(
+            f"/breweries/{sample_brewery_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"nombre_cerveceria": "Updated Brewery"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_background_tasks.assert_not_called()
 
     def test_create_brewery_skips_embedding_when_disabled(
         self,
@@ -460,7 +570,7 @@ class TestBreweriesRouter:
         monkeypatch,
         mock_background_tasks: MagicMock,
     ) -> None:
-        def mock_update(_self, brewery_id, payload):
+        def mock_update(_self, brewery_id, payload, mark_embedding_pending=False):
             if brewery_id == sample_brewery_id:
                 updated = sample_brewery.copy()
                 updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]

@@ -19,9 +19,13 @@ Generate, store, and maintain OpenAI `text-embedding-3-small` vectors for brewer
 
 The system MUST build a deterministic, ordered canonical text blob from brewery profile business fields. Each field MUST be labeled human-readably (e.g. `Ciudad: Bogotá`). Fields and array items MUST be sorted deterministically so identical data yields byte-identical text and therefore identical hashes.
 
+The canonical text is the only data sent to OpenAI for embedding generation. The following boundaries are enforced in code and MUST be documented for operators:
+
 | Include (semantic business/craft fields) | Exclude (PII / non-semantic / metadata) |
 |---|---|
-| `nombre_cerveceria`, `razon_social`, `nombre_contacto`, `nombre_cervecero`, `direccion`, `ciudad`, `pais`, `tipo_operacion`, `estilos_cerveza`, `maltas_utilizadas`, `lupulos_utilizados`, `levaduras_utilizadas`, `utiliza_otros_productos`, `marca_equipo`, `capacidad_brewhouse`, `capacidad_fermentacion`, `litros_mes`, `calidad_equipo`, `formatos_venta`, `donde_vende`, `observaciones`, `oportunidades` | `id`, `created_at`, `updated_at`, `nit`, `celular_1`, `celular_2`, `correo`, `embedding`, `embedding_status`, `embedding_model`, `embedding_source_hash`, `embedding_updated_at` |
+| `nombre_cerveceria`, `razon_social`, `nombre_contacto`, `nombre_cervecero`, `ciudad`, `pais`, `tipo_operacion`, `estilos_cerveza`, `maltas_utilizadas`, `lupulos_utilizados`, `levaduras_utilizadas`, `utiliza_otros_productos`, `marca_equipo`, `capacidad_brewhouse`, `capacidad_fermentacion`, `litros_mes`, `calidad_equipo`, `formatos_venta`, `donde_vende`, `observaciones`, `oportunidades` | `id`, `created_at`, `updated_at`, `nit`, `celular_1`, `celular_2`, `correo`, `direccion`, `embedding`, `embedding_status`, `embedding_model`, `embedding_source_hash`, `embedding_updated_at` |
+
+**Third-party data boundary**: OpenAI receives only the canonical text constructed from the Include list above. Phone numbers (`celular_1`, `celular_2`), email (`correo`), tax ID (`nit`), street address (`direccion`), primary keys, timestamps, and all embedding metadata columns are never included in the text sent to OpenAI. `nombre_contacto` is intentionally included as business context; it is the only person-name field exported to the embedding provider.
 
 #### Scenario: Identical data yields identical text
 - GIVEN two brewery records with identical included fields
@@ -29,9 +33,9 @@ The system MUST build a deterministic, ordered canonical text blob from brewery 
 - THEN both produce byte-identical text and identical SHA-256 hashes
 
 #### Scenario: PII and metadata excluded
-- GIVEN a brewery populated with phone, email, NIT, contact name, and timestamps
+- GIVEN a brewery populated with phone, email, NIT, contact name, street address, and timestamps
 - WHEN canonical text is computed
-- THEN `nombre_contacto` appears in the text, and none of `nit`, `celular_1`, `celular_2`, `correo`, `id`, `created_at`, `updated_at`, or embedding columns appear in the text
+- THEN `nombre_contacto` appears in the text, and none of `nit`, `celular_1`, `celular_2`, `correo`, `direccion`, `id`, `created_at`, `updated_at`, or embedding columns appear in the text
 
 #### Scenario: Array fields sorted deterministically
 - GIVEN a brewery whose `estilos_cerveza` array is stored in arbitrary order
@@ -86,7 +90,9 @@ The system MUST track embedding state in `embedding_status` with values `pending
 
 | Transition | Trigger | Resulting `embedding_status` | Other columns |
 |---|---|---|---|
-| create | new brewery inserted | `pending` | none written |
+| create | new brewery inserted | `pending` (column default) | none written |
+| update | brewery updated with a semantic field change while `EMBEDDINGS_ENABLED=true` | `pending` | no embedding columns written; the row is explicitly marked stale so it cannot stay misleadingly `ready` if the background refresh is dropped |
+| excluded-field update | brewery updated with only excluded/non-semantic fields | unchanged | no embedding columns written and no background refresh is scheduled |
 | success | OpenAI call succeeds | `ready` | write `embedding`, `embedding_model`, `embedding_source_hash`, `embedding_updated_at` |
 | failure | OpenAI call fails | `error` | previous `embedding` and `embedding_source_hash` preserved; `embedding_updated_at` not advanced |
 
@@ -94,6 +100,16 @@ The system MUST track embedding state in `embedding_status` with values `pending
 - GIVEN a brewery is created
 - WHEN the row is inserted
 - THEN `embedding_status='pending'` and no embedding vector is written yet
+
+#### Scenario: Semantic update marks embedding status pending
+- GIVEN an existing brewery with `embedding_status='ready'` and `EMBEDDINGS_ENABLED=true`
+- WHEN the brewery is updated through the API with a change to a canonical semantic field (for example `nombre_cerveceria`)
+- THEN the HTTP response returns immediately with `embedding_status='pending'` and a background refresh is scheduled
+
+#### Scenario: Excluded-field-only update does not mark embedding pending
+- GIVEN an existing brewery with `embedding_status='ready'` and `EMBEDDINGS_ENABLED=true`
+- WHEN the brewery is updated through the API with only excluded/non-semantic fields (for example `nit`, `correo`, `celular_1`, `celular_2`, or `direccion`)
+- THEN the HTTP response returns immediately with `embedding_status` unchanged and no background refresh is scheduled
 
 #### Scenario: Failure sets error without losing prior vector
 - GIVEN a brewery with a prior successful embedding

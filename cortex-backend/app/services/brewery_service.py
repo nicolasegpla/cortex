@@ -62,12 +62,21 @@ class BreweryService:
         )
         return response.data[0] if response.data else None
 
-    def update(self, brewery_id: UUID, payload: BreweryUpdate) -> dict | None:
+    def update(
+        self,
+        brewery_id: UUID,
+        payload: BreweryUpdate,
+        mark_embedding_pending: bool = False,
+    ) -> dict | None:
         """Update an existing brewery.
 
         Args:
             brewery_id: The UUID of the brewery to update.
             payload: The update data (only provided fields are updated).
+            mark_embedding_pending: If True, set ``embedding_status`` to
+                ``pending`` in the same write. Used when embeddings are enabled
+                so the row does not stay misleadingly ``ready`` if the
+                background refresh task is dropped.
 
         Returns:
             dict | None: The updated brewery record or None if not found.
@@ -75,6 +84,9 @@ class BreweryService:
         data = payload.model_dump(exclude_unset=True, exclude_none=True)
         if not data:
             return self.get_by_id(brewery_id)
+
+        if mark_embedding_pending:
+            data["embedding_status"] = "pending"
 
         response = (
             self.supabase.table("breweries").update(data).eq("id", str(brewery_id)).execute()

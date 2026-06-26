@@ -82,6 +82,8 @@ class TestEmbeddingService:
         assert "3001234567" not in text
         assert "3007654321" not in text
         assert "brew@example.com" not in text
+        assert "Calle 123" not in text
+        assert "Dirección:" not in text
         assert "00000000-0000-0000-0000-000000000001" not in text
         assert "2026-01-01" not in text
         assert "old-model" not in text
@@ -131,6 +133,20 @@ class TestEmbeddingService:
 
         assert "IPA, Stout" in text
         assert "None" not in text
+
+    def test_build_canonical_text_excludes_direccion_with_separate_values(
+        self, service
+    ):
+        brewery = {
+            "direccion": "Avenida Siempre Viva 742",
+            "ciudad": "Springfield",
+        }
+
+        text = service.build_canonical_text(brewery)
+
+        assert "Avenida Siempre Viva 742" not in text
+        assert "Dirección:" not in text
+        assert "Ciudad: Springfield" in text
 
     # --- hash ---
 

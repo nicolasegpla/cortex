@@ -58,7 +58,7 @@ class TestBreweryPermissions:
                 "updated_at": now,
             }
 
-        def mock_update(_self, brewery_id, payload):
+        def mock_update(_self, brewery_id, payload, mark_embedding_pending=False):
             return {
                 "id": str(brewery_id),
                 "nombre_cerveceria": payload.nombre_cerveceria or "Test",

@@ -364,6 +364,41 @@ class TestBreweryService:
         assert result["nombre_cerveceria"] == "Updated Name"
         mock_supabase.table.return_value.update.assert_called_once()
 
+    def test_update_marks_embedding_pending_when_requested(self, service, mock_supabase) -> None:
+        brewery_id = uuid4()
+        payload = BreweryUpdate(nombre_cerveceria="Updated Name")
+        expected_data = {
+            "id": str(brewery_id),
+            "nombre_cerveceria": "Updated Name",
+            "embedding_status": "pending",
+        }
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
+            expected_data
+        ]
+
+        result = service.update(brewery_id, payload, mark_embedding_pending=True)
+
+        update_call = mock_supabase.table.return_value.update.call_args[0][0]
+        assert update_call["nombre_cerveceria"] == "Updated Name"
+        assert update_call["embedding_status"] == "pending"
+        assert result == expected_data
+
+    def test_update_does_not_mark_embedding_pending_by_default(self, service, mock_supabase) -> None:
+        brewery_id = uuid4()
+        payload = BreweryUpdate(nombre_cerveceria="Updated Name")
+        expected_data = {
+            "id": str(brewery_id),
+            "nombre_cerveceria": "Updated Name",
+        }
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
+            expected_data
+        ]
+
+        service.update(brewery_id, payload)
+
+        update_call = mock_supabase.table.return_value.update.call_args[0][0]
+        assert "embedding_status" not in update_call
+
     def test_update_nonexistent_brewery_returns_none(self, service, mock_supabase) -> None:
         brewery_id = uuid4()
         payload = BreweryUpdate(nombre_cerveceria="Updated Name")

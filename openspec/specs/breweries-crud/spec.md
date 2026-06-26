@@ -8,7 +8,7 @@ Define authenticated brewery CRUD list behavior with compact rows and modal-driv
 
 ### Requirement: Authenticated brewery CRUD API
 
-The system MUST expose authenticated `POST /breweries`, `GET /breweries`, `GET /breweries/{id}`, `PUT /breweries/{id}`, and `DELETE /breweries/{id}` operations backed by `public.breweries`. The `POST` and `PUT` operations MUST schedule a best-effort background embedding refresh as a side effect after the primary write succeeds, MUST NOT block the HTTP response on embedding generation, and MUST return successfully even when embedding generation fails. The brewery response model MUST include the `embedding_status` and `embedding_updated_at` metadata fields.
+The system MUST expose authenticated `POST /breweries`, `GET /breweries`, `GET /breweries/{id}`, `PUT /breweries/{id}`, and `DELETE /breweries/{id}` operations backed by `public.breweries`. The `POST` and `PUT` operations MUST schedule a best-effort background embedding refresh as a side effect after the primary write succeeds, MUST NOT block the HTTP response on embedding generation, and MUST return successfully even when embedding generation fails. The `PUT` operation MUST additionally set `embedding_status='pending'` in the primary write when embeddings are enabled AND the update changes at least one canonical semantic field, so the row does not remain misleadingly `ready` with an old embedding if the background task is dropped. Excluded-field-only updates (for example `nit`, `correo`, phones, or `direccion`) MUST leave `embedding_status` unchanged and MUST NOT schedule a background refresh. The brewery response model MUST include the `embedding_status` and `embedding_updated_at` metadata fields.
 
 (Previously: Requirement only described the CRUD operations and status codes, with no embedding side effect and no embedding metadata in the response.)
 
@@ -22,10 +22,20 @@ The system MUST expose authenticated `POST /breweries`, `GET /breweries`, `GET /
 - WHEN the user creates a brewery
 - THEN the API returns `201 Created` immediately and a background embedding refresh is scheduled for the new record
 
-#### Scenario: Update schedules background embedding refresh
+#### Scenario: Update schedules background embedding refresh on semantic change
 - GIVEN an authenticated user and an existing brewery
-- WHEN the user updates the brewery
+- WHEN the user updates the brewery with a change to a canonical semantic field
 - THEN the API returns `200 OK` immediately and a background embedding refresh is scheduled for the record
+
+#### Scenario: Update marks embedding status pending when enabled and semantic field changes
+- GIVEN an authenticated user, an existing brewery with `embedding_status='ready'`, and `EMBEDDINGS_ENABLED=true`
+- WHEN the user updates the brewery with a change to a canonical semantic field
+- THEN the API returns `200 OK` immediately with `embedding_status='pending'`, and a background embedding refresh is scheduled for the record
+
+#### Scenario: Excluded-field-only update does not schedule embedding refresh
+- GIVEN an authenticated user, an existing brewery with `embedding_status='ready'`, and `EMBEDDINGS_ENABLED=true`
+- WHEN the user updates the brewery with only excluded/non-semantic fields (for example `nit`, `correo`, phones, or `direccion`)
+- THEN the API returns `200 OK` immediately with `embedding_status` unchanged and no background embedding refresh is scheduled
 
 #### Scenario: CRUD succeeds when embedding generation fails
 - GIVEN an authenticated user, embeddings enabled, and the OpenAI embedding call fails

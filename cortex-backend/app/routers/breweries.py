@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.core.security import User, get_current_user, require_role
 from app.schemas.breweries import BreweryCreate, BreweryResponse, BreweryUpdate
 from app.services.brewery_service import BreweryService
+from app.services.embedding_service import EmbeddingService
 from app.services.supabase_service import SupabaseService
 
 router = APIRouter(prefix='/breweries', tags=['breweries'])
@@ -23,6 +24,17 @@ def get_brewery_service() -> BreweryService:
             detail="Supabase no está configurado",
         )
     return BreweryService(client)
+
+
+def _payload_has_semantic_changes(payload: BreweryUpdate) -> bool:
+    """Return True if the update payload touches canonical embedding fields.
+
+    Excluded fields (for example ``nit``, ``correo``, phones, and
+    ``direccion``) do not affect the embedding text and must not trigger a
+    refresh.
+    """
+    effective_data = payload.model_dump(exclude_unset=True, exclude_none=True)
+    return any(field in effective_data for field in EmbeddingService.CANONICAL_FIELDS)
 
 
 @router.post('', response_model=BreweryResponse, status_code=status.HTTP_201_CREATED)
@@ -89,15 +101,18 @@ def update_brewery(
 
     Accessible by both super_admin and operativo roles.
     A best-effort embedding refresh is scheduled in the background when
-    embeddings are enabled.
+    embeddings are enabled AND the update changes at least one canonical
+    semantic field. Excluded-field updates (for example nit, correo, or
+    phones) do not mark the embedding stale or trigger a refresh.
     """
-    brewery = service.update(brewery_id, payload)
+    semantic_change = _payload_has_semantic_changes(payload)
+    brewery = service.update(brewery_id, payload, mark_embedding_pending=semantic_change)
     if not brewery:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No se encontró la cervecería",
         )
-    if get_settings().embeddings_enabled:
+    if get_settings().embeddings_enabled and semantic_change:
         background_tasks.add_task(service.refresh_embedding, str(brewery_id))
     return brewery
 
