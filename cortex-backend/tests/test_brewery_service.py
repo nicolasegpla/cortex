@@ -1,13 +1,254 @@
 """Tests for BreweryService business logic."""
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
 import pytest
 
+from app.core.config import Settings
 from app.schemas.breweries import BreweryCreate, BreweryUpdate
 from app.services.brewery_service import BreweryService
+
+
+class TestBreweryServiceRefreshEmbedding:
+    """Test BreweryService.refresh_embedding hash dedup and OpenAI wiring."""
+
+    @pytest.fixture
+    def mock_supabase(self):
+        return MagicMock()
+
+    @pytest.fixture
+    def mock_embedding_service(self):
+        mock = MagicMock()
+        mock.build_canonical_text.return_value = "canonical text"
+        mock.compute_hash.return_value = "current-hash"
+        mock.generate_embedding = AsyncMock(return_value=[0.01] * 1536)
+        return mock
+
+    @pytest.fixture
+    def settings(self):
+        return Settings(
+            OPENAI_API_KEY="sk-test",
+            EMBEDDING_MODEL="text-embedding-3-small",
+            EMBEDDING_DIMENSION=1536,
+            EMBEDDINGS_ENABLED=True,
+        )
+
+    @pytest.fixture
+    def service(self, mock_supabase, mock_embedding_service, settings):
+        return BreweryService(
+            mock_supabase,
+            embedding_service=mock_embedding_service,
+            settings=settings,
+        )
+
+    @pytest.fixture
+    def brewery_id(self):
+        return uuid4()
+
+    def _brewery_row(self, brewery_id: UUID, **overrides):
+        return {
+            "id": str(brewery_id),
+            "nombre_cerveceria": "Test Brewery",
+            "embedding": [0.1] * 1536,
+            "embedding_status": overrides.get("embedding_status", "pending"),
+            "embedding_model": overrides.get("embedding_model", "text-embedding-3-small"),
+            "embedding_source_hash": overrides.get("embedding_source_hash", "current-hash"),
+            "embedding_updated_at": "2026-01-01T00:00:00+00:00",
+            **overrides,
+        }
+
+    def _configure_get_by_id(self, mock_supabase, row):
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = (
+            [row] if row is not None else []
+        )
+
+    def _configure_update(self, mock_supabase, updated_row):
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
+            updated_row
+        ]
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_missing_brewery_returns_none(
+        self, service, mock_supabase, mock_embedding_service, brewery_id
+    ):
+        self._configure_get_by_id(mock_supabase, None)
+
+        result = await service.refresh_embedding(brewery_id)
+
+        assert result is None
+        mock_embedding_service.generate_embedding.assert_not_called()
+        mock_supabase.table.return_value.update.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_skips_when_ready_hash_and_model_match(
+        self, service, mock_supabase, mock_embedding_service, brewery_id
+    ):
+        row = self._brewery_row(
+            brewery_id,
+            embedding_status="ready",
+            embedding_source_hash="current-hash",
+            embedding_model="text-embedding-3-small",
+        )
+        self._configure_get_by_id(mock_supabase, row)
+
+        result = await service.refresh_embedding(brewery_id)
+
+        assert result == row
+        mock_embedding_service.generate_embedding.assert_not_called()
+        mock_supabase.table.return_value.update.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_regenerates_when_hash_mismatch(
+        self, service, mock_supabase, mock_embedding_service, brewery_id
+    ):
+        row = self._brewery_row(
+            brewery_id,
+            embedding_status="ready",
+            embedding_source_hash="old-hash",
+            embedding_model="text-embedding-3-small",
+        )
+        updated_row = self._brewery_row(
+            brewery_id,
+            embedding_status="ready",
+            embedding_source_hash="current-hash",
+            embedding_model="text-embedding-3-small",
+        )
+        self._configure_get_by_id(mock_supabase, row)
+        self._configure_update(mock_supabase, updated_row)
+
+        result = await service.refresh_embedding(brewery_id)
+
+        mock_embedding_service.generate_embedding.assert_awaited_once_with("canonical text")
+        update_call = mock_supabase.table.return_value.update.call_args[0][0]
+        assert update_call["embedding_status"] == "ready"
+        assert update_call["embedding_model"] == "text-embedding-3-small"
+        assert update_call["embedding_source_hash"] == "current-hash"
+        assert update_call["embedding"] == [0.01] * 1536
+        assert "embedding_updated_at" in update_call
+        assert result == updated_row
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_regenerates_when_model_mismatch(
+        self, service, mock_supabase, mock_embedding_service, brewery_id
+    ):
+        row = self._brewery_row(
+            brewery_id,
+            embedding_status="ready",
+            embedding_source_hash="current-hash",
+            embedding_model="old-model",
+        )
+        self._configure_get_by_id(mock_supabase, row)
+        self._configure_update(mock_supabase, row)
+
+        await service.refresh_embedding(brewery_id)
+
+        mock_embedding_service.generate_embedding.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_regenerates_when_status_error(
+        self, service, mock_supabase, mock_embedding_service, brewery_id
+    ):
+        row = self._brewery_row(
+            brewery_id,
+            embedding_status="error",
+            embedding_source_hash="current-hash",
+            embedding_model="text-embedding-3-small",
+        )
+        self._configure_get_by_id(mock_supabase, row)
+        self._configure_update(mock_supabase, row)
+
+        await service.refresh_embedding(brewery_id)
+
+        mock_embedding_service.generate_embedding.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_force_bypasses_dedup(
+        self, service, mock_supabase, mock_embedding_service, brewery_id
+    ):
+        row = self._brewery_row(
+            brewery_id,
+            embedding_status="ready",
+            embedding_source_hash="current-hash",
+            embedding_model="text-embedding-3-small",
+        )
+        self._configure_get_by_id(mock_supabase, row)
+        self._configure_update(mock_supabase, row)
+
+        await service.refresh_embedding(brewery_id, force=True)
+
+        mock_embedding_service.generate_embedding.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_failure_preserves_prior_vector(
+        self, service, mock_supabase, mock_embedding_service, brewery_id
+    ):
+        prior_vector = [0.99] * 1536
+        row = self._brewery_row(
+            brewery_id,
+            embedding=prior_vector,
+            embedding_status="ready",
+            embedding_source_hash="old-hash",
+            embedding_model="text-embedding-3-small",
+        )
+        updated_row = self._brewery_row(brewery_id, embedding=prior_vector, embedding_status="error")
+        self._configure_get_by_id(mock_supabase, row)
+        self._configure_update(mock_supabase, updated_row)
+        mock_embedding_service.generate_embedding.side_effect = RuntimeError("OpenAI request failed")
+
+        result = await service.refresh_embedding(brewery_id)
+
+        update_call = mock_supabase.table.return_value.update.call_args[0][0]
+        assert update_call == {"embedding_status": "error"}
+        assert result == updated_row
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_accepts_string_id(
+        self, service, mock_supabase, mock_embedding_service
+    ):
+        brewery_id = str(uuid4())
+        row = self._brewery_row(
+            UUID(brewery_id),
+            embedding_status="pending",
+            embedding_source_hash="old-hash",
+        )
+        updated_row = self._brewery_row(
+            UUID(brewery_id),
+            embedding_status="ready",
+            embedding_source_hash="current-hash",
+            embedding_model="text-embedding-3-small",
+        )
+        self._configure_get_by_id(mock_supabase, row)
+        self._configure_update(mock_supabase, updated_row)
+
+        result = await service.refresh_embedding(brewery_id)
+
+        mock_supabase.table.return_value.select.return_value.eq.assert_called_once_with(
+            "id", brewery_id
+        )
+        mock_embedding_service.generate_embedding.assert_awaited_once()
+        assert result == updated_row
+
+    @pytest.mark.asyncio
+    async def test_refresh_embedding_failure_does_not_raise(
+        self, service, mock_supabase, mock_embedding_service, brewery_id, caplog
+    ):
+        row = self._brewery_row(
+            brewery_id,
+            embedding_status="pending",
+            embedding_source_hash="old-hash",
+        )
+        self._configure_get_by_id(mock_supabase, row)
+        self._configure_update(mock_supabase, {**row, "embedding_status": "error"})
+        mock_embedding_service.generate_embedding.side_effect = ValueError("No key")
+
+        with caplog.at_level("ERROR"):
+            result = await service.refresh_embedding(brewery_id)
+
+        assert result is not None
+        assert result["embedding_status"] == "error"
+        assert "No key" in caplog.text
 
 
 class TestBreweryService:
@@ -122,6 +363,72 @@ class TestBreweryService:
         assert result is not None
         assert result["nombre_cerveceria"] == "Updated Name"
         mock_supabase.table.return_value.update.assert_called_once()
+
+    def test_update_marks_embedding_pending_when_requested(self, service, mock_supabase) -> None:
+        brewery_id = uuid4()
+        payload = BreweryUpdate(nombre_cerveceria="Updated Name")
+        expected_data = {
+            "id": str(brewery_id),
+            "nombre_cerveceria": "Updated Name",
+            "embedding_status": "pending",
+        }
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
+            expected_data
+        ]
+
+        result = service.update(brewery_id, payload, mark_embedding_pending=True)
+
+        update_call = mock_supabase.table.return_value.update.call_args[0][0]
+        assert update_call["nombre_cerveceria"] == "Updated Name"
+        assert update_call["embedding_status"] == "pending"
+        assert result == expected_data
+
+    def test_update_does_not_mark_embedding_pending_by_default(self, service, mock_supabase) -> None:
+        brewery_id = uuid4()
+        payload = BreweryUpdate(nombre_cerveceria="Updated Name")
+        expected_data = {
+            "id": str(brewery_id),
+            "nombre_cerveceria": "Updated Name",
+        }
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
+            expected_data
+        ]
+
+        service.update(brewery_id, payload)
+
+        update_call = mock_supabase.table.return_value.update.call_args[0][0]
+        assert "embedding_status" not in update_call
+
+    def test_mark_embedding_pending_sets_status(self, service, mock_supabase) -> None:
+        brewery_id = uuid4()
+        expected_data = {
+            "id": str(brewery_id),
+            "nombre_cerveceria": "Test Brewery",
+            "embedding_status": "pending",
+        }
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
+            expected_data
+        ]
+
+        result = service.mark_embedding_pending(brewery_id)
+
+        assert result == expected_data
+        mock_supabase.table.assert_called_once_with("breweries")
+        update_call = mock_supabase.table.return_value.update.call_args[0][0]
+        assert update_call == {"embedding_status": "pending"}
+        mock_supabase.table.return_value.update.return_value.eq.assert_called_once_with(
+            "id", str(brewery_id)
+        )
+
+    def test_mark_embedding_pending_missing_brewery_returns_none(self, service, mock_supabase) -> None:
+        brewery_id = uuid4()
+        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = (
+            []
+        )
+
+        result = service.mark_embedding_pending(brewery_id)
+
+        assert result is None
 
     def test_update_nonexistent_brewery_returns_none(self, service, mock_supabase) -> None:
         brewery_id = uuid4()
