@@ -1,16 +1,30 @@
 """Business logic service for brewery operations."""
 
+import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
+from app.core.config import Settings, get_settings
 from app.schemas.breweries import BreweryCreate, BreweryUpdate
+from app.services.embedding_service import EmbeddingService
 from app.utils.text_matching import build_accent_tolerant_query
+
+
+logger = logging.getLogger(__name__)
 
 
 class BreweryService:
     """Service layer for brewery CRUD operations using Supabase."""
 
-    def __init__(self, supabase_client) -> None:
+    def __init__(
+        self,
+        supabase_client,
+        embedding_service: EmbeddingService | None = None,
+        settings: Settings | None = None,
+    ) -> None:
         self.supabase = supabase_client
+        self.embedding_service = embedding_service
+        self.settings = settings
 
     def create(self, payload: BreweryCreate) -> dict:
         """Create a new brewery in Supabase.
@@ -80,6 +94,82 @@ class BreweryService:
             self.supabase.table("breweries").delete().eq("id", str(brewery_id)).execute()
         )
         return bool(response.data)
+
+    async def refresh_embedding(
+        self, brewery_id: UUID | str, force: bool = False
+    ) -> dict | None:
+        """Refresh the embedding for a single brewery.
+
+        Skips the OpenAI call when the brewery is already ready, the source
+        hash matches, and the model matches the current configuration.
+        On failure the previous vector is preserved and the status becomes
+        ``error``; the error detail is logged but not persisted.
+
+        Args:
+            brewery_id: The UUID (or string UUID) of the brewery to refresh.
+            force: If True, bypass the hash/model dedup short-circuit.
+
+        Returns:
+            dict | None: The updated brewery row, the unchanged row when the
+            refresh is skipped, or None if the brewery does not exist.
+        """
+        settings = self.settings or get_settings()
+        embedding_service = self.embedding_service or EmbeddingService(settings=settings)
+
+        brewery = self.get_by_id(brewery_id)
+        if not brewery:
+            logger.warning("Brewery %s not found for embedding refresh", brewery_id)
+            return None
+
+        canonical_text = embedding_service.build_canonical_text(brewery)
+        source_hash = embedding_service.compute_hash(canonical_text)
+
+        current_status = brewery.get("embedding_status")
+        current_hash = brewery.get("embedding_source_hash")
+        current_model = brewery.get("embedding_model")
+
+        if (
+            not force
+            and current_status == "ready"
+            and current_hash == source_hash
+            and current_model == settings.embedding_model
+        ):
+            return brewery
+
+        try:
+            vector = await embedding_service.generate_embedding(canonical_text)
+        except Exception as exc:
+            logger.error(
+                "Embedding generation failed for brewery %s: %s",
+                brewery_id,
+                exc,
+                exc_info=True,
+                extra={"brewery_id": str(brewery_id), "error": str(exc)},
+            )
+            update_data = {"embedding_status": "error"}
+            response = (
+                self.supabase.table("breweries")
+                .update(update_data)
+                .eq("id", str(brewery_id))
+                .execute()
+            )
+            return response.data[0] if response.data else None
+
+        now = datetime.now(timezone.utc).isoformat()
+        update_data = {
+            "embedding": vector,
+            "embedding_status": "ready",
+            "embedding_model": settings.embedding_model,
+            "embedding_source_hash": source_hash,
+            "embedding_updated_at": now,
+        }
+        response = (
+            self.supabase.table("breweries")
+            .update(update_data)
+            .eq("id", str(brewery_id))
+            .execute()
+        )
+        return response.data[0] if response.data else None
 
     _BREWERY_CHAT_PROJECTION = (
         "id,nombre_cerveceria,razon_social,nit,nombre_cervecero,nombre_contacto,"

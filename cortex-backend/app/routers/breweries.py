@@ -2,8 +2,9 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
+from app.core.config import get_settings
 from app.core.security import User, get_current_user, require_role
 from app.schemas.breweries import BreweryCreate, BreweryResponse, BreweryUpdate
 from app.services.brewery_service import BreweryService
@@ -28,14 +29,20 @@ def get_brewery_service() -> BreweryService:
 @router.post('/', response_model=BreweryResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def create_brewery(
     payload: BreweryCreate,
+    background_tasks: BackgroundTasks,
     _: User = Depends(get_current_user),
     service: BreweryService = Depends(get_brewery_service),
 ) -> dict:
     """Create a new brewery.
 
     Accessible by both super_admin and operativo roles.
+    A best-effort embedding refresh is scheduled in the background when
+    embeddings are enabled.
     """
-    return service.create(payload)
+    brewery = service.create(payload)
+    if get_settings().embeddings_enabled and brewery.get("id"):
+        background_tasks.add_task(service.refresh_embedding, brewery["id"])
+    return brewery
 
 
 @router.get('', response_model=list[BreweryResponse])
@@ -74,12 +81,15 @@ def get_brewery(
 def update_brewery(
     brewery_id: UUID,
     payload: BreweryUpdate,
+    background_tasks: BackgroundTasks,
     _: User = Depends(get_current_user),
     service: BreweryService = Depends(get_brewery_service),
 ) -> dict:
     """Update an existing brewery.
 
     Accessible by both super_admin and operativo roles.
+    A best-effort embedding refresh is scheduled in the background when
+    embeddings are enabled.
     """
     brewery = service.update(brewery_id, payload)
     if not brewery:
@@ -87,6 +97,8 @@ def update_brewery(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No se encontró la cervecería",
         )
+    if get_settings().embeddings_enabled:
+        background_tasks.add_task(service.refresh_embedding, str(brewery_id))
     return brewery
 
 
@@ -106,3 +118,24 @@ def delete_brewery(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No se encontró la cervecería",
         )
+
+
+@router.post('/{brewery_id}/reprocess-embedding', status_code=status.HTTP_202_ACCEPTED)
+def reprocess_embedding(
+    brewery_id: UUID,
+    background_tasks: BackgroundTasks,
+    _: User = Depends(require_role(["super_admin"])),
+    service: BreweryService = Depends(get_brewery_service),
+) -> None:
+    """Force a brewery embedding refresh.
+
+    Only accessible by super_admin role. Bypasses hash/model dedup and
+    schedules a fresh embedding generation in the background.
+    """
+    brewery = service.get_by_id(brewery_id)
+    if not brewery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se encontró la cervecería",
+        )
+    background_tasks.add_task(service.refresh_embedding, brewery_id, force=True)

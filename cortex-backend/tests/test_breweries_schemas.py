@@ -137,3 +137,41 @@ class TestBreweryResponse:
         assert data["nombre_cerveceria"] == "Test Brewery"
         assert data["ciudad"] == "Bogotá"
         assert "id" in data
+
+    def test_response_includes_embedding_metadata(self) -> None:
+        from uuid import uuid4
+        from datetime import datetime, timezone
+
+        brewery_id = uuid4()
+        now = datetime.now(timezone.utc)
+
+        response = BreweryResponse(
+            id=brewery_id,
+            nombre_cerveceria="Test Brewery",
+            created_at=now,
+            updated_at=now,
+            embedding_status="ready",
+            embedding_updated_at=now,
+        )
+
+        data = response.model_dump()
+        assert data["embedding_status"] == "ready"
+        assert data["embedding_updated_at"] == now
+
+    def test_response_embedding_fields_default_to_none(self) -> None:
+        from uuid import uuid4
+        from datetime import datetime, timezone
+
+        brewery_id = uuid4()
+        now = datetime.now(timezone.utc)
+
+        response = BreweryResponse(
+            id=brewery_id,
+            nombre_cerveceria="Test Brewery",
+            created_at=now,
+            updated_at=now,
+        )
+
+        data = response.model_dump()
+        assert data["embedding_status"] is None
+        assert data["embedding_updated_at"] is None

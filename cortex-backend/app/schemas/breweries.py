@@ -103,6 +103,10 @@ class BreweryResponse(BaseModel):
     donde_vende: str | None = Field(None, description="Where they sell")
     observaciones: str | None = Field(None, description="Observations")
     oportunidades: str | None = Field(None, description="Opportunities")
+    embedding_status: str | None = Field(None, description="Embedding status")
+    embedding_updated_at: datetime | None = Field(
+        None, description="Last embedding update timestamp"
+    )
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 

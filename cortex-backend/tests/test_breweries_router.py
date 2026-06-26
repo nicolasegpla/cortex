@@ -23,63 +23,70 @@ def create_mock_user_response(user_id: str, email: str, role: str = "operativo")
     return mock_response
 
 
+@pytest.fixture
+
+def admin_token() -> str:
+    return "admin-mock-token"
+
+
+@pytest.fixture
+def operativo_token() -> str:
+    return "operativo-mock-token"
+
+
+@pytest.fixture(autouse=True)
+def mock_supabase_auth():
+    """Mock Supabase auth service for all tests in this module."""
+    with patch("app.core.security.get_supabase_service") as mock_get_service:
+        mock_client = MagicMock()
+
+        def mock_get_user(token):
+            if token == "admin-mock-token":
+                return create_mock_user_response(
+                    "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                    "admin@example.com",
+                    "super_admin",
+                )
+            elif token == "operativo-mock-token":
+                return create_mock_user_response(
+                    "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+                    "user@example.com",
+                    "operativo",
+                )
+            else:
+                from supabase_auth.errors import AuthApiError
+                raise AuthApiError("Invalid token", 401, "invalid_token")
+
+        mock_client.auth.get_user = mock_get_user
+        mock_service = MagicMock()
+        mock_service.get_client.return_value = mock_client
+        mock_get_service.return_value = mock_service
+
+        yield
+
+
+@pytest.fixture
+def sample_brewery_id() -> UUID:
+    return uuid4()
+
+
+@pytest.fixture
+def sample_brewery(sample_brewery_id: UUID) -> dict:
+    return {
+        "id": str(sample_brewery_id),
+        "nombre_cerveceria": "Test Brewery",
+        "razon_social": "Test Brewery S.A.",
+        "ciudad": "Bogotá",
+        "pais": "Colombia",
+        "tipo_operacion": "planta_propia",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 class TestBreweriesRouter:
     """Test brewery CRUD endpoints with mocked dependencies."""
 
-    @pytest.fixture
-    def admin_token(self) -> str:
-        return "admin-mock-token"
-
-    @pytest.fixture
-    def operativo_token(self) -> str:
-        return "operativo-mock-token"
-
-    @pytest.fixture(autouse=True)
-    def mock_supabase_auth(self):
-        """Mock Supabase auth service for all tests."""
-        with patch("app.core.security.get_supabase_service") as mock_get_service:
-            mock_client = MagicMock()
-
-            def mock_get_user(token):
-                if token == "admin-mock-token":
-                    return create_mock_user_response(
-                        "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                        "admin@example.com",
-                        "super_admin",
-                    )
-                elif token == "operativo-mock-token":
-                    return create_mock_user_response(
-                        "b2c3d4e5-f6a7-8901-bcde-f23456789012",
-                        "user@example.com",
-                        "operativo",
-                    )
-                else:
-                    from supabase_auth.errors import AuthApiError
-                    raise AuthApiError("Invalid token", 401, "invalid_token")
-
-            mock_client.auth.get_user = mock_get_user
-            mock_service = MagicMock()
-            mock_service.get_client.return_value = mock_client
-            mock_get_service.return_value = mock_service
-
-            yield
-
-    @pytest.fixture
-    def sample_brewery_id(self) -> UUID:
-        return uuid4()
-
-    @pytest.fixture
-    def sample_brewery(self, sample_brewery_id) -> dict:
-        return {
-            "id": str(sample_brewery_id),
-            "nombre_cerveceria": "Test Brewery",
-            "razon_social": "Test Brewery S.A.",
-            "ciudad": "Bogotá",
-            "pais": "Colombia",
-            "tipo_operacion": "planta_propia",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
 
     def test_create_brewery_returns_201(self, client: TestClient, admin_token: str, monkeypatch) -> None:
         from datetime import datetime, timezone
@@ -321,3 +328,266 @@ class TestBreweriesRouter:
         response = client.get("/breweries")
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # --- embedding background task wiring ---
+
+    @pytest.fixture(autouse=True)
+    def mock_settings(self):
+        """Patch settings so tests do not depend on real defaults."""
+        with patch("app.routers.breweries.get_settings") as mock_get_settings:
+            mock_settings = MagicMock()
+            mock_settings.embeddings_enabled = False
+            mock_get_settings.return_value = mock_settings
+            yield mock_get_settings
+
+    @pytest.fixture
+    def mock_background_tasks(self):
+        """Patch BackgroundTasks.add_task to capture scheduled work."""
+        with patch("app.routers.breweries.BackgroundTasks.add_task") as mock_add_task:
+            yield mock_add_task
+
+    def test_create_brewery_schedules_embedding_refresh(
+        self,
+        client: TestClient,
+        admin_token: str,
+        monkeypatch,
+        mock_background_tasks: MagicMock,
+    ) -> None:
+        from datetime import datetime, timezone
+
+        new_id = str(uuid4())
+
+        def mock_create(_self, payload):
+            return {
+                "id": new_id,
+                "nombre_cerveceria": payload.nombre_cerveceria,
+                "ciudad": payload.ciudad,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+        monkeypatch.setattr("app.services.brewery_service.BreweryService.create", mock_create)
+
+        mock_settings = MagicMock()
+        mock_settings.embeddings_enabled = True
+        monkeypatch.setattr("app.routers.breweries.get_settings", lambda: mock_settings)
+
+        response = client.post(
+            "/breweries",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"nombre_cerveceria": "New Brewery", "ciudad": "Medellín"},
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        mock_background_tasks.assert_called_once()
+        scheduled_call = mock_background_tasks.call_args
+        assert scheduled_call[0][0].__func__.__name__ == "refresh_embedding"
+        assert scheduled_call[0][1] == new_id
+
+    def test_update_brewery_schedules_embedding_refresh(
+        self,
+        client: TestClient,
+        admin_token: str,
+        sample_brewery_id: UUID,
+        sample_brewery: dict,
+        monkeypatch,
+        mock_background_tasks: MagicMock,
+    ) -> None:
+        def mock_update(_self, brewery_id, payload):
+            if brewery_id == sample_brewery_id:
+                updated = sample_brewery.copy()
+                updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]
+                return updated
+            return None
+
+        monkeypatch.setattr("app.services.brewery_service.BreweryService.update", mock_update)
+
+        mock_settings = MagicMock()
+        mock_settings.embeddings_enabled = True
+        monkeypatch.setattr("app.routers.breweries.get_settings", lambda: mock_settings)
+
+        response = client.put(
+            f"/breweries/{sample_brewery_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"nombre_cerveceria": "Updated Brewery"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_background_tasks.assert_called_once()
+        scheduled_call = mock_background_tasks.call_args
+        assert scheduled_call[0][0].__func__.__name__ == "refresh_embedding"
+        assert scheduled_call[0][1] == str(sample_brewery_id)
+
+    def test_create_brewery_skips_embedding_when_disabled(
+        self,
+        client: TestClient,
+        admin_token: str,
+        monkeypatch,
+        mock_background_tasks: MagicMock,
+    ) -> None:
+        from datetime import datetime, timezone
+
+        def mock_create(_self, payload):
+            return {
+                "id": str(uuid4()),
+                "nombre_cerveceria": payload.nombre_cerveceria,
+                "ciudad": payload.ciudad,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+        monkeypatch.setattr("app.services.brewery_service.BreweryService.create", mock_create)
+
+        mock_settings = MagicMock()
+        mock_settings.embeddings_enabled = False
+        monkeypatch.setattr("app.routers.breweries.get_settings", lambda: mock_settings)
+
+        response = client.post(
+            "/breweries",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"nombre_cerveceria": "New Brewery", "ciudad": "Medellín"},
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        mock_background_tasks.assert_not_called()
+
+    def test_update_brewery_skips_embedding_when_disabled(
+        self,
+        client: TestClient,
+        admin_token: str,
+        sample_brewery_id: UUID,
+        sample_brewery: dict,
+        monkeypatch,
+        mock_background_tasks: MagicMock,
+    ) -> None:
+        def mock_update(_self, brewery_id, payload):
+            if brewery_id == sample_brewery_id:
+                updated = sample_brewery.copy()
+                updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]
+                return updated
+            return None
+
+        monkeypatch.setattr("app.services.brewery_service.BreweryService.update", mock_update)
+
+        mock_settings = MagicMock()
+        mock_settings.embeddings_enabled = False
+        monkeypatch.setattr("app.routers.breweries.get_settings", lambda: mock_settings)
+
+        response = client.put(
+            f"/breweries/{sample_brewery_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"nombre_cerveceria": "Updated Brewery"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_background_tasks.assert_not_called()
+
+
+class TestReprocessEmbedding:
+    """Tests for the admin-only reprocess embedding endpoint."""
+
+    def test_reprocess_embedding_super_admin_returns_202(
+        self,
+        client: TestClient,
+        admin_token: str,
+        sample_brewery_id: UUID,
+        sample_brewery: dict,
+        monkeypatch,
+    ) -> None:
+        with patch("app.routers.breweries.BackgroundTasks.add_task") as mock_add_task:
+
+            def mock_get_by_id(_self, brewery_id):
+                if brewery_id == sample_brewery_id:
+                    return sample_brewery
+                return None
+
+            monkeypatch.setattr(
+                "app.services.brewery_service.BreweryService.get_by_id", mock_get_by_id
+            )
+
+            response = client.post(
+                f"/breweries/{sample_brewery_id}/reprocess-embedding",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+            assert response.status_code == status.HTTP_202_ACCEPTED
+            mock_add_task.assert_called_once()
+            scheduled_call = mock_add_task.call_args
+            assert scheduled_call[0][0].__func__.__name__ == "refresh_embedding"
+            assert scheduled_call[0][1] == sample_brewery_id
+            assert scheduled_call.kwargs.get("force") is True
+
+    def test_reprocess_embedding_operativo_returns_403(
+        self,
+        client: TestClient,
+        operativo_token: str,
+        sample_brewery_id: UUID,
+    ) -> None:
+        response = client.post(
+            f"/breweries/{sample_brewery_id}/reprocess-embedding",
+            headers={"Authorization": f"Bearer {operativo_token}"},
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_reprocess_embedding_unknown_brewery_returns_404(
+        self,
+        client: TestClient,
+        admin_token: str,
+        monkeypatch,
+    ) -> None:
+        monkeypatch.setattr(
+            "app.services.brewery_service.BreweryService.get_by_id", lambda _self, _id: None
+        )
+
+        response = client.post(
+            f"/breweries/{uuid4()}/reprocess-embedding",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_reprocess_embedding_without_auth_returns_401(
+        self,
+        client: TestClient,
+        sample_brewery_id: UUID,
+    ) -> None:
+        response = client.post(
+            f"/breweries/{sample_brewery_id}/reprocess-embedding",
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_reprocess_embedding_runs_even_when_embeddings_disabled(
+        self,
+        client: TestClient,
+        admin_token: str,
+        sample_brewery_id: UUID,
+        sample_brewery: dict,
+        monkeypatch,
+    ) -> None:
+        """Forced reprocess is independent of the EMBEDDINGS_ENABLED flag."""
+        with patch("app.routers.breweries.BackgroundTasks.add_task") as mock_add_task:
+
+            def mock_get_by_id(_self, brewery_id):
+                if brewery_id == sample_brewery_id:
+                    return sample_brewery
+                return None
+
+            monkeypatch.setattr(
+                "app.services.brewery_service.BreweryService.get_by_id", mock_get_by_id
+            )
+            monkeypatch.setattr(
+                "app.routers.breweries.get_settings",
+                lambda: MagicMock(embeddings_enabled=False),
+            )
+
+            response = client.post(
+                f"/breweries/{sample_brewery_id}/reprocess-embedding",
+                headers={"Authorization": f"Bearer {admin_token}"},
+            )
+
+            assert response.status_code == status.HTTP_202_ACCEPTED
+            mock_add_task.assert_called_once()
+            scheduled_call = mock_add_task.call_args
+            assert scheduled_call.kwargs.get("force") is True
