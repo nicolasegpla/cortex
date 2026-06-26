@@ -67,7 +67,7 @@ OpenAI receives **only** the canonical text described above. Phone numbers, emai
 | Excluded-field update | A brewery is updated with only excluded/non-semantic fields | `embedding_status` is left unchanged and no background refresh is scheduled |
 | Success | Background refresh calls OpenAI and succeeds | `ready`; `embedding`, `embedding_model`, `embedding_source_hash`, and `embedding_updated_at` are written |
 | Failure | Background refresh fails | `error`; the previous `embedding` and `embedding_source_hash` are preserved so a retry does not lose data |
-| Force | Admin calls `POST /breweries/{id}/reprocess-embedding` | Bypasses hash/model dedup and schedules a fresh generation |
+| Force | Admin calls `POST /breweries/{id}/reprocess-embedding` | `pending` is written synchronously, then a forced refresh is scheduled; if the background task is dropped the row is at worst `pending`, not misleadingly `ready` |
 
 ## How create/update/reprocess behave
 
@@ -90,9 +90,10 @@ Setting `pending` in the primary write protects against dropped background tasks
 ### Reprocess (`POST /breweries/{id}/reprocess-embedding`)
 
 1. Only `super_admin` can call this endpoint.
-2. The endpoint bypasses hash/model dedup and schedules `refresh_embedding(id, force=True)`.
-3. Returns `202 Accepted` immediately.
-4. Useful when an operator wants to force regeneration after a config change or to recover from an error state.
+2. The endpoint writes `embedding_status='pending'` synchronously so the row cannot stay misleadingly `ready` if the background task is dropped.
+3. It bypasses hash/model dedup and schedules `refresh_embedding(id, force=True)`.
+4. Returns `202 Accepted` immediately.
+5. Useful when an operator wants to force regeneration after a config change or to recover from an error state.
 
 ## Hash-based deduplication
 

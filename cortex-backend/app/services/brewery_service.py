@@ -93,6 +93,27 @@ class BreweryService:
         )
         return response.data[0] if response.data else None
 
+    def mark_embedding_pending(self, brewery_id: UUID) -> dict | None:
+        """Mark a brewery's embedding status as pending.
+
+        This is used by the admin reprocess endpoint so the row is not left
+        misleadingly ``ready`` if the forced background refresh task is
+        dropped.
+
+        Args:
+            brewery_id: The UUID of the brewery to mark.
+
+        Returns:
+            dict | None: The updated brewery record or None if not found.
+        """
+        response = (
+            self.supabase.table("breweries")
+            .update({"embedding_status": "pending"})
+            .eq("id", str(brewery_id))
+            .execute()
+        )
+        return response.data[0] if response.data else None
+
     def delete(self, brewery_id: UUID) -> bool:
         """Delete a brewery by ID.
 

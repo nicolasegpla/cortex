@@ -105,14 +105,19 @@ def update_brewery(
     semantic field. Excluded-field updates (for example nit, correo, or
     phones) do not mark the embedding stale or trigger a refresh.
     """
+    settings = get_settings()
     semantic_change = _payload_has_semantic_changes(payload)
-    brewery = service.update(brewery_id, payload, mark_embedding_pending=semantic_change)
+    brewery = service.update(
+        brewery_id,
+        payload,
+        mark_embedding_pending=(settings.embeddings_enabled and semantic_change),
+    )
     if not brewery:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No se encontró la cervecería",
         )
-    if get_settings().embeddings_enabled and semantic_change:
+    if settings.embeddings_enabled and semantic_change:
         background_tasks.add_task(service.refresh_embedding, str(brewery_id))
     return brewery
 
@@ -153,4 +158,5 @@ def reprocess_embedding(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No se encontró la cervecería",
         )
+    service.mark_embedding_pending(brewery_id)
     background_tasks.add_task(service.refresh_embedding, brewery_id, force=True)

@@ -93,6 +93,7 @@ The system MUST track embedding state in `embedding_status` with values `pending
 | create | new brewery inserted | `pending` (column default) | none written |
 | update | brewery updated with a semantic field change while `EMBEDDINGS_ENABLED=true` | `pending` | no embedding columns written; the row is explicitly marked stale so it cannot stay misleadingly `ready` if the background refresh is dropped |
 | excluded-field update | brewery updated with only excluded/non-semantic fields | unchanged | no embedding columns written and no background refresh is scheduled |
+| force reprocess | admin calls `POST /breweries/{id}/reprocess-embedding` | `pending` | `pending` is written synchronously before the forced background refresh is scheduled |
 | success | OpenAI call succeeds | `ready` | write `embedding`, `embedding_model`, `embedding_source_hash`, `embedding_updated_at` |
 | failure | OpenAI call fails | `error` | previous `embedding` and `embedding_source_hash` preserved; `embedding_updated_at` not advanced |
 
@@ -146,12 +147,12 @@ The system MUST read `OPENAI_API_KEY`, `EMBEDDING_MODEL` (default `text-embeddin
 
 ### Requirement: Admin reprocess embedding endpoint
 
-The system MUST expose `POST /breweries/{id}/reprocess-embedding`. It MUST bypass the hash dedup short-circuit and force regeneration for a single brewery. It MUST authorize only `super_admin`; any other authenticated role MUST receive `403 Forbidden`. It MUST return `202 Accepted` and MUST NOT block on the OpenAI call. A missing brewery MUST return `404 Not Found`.
+The system MUST expose `POST /breweries/{id}/reprocess-embedding`. It MUST authorize only `super_admin`; any other authenticated role MUST receive `403 Forbidden`. It MUST return `202 Accepted` and MUST NOT block on the OpenAI call. A missing brewery MUST return `404 Not Found`. Before scheduling the forced refresh, the endpoint MUST set `embedding_status='pending'` so the row is not left misleadingly `ready` if the background task is dropped.
 
 #### Scenario: Super admin forces reprocessing
 - GIVEN a `super_admin` user and an existing brewery
 - WHEN the user calls `POST /breweries/{id}/reprocess-embedding`
-- THEN the response is `202 Accepted`, hash dedup is bypassed, and regeneration is scheduled
+- THEN the response is `202 Accepted`, `embedding_status` becomes `pending`, hash dedup is bypassed, and regeneration is scheduled
 
 #### Scenario: Non-super-admin forbidden
 - GIVEN an `operativo` user

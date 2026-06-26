@@ -305,6 +305,8 @@ class TestBreweriesRouter:
             if brewery_id == sample_brewery_id:
                 updated = sample_brewery.copy()
                 updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]
+                if mark_embedding_pending:
+                    updated["embedding_status"] = "pending"
                 return updated
             return None
 
@@ -510,6 +512,8 @@ class TestBreweriesRouter:
             if brewery_id == sample_brewery_id:
                 updated = sample_brewery.copy()
                 updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]
+                if mark_embedding_pending:
+                    updated["embedding_status"] = "pending"
                 return updated
             return None
 
@@ -526,6 +530,8 @@ class TestBreweriesRouter:
         )
 
         assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["embedding_status"] is None
         mock_background_tasks.assert_not_called()
 
     def test_create_brewery_skips_embedding_when_disabled(
@@ -574,6 +580,8 @@ class TestBreweriesRouter:
             if brewery_id == sample_brewery_id:
                 updated = sample_brewery.copy()
                 updated["nombre_cerveceria"] = payload.nombre_cerveceria or updated["nombre_cerveceria"]
+                if mark_embedding_pending:
+                    updated["embedding_status"] = "pending"
                 return updated
             return None
 
@@ -611,8 +619,16 @@ class TestReprocessEmbedding:
                     return sample_brewery
                 return None
 
+            def mock_mark_pending(_self, brewery_id):
+                assert brewery_id == sample_brewery_id
+                return {**sample_brewery, "embedding_status": "pending"}
+
             monkeypatch.setattr(
                 "app.services.brewery_service.BreweryService.get_by_id", mock_get_by_id
+            )
+            monkeypatch.setattr(
+                "app.services.brewery_service.BreweryService.mark_embedding_pending",
+                mock_mark_pending,
             )
 
             response = client.post(
@@ -684,8 +700,16 @@ class TestReprocessEmbedding:
                     return sample_brewery
                 return None
 
+            def mock_mark_pending(_self, brewery_id):
+                assert brewery_id == sample_brewery_id
+                return {**sample_brewery, "embedding_status": "pending"}
+
             monkeypatch.setattr(
                 "app.services.brewery_service.BreweryService.get_by_id", mock_get_by_id
+            )
+            monkeypatch.setattr(
+                "app.services.brewery_service.BreweryService.mark_embedding_pending",
+                mock_mark_pending,
             )
             monkeypatch.setattr(
                 "app.routers.breweries.get_settings",
