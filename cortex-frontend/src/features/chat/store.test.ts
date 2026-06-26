@@ -1,31 +1,30 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-import { apiClient } from '@/services/api/client';
+import { HermesError, streamChat } from '@/services/hermes/client';
 import { useChatStore, PROVIDER_MODELS, MODEL_PROVIDER_MAP } from './store';
 
-vi.mock('@/services/api/client', async () => {
-    const actual = await vi.importActual('@/services/api/client');
-    return {
-        ...actual,
-        apiClient: {
-            get: vi.fn(),
-            post: vi.fn(),
-            delete: vi.fn(),
-            stream: vi.fn(),
-        },
-    };
-});
+vi.mock('@/services/hermes/client', () => ({
+    streamChat: vi.fn(),
+    HermesError: class HermesError extends Error {
+        readonly type: 'http' | 'network';
+        readonly status?: number;
 
-function createMockStream(chunks: string[]): ReadableStream <Uint8Array> {
-    return new ReadableStream({
-        start(controller) {
-            const encoder = new TextEncoder();
-            for (const chunk of chunks) {
-                controller.enqueue(encoder.encode(chunk));
-            }
-            controller.close();
-        },
-    });
+        constructor(type: 'http' | 'network', status?: number) {
+            super(
+                type === 'http' && status !== undefined
+                    ? `Hermes request failed with status ${status}`
+                    : 'Network error while connecting to Hermes'
+            );
+            this.type = type;
+            this.status = status;
+        }
+    },
+}));
+
+async function* createMockGenerator(deltas: string[]): AsyncGenerator<string> {
+    for (const delta of deltas) {
+        yield delta;
+    }
 }
 
 describe('useChatStore', () => {
@@ -54,13 +53,9 @@ describe('useChatStore', () => {
 
     describe('sendMessage', () => {
         it('should append user message and stream assistant response', async () => {
-            const sseChunks = [
-                'event: delta\ndata: Hello\n\n',
-                'event: delta\ndata: world\n\n',
-                'event: done\ndata: \n\n',
-            ];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
+            vi.mocked(streamChat).mockReturnValueOnce(
+                createMockGenerator(['Hello', ' world'])
+            );
 
             const { sendMessage } = useChatStore.getState();
             await sendMessage('Hi there');
@@ -68,114 +63,19 @@ describe('useChatStore', () => {
             const state = useChatStore.getState();
             expect(state.messages).toHaveLength(2);
             expect(state.messages[0]).toEqual({ role: 'user', content: 'Hi there' });
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Helloworld' });
+            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello world' });
             expect(state.isLoading).toBe(false);
-            expect(apiClient.stream).toHaveBeenCalledWith('/chat/stream', {
+            expect(streamChat).toHaveBeenCalledWith({
                 model: 'gpt-4o',
                 messages: [{ role: 'user', content: 'Hi there' }],
-                provider: 'openai',
-                enable_tools: true,
+                signal: expect.any(AbortSignal),
             });
-        });
-
-        it('should preserve multiline SSE payloads in a single event', async () => {
-            const sseChunks = [
-                'event: delta\ndata: Nombre: Cerveza A\ndata: Ciudad: Bogotá\ndata: Oportunidades: ninguna\n\n',
-                'event: done\ndata: \n\n',
-            ];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('dame informacion de cerveceria 2');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({
-                role: 'assistant',
-                content: 'Nombre: Cerveza A\nCiudad: Bogotá\nOportunidades: ninguna',
-            });
-        });
-
-        it('should reassemble an SSE event split across chunk boundaries', async () => {
-            const sseChunks = ['event: del', 'ta\ndata: Hello\n\n'];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello' });
-        });
-
-        it('should reassemble fragmented data lines across multiple chunks', async () => {
-            const sseChunks = ['event: delta\ndata: He', 'llo\n\nevent: delta\ndata: world\n\n'];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Helloworld' });
-        });
-
-        it('should preserve multiline data when fragmented mid-line', async () => {
-            const sseChunks = ['event: delta\ndata: Line 1\nda', 'ta: Line 2\n\n'];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({
-                role: 'assistant',
-                content: 'Line 1\nLine 2',
-            });
-        });
-
-        it('should ignore SSE comments and continue parsing fragmented events', async () => {
-            const sseChunks = [': pin', 'g\n\nevent: delta\ndata: Hello\n\n'];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello' });
-        });
-
-        it('should handle streaming error event', async () => {
-            const sseChunks = [
-                'event: delta\ndata: Partial\n\n',
-                'event: error\ndata: Provider failed\n\n',
-            ];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1].content).toBe('Partial');
-            expect(state.error).toBe('Provider failed');
-            expect(state.isLoading).toBe(false);
         });
 
         it('should set loading state during send', async () => {
-            vi.mocked(apiClient.stream).mockImplementation(
-                () => new Promise((resolve) =>
-                    setTimeout(() => resolve(createMockStream(['event: done\ndata: \n\n'])), 10)
-                )
-            );
+            vi.mocked(streamChat).mockImplementationOnce(async function* () {
+                await new Promise((resolve) => setTimeout(resolve, 50));
+            });
 
             const { sendMessage } = useChatStore.getState();
             const promise = sendMessage('Hello');
@@ -186,8 +86,10 @@ describe('useChatStore', () => {
             expect(useChatStore.getState().isLoading).toBe(false);
         });
 
-        it('should handle network error', async () => {
-            vi.mocked(apiClient.stream).mockRejectedValueOnce(new Error('Connection lost'));
+        it('should handle HermesError', async () => {
+            vi.mocked(streamChat).mockImplementationOnce(async function* () {
+                throw new HermesError('http', 401);
+            });
 
             const { sendMessage } = useChatStore.getState();
             await sendMessage('test');
@@ -196,7 +98,53 @@ describe('useChatStore', () => {
             expect(state.messages).toHaveLength(2);
             expect(state.messages[0]).toEqual({ role: 'user', content: 'test' });
             expect(state.messages[1]).toEqual({ role: 'assistant', content: '' });
-            expect(state.error).toBe('Connection lost');
+            expect(state.error).toBe('Hermes request failed with status 401');
+            expect(state.isLoading).toBe(false);
+        });
+
+        it('should handle network error from HermesError', async () => {
+            vi.mocked(streamChat).mockImplementationOnce(async function* () {
+                throw new HermesError('network');
+            });
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('test');
+
+            const state = useChatStore.getState();
+            expect(state.messages).toHaveLength(2);
+            expect(state.error).toBe('Network error while connecting to Hermes');
+            expect(state.isLoading).toBe(false);
+        });
+
+        it('should handle HermesError thrown in the middle of streaming', async () => {
+            vi.mocked(streamChat).mockImplementationOnce(async function* () {
+                yield 'Partial';
+                throw new HermesError('http', 503);
+            });
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('test');
+
+            const state = useChatStore.getState();
+            expect(state.messages).toHaveLength(2);
+            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Partial' });
+            expect(state.error).toBe('Hermes request failed with status 503');
+            expect(state.isLoading).toBe(false);
+        });
+
+        it('should handle a generic error during streaming', async () => {
+            vi.mocked(streamChat).mockImplementationOnce(async function* () {
+                yield 'Start';
+                throw new Error('Unexpected failure');
+            });
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('test');
+
+            const state = useChatStore.getState();
+            expect(state.messages).toHaveLength(2);
+            expect(state.messages[1]).toEqual({ role: 'assistant', content: '' });
+            expect(state.error).toBe('Unexpected failure');
             expect(state.isLoading).toBe(false);
         });
 
@@ -204,7 +152,7 @@ describe('useChatStore', () => {
             const { sendMessage } = useChatStore.getState();
             await sendMessage('   ');
 
-            expect(apiClient.stream).not.toHaveBeenCalled();
+            expect(streamChat).not.toHaveBeenCalled();
             expect(useChatStore.getState().messages).toHaveLength(0);
         });
     });
@@ -212,19 +160,15 @@ describe('useChatStore', () => {
     describe('abort', () => {
         it('should abort streaming and stop loading', async () => {
             const controller = new AbortController();
-            
-            vi.mocked(apiClient.stream).mockImplementation(() => {
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve(createMockStream(['event: done\ndata: \n\n']));
-                    }, 100);
-                });
+
+            vi.mocked(streamChat).mockImplementation(async function* () {
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                yield 'ignored';
             });
 
             const { sendMessage, abort } = useChatStore.getState();
             const promise = sendMessage('Long message');
 
-            // Abort while loading
             expect(useChatStore.getState().isLoading).toBe(true);
             abort();
 
@@ -232,6 +176,7 @@ describe('useChatStore', () => {
 
             const state = useChatStore.getState();
             expect(state.isLoading).toBe(false);
+            expect(state.error).toBeNull();
         });
     });
 
