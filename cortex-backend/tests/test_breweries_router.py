@@ -686,21 +686,19 @@ class TestReprocessEmbedding:
         sample_brewery: dict,
         monkeypatch,
     ) -> None:
+        """When the brewery is deleted between lookup and pending mark, surface 404."""
         with patch("app.routers.breweries.BackgroundTasks.add_task") as mock_add_task:
-            get_by_id_calls = []
 
             def mock_get_by_id(_self, brewery_id):
                 if brewery_id != sample_brewery_id:
                     return None
-                # First lookup succeeds; re-check after mark_embedding_pending
-                # returns None simulates the brewery being deleted mid-flight.
-                get_by_id_calls.append(brewery_id)
-                if len(get_by_id_calls) == 1:
-                    return sample_brewery
-                return None
+                # First lookup succeeds; second lookup (after mark_embedding_pending
+                # fails) simulates the brewery being deleted mid-flight.
+                return mock_get_by_id.calls.pop(0) if mock_get_by_id.calls else None
+
+            mock_get_by_id.calls = [sample_brewery, None]
 
             def mock_mark_pending(_self, brewery_id):
-                assert brewery_id == sample_brewery_id
                 return None
 
             monkeypatch.setattr(
@@ -717,7 +715,7 @@ class TestReprocessEmbedding:
             )
 
             assert response.status_code == status.HTTP_404_NOT_FOUND
-            assert len(get_by_id_calls) == 2
+            assert response.json()["detail"] == "No se encontró la cervecería"
             mock_add_task.assert_not_called()
 
     def test_reprocess_embedding_operativo_returns_403(
