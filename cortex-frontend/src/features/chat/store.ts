@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Legacy imports kept for rollback to backend-mediated transport.
 import { apiClient } from '@/services/api/client';
+import { HermesError, streamChat } from '@/services/hermes/client';
 
 import type { Provider } from './credentialsStore';
 
@@ -179,50 +181,38 @@ export const useChatStore = create<ChatState>()(
             const abortController = new AbortController();
             set({ _abortController: abortController });
 
+            let assistantContent = '';
+            const buildAssistantMessage = (): ChatMessage => ({
+                role: 'assistant',
+                content: assistantContent,
+            });
+
             try {
-                const stream = await apiClient.stream('/chat/stream', {
+                for await (const delta of streamChat({
                     model: state.activeModel,
                     messages: messages.map((m) => ({ role: m.role, content: m.content })),
-                    provider: state.activeProvider,
-                    enable_tools: true,
-                });
-
-                let assistantContent = '';
-
-                for await (const chunk of readSSEChunks(stream)) {
-                    if (abortController.signal.aborted) break;
-
-                    if (chunk.event === 'delta') {
-                        assistantContent += chunk.data;
-                        set({
-                            messages: [
-                                ...messages,
-                                { role: 'assistant', content: assistantContent },
-                            ],
-                        });
-                    } else if (chunk.event === 'error') {
-                        set({
-                            error: chunk.data || 'Error de streaming',
-                            isLoading: false,
-                            messages: [
-                                ...messages,
-                                { role: 'assistant', content: assistantContent },
-                            ],
-                        });
-                        return;
-                    } else if (chunk.event === 'done') {
-                        break;
-                    }
+                    signal: abortController.signal,
+                })) {
+                    assistantContent += delta;
+                    set({
+                        messages: [...messages, buildAssistantMessage()],
+                    });
                 }
 
                 set({
                     isLoading: false,
-                    messages: [
-                        ...messages,
-                        { role: 'assistant', content: assistantContent },
-                    ],
+                    messages: [...messages, buildAssistantMessage()],
                 });
             } catch (err) {
+                if (err instanceof HermesError) {
+                    set({
+                        error: err.message,
+                        isLoading: false,
+                        messages: [...messages, buildAssistantMessage()],
+                    });
+                    return;
+                }
+
                 const message = err instanceof Error ? err.message : 'No se pudo enviar el mensaje';
                 set({
                     error: message,

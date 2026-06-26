@@ -41,10 +41,10 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Store Integration (PR 2)
 
-- [ ] 3.1 RED: rewrite `cortex-frontend/src/features/chat/store.test.ts` to `vi.mock('@/services/hermes/client')` returning a fake async generator; preserve existing scenario coverage (loading, error, abort, message append).
-- [ ] 3.2 GREEN: in `cortex-frontend/src/features/chat/store.ts` `sendMessage`, replace `apiClient.stream('/chat/stream', ...)` + `readSSEChunks` loop with `for await (const delta of streamChat({ model, messages, signal }))`; keep `readSSEChunks` and the backend import for rollback.
-- [ ] 3.3 Catch `HermesError` → `set({ error: err.message, isLoading: false })`; abort must NOT surface as error.
-- [ ] 3.4 Run `pnpm test` + `tsc -b` inside `cortex-frontend/`; both green.
+- [x] 3.1 RED: rewrite `cortex-frontend/src/features/chat/store.test.ts` to `vi.mock('@/services/hermes/client')` returning a fake async generator; preserve existing scenario coverage (loading, error, abort, message append).
+- [x] 3.2 GREEN: in `cortex-frontend/src/features/chat/store.ts` `sendMessage`, replace `apiClient.stream('/chat/stream', ...)` + `readSSEChunks` loop with `for await (const delta of streamChat({ model, messages, signal }))`; keep `readSSEChunks` and the backend import for rollback.
+- [x] 3.3 Catch `HermesError` → `set({ error: err.message, isLoading: false })`; abort must NOT surface as error.
+- [x] 3.4 Run `pnpm test` + `tsc -b` inside `cortex-frontend/`; both green.
 
 ## Phase 4: Verification & Out-of-Scope Marker
 
