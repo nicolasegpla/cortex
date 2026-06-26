@@ -687,12 +687,16 @@ class TestReprocessEmbedding:
         monkeypatch,
     ) -> None:
         with patch("app.routers.breweries.BackgroundTasks.add_task") as mock_add_task:
+            get_by_id_calls = []
 
             def mock_get_by_id(_self, brewery_id):
-                if brewery_id == sample_brewery_id:
-                    # Initially present, then missing on the re-check after
-                    # mark_embedding_pending returns None.
+                if brewery_id != sample_brewery_id:
                     return None
+                # First lookup succeeds; re-check after mark_embedding_pending
+                # returns None simulates the brewery being deleted mid-flight.
+                get_by_id_calls.append(brewery_id)
+                if len(get_by_id_calls) == 1:
+                    return sample_brewery
                 return None
 
             def mock_mark_pending(_self, brewery_id):
@@ -713,6 +717,7 @@ class TestReprocessEmbedding:
             )
 
             assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert len(get_by_id_calls) == 2
             mock_add_task.assert_not_called()
 
     def test_reprocess_embedding_operativo_returns_403(
