@@ -32,17 +32,16 @@ async def n8n_chat(
     """Proxy a chat message to the configured n8n webhook.
 
     Injects ``sessionId=current_user.id`` and returns the n8n answer as a
-    stable JSON payload. The n8n webhook URL, timeout, and downstream auth
-    token are read from ``N8N_CHAT_WEBHOOK_URL``, ``N8N_CHAT_TIMEOUT_SECONDS``
-    and ``N8N_CHAT_AUTH_TOKEN``.
+    stable JSON payload. The n8n webhook URL and timeout are read from
+    ``N8N_CHAT_WEBHOOK_URL`` and ``N8N_CHAT_TIMEOUT_SECONDS``.
 
-    Returns ``503`` when the webhook or required downstream auth is not
-    configured so the backend can boot without it.
+    Returns ``503`` when the webhook is not configured so the backend can
+    boot without it.
     """
     request_id = uuid4().hex[:6]
 
-    if not settings.n8n_chat_webhook_url or not settings.n8n_chat_auth_token:
-        logger.warning(f"[{request_id}] N8N-CHAT: unavailable status=503 webhook_configured={bool(settings.n8n_chat_webhook_url)} auth_configured={bool(settings.n8n_chat_auth_token)}")
+    if not settings.n8n_chat_webhook_url:
+        logger.warning(f"[{request_id}] N8N-CHAT: unavailable status=503 webhook_configured={bool(settings.n8n_chat_webhook_url)}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="El chat de n8n no está configurado",

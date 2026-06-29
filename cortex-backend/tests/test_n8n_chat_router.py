@@ -73,45 +73,9 @@ class TestN8NChatRouter:
         mock_service_unconfigured.send_message.assert_not_called()
         test_client.app.dependency_overrides.clear()
 
-    def test_n8n_chat_returns_503_when_auth_token_unconfigured(self, monkeypatch, mock_service_unconfigured):
-        """TRIANGULATE: Route fails gracefully when downstream auth is not configured and does not call downstream."""
-        monkeypatch.delenv('N8N_CHAT_AUTH_TOKEN', raising=False)
-
-        app = create_app()
-        app.dependency_overrides[get_current_user] = lambda: create_mock_user()
-        app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
-        app.dependency_overrides[n8n_chat.get_n8n_chat_service] = lambda svc=mock_service_unconfigured: svc
-        test_client = TestClient(app)
-
-        response = test_client.post("/chat/n8n", json={"message": "hello"})
-
-        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-        detail = response.json()["detail"].lower()
-        assert "configurado" in detail
-        mock_service_unconfigured.send_message.assert_not_called()
-        test_client.app.dependency_overrides.clear()
-
     def test_n8n_chat_returns_503_when_webhook_is_empty_string(self, monkeypatch, mock_service_unconfigured):
         """TRIANGULATE: Empty webhook env is treated as unconfigured and does not call downstream."""
         monkeypatch.setenv('N8N_CHAT_WEBHOOK_URL', '')
-
-        app = create_app()
-        app.dependency_overrides[get_current_user] = lambda: create_mock_user()
-        app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
-        app.dependency_overrides[n8n_chat.get_n8n_chat_service] = lambda svc=mock_service_unconfigured: svc
-        test_client = TestClient(app)
-
-        response = test_client.post("/chat/n8n", json={"message": "hello"})
-
-        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-        detail = response.json()["detail"].lower()
-        assert "configurado" in detail
-        mock_service_unconfigured.send_message.assert_not_called()
-        test_client.app.dependency_overrides.clear()
-
-    def test_n8n_chat_returns_503_when_auth_token_is_empty_string(self, monkeypatch, mock_service_unconfigured):
-        """TRIANGULATE: Empty auth token env is treated as unconfigured and does not call downstream."""
-        monkeypatch.setenv('N8N_CHAT_AUTH_TOKEN', '')
 
         app = create_app()
         app.dependency_overrides[get_current_user] = lambda: create_mock_user()

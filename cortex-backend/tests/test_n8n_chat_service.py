@@ -14,10 +14,9 @@ class TestN8NChatService:
 
     @pytest.fixture
     def settings(self, monkeypatch):
-        """Settings with a configured webhook URL and auth token."""
+        """Settings with a configured webhook URL."""
         monkeypatch.setenv('N8N_CHAT_WEBHOOK_URL', 'https://n8n.example.com/webhook/chat')
         monkeypatch.setenv('N8N_CHAT_TIMEOUT_SECONDS', '30')
-        monkeypatch.setenv('N8N_CHAT_AUTH_TOKEN', 'test-auth-token')
         from app.core.config import Settings
 
         return Settings()
@@ -54,8 +53,8 @@ class TestN8NChatService:
         assert call_kwargs['json'] == {"message": "hello", "sessionId": "user-123"}
 
     @pytest.mark.asyncio
-    async def test_send_message_includes_authorization_bearer_header(self, service):
-        """RED: Outbound request sends the configured auth token as an Authorization Bearer header."""
+    async def test_send_message_sends_no_authorization_header(self, service):
+        """RED: Outbound request is decoupled from any Authorization header."""
         mock_response = self._create_mock_response({"ok": True, "answer": "ok"})
 
         mock_client = MagicMock()
@@ -67,7 +66,9 @@ class TestN8NChatService:
             await service.send_message("hello", "user-123")
 
         call_kwargs = mock_client.post.await_args.kwargs
-        assert call_kwargs['headers'] == {"Authorization": "Bearer test-auth-token"}
+        headers = call_kwargs.get('headers') or {}
+        assert "Authorization" not in headers
+        assert "authorization" not in {key.lower() for key in headers}
 
     @pytest.mark.asyncio
     async def test_send_message_maps_successful_answer(self, service):
@@ -219,7 +220,7 @@ class TestN8NChatService:
 
     @pytest.mark.asyncio
     async def test_send_message_does_not_log_request_error_details(self, service, caplog):
-        """TRIANGULATE: Failure logs must not include the webhook URL or auth token."""
+        """TRIANGULATE: Failure logs must not include the webhook URL."""
         request = httpx.Request("POST", "https://n8n.example.com/webhook/chat")
         exc = httpx.ConnectError("connection refused", request=request)
 
@@ -234,11 +235,10 @@ class TestN8NChatService:
                     await service.send_message("hello", "user-1")
 
         assert "https://n8n.example.com/webhook/chat" not in caplog.text
-        assert "test-auth-token" not in caplog.text
 
     @pytest.mark.asyncio
     async def test_send_message_logs_status_code_on_http_error(self, service, caplog):
-        """TRIANGULATE: HTTP error path logs the status code but not the webhook URL or token."""
+        """TRIANGULATE: HTTP error path logs the status code but not the webhook URL."""
         mock_response = MagicMock()
         mock_response.status_code = 500
         request = httpx.Request("POST", "https://n8n.example.com/webhook/chat")
@@ -256,4 +256,3 @@ class TestN8NChatService:
 
         assert "500" in caplog.text
         assert "https://n8n.example.com/webhook/chat" not in caplog.text
-        assert "test-auth-token" not in caplog.text

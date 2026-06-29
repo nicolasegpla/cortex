@@ -39,22 +39,16 @@ The backend MUST send exactly `{ message, sessionId }` to the n8n webhook — no
 - WHEN the backend builds the outbound payload
 - THEN `sessionId` is sourced from the authenticated user, never from the request body
 
-### Requirement: Downstream n8n Webhook Authentication
+### Requirement: Downstream n8n Webhook Call
 
-The backend MUST authenticate outbound requests to the n8n webhook using an `Authorization: Bearer <token>` header. The token MUST be read from `N8N_CHAT_AUTH_TOKEN`. The outbound JSON body MUST remain exactly `{ message, sessionId }`; the token MUST NOT be added to the body. The auth token and webhook URL MUST NOT appear in operational logs. When `N8N_CHAT_WEBHOOK_URL` is configured but `N8N_CHAT_AUTH_TOKEN` is missing or empty, `POST /chat/n8n` MUST return `503` service unavailable.
+The backend MUST call the n8n webhook with a normal HTTP POST and `Content-Type: application/json`. The outbound JSON body MUST remain exactly `{ message, sessionId }`; no token or additional fields are sent. The webhook URL MUST NOT appear in operational logs.
 
-#### Scenario: Auth token configured
+#### Scenario: Webhook call body
 
-- GIVEN `N8N_CHAT_WEBHOOK_URL` and `N8N_CHAT_AUTH_TOKEN` are set
+- GIVEN `N8N_CHAT_WEBHOOK_URL` is set
 - WHEN the backend calls the n8n webhook
-- THEN the request includes `Authorization: Bearer <token>`
-- AND the request body is exactly `{ message, sessionId }`
-
-#### Scenario: Auth token missing
-
-- GIVEN `N8N_CHAT_WEBHOOK_URL` is set but `N8N_CHAT_AUTH_TOKEN` is missing or empty
-- WHEN a request reaches `POST /chat/n8n`
-- THEN the backend returns `503` with a clear "not configured" message
+- THEN the request body is exactly `{ message, sessionId }`
+- AND the request uses the configured timeout
 
 ### Requirement: n8n Response Mapping to Stable Frontend Contract
 
@@ -82,11 +76,11 @@ On a successful n8n response of shape `{ ok: true, answer: string }`, the backen
 
 - GIVEN the n8n webhook responds with a non-2xx HTTP status
 - WHEN the backend receives the response
-- THEN the backend returns `502` to the frontend and does not surface the raw n8n body or the webhook URL/token in logs
+- THEN the backend returns `502` to the frontend and does not surface the raw n8n body or the webhook URL in logs
 
 ### Requirement: n8n Proxy Configuration
 
-The backend MUST read `N8N_CHAT_WEBHOOK_URL` (optional), `N8N_CHAT_TIMEOUT_SECONDS` (optional, sane default), and `N8N_CHAT_AUTH_TOKEN` (required whenever the webhook URL is configured) from configuration. When `N8N_CHAT_WEBHOOK_URL` is missing or empty, or when it is set but `N8N_CHAT_AUTH_TOKEN` is missing or empty, the backend MUST still boot and `POST /chat/n8n` MUST return a clear `503` proxy-unavailable response.
+The backend MUST read `N8N_CHAT_WEBHOOK_URL` (optional) and `N8N_CHAT_TIMEOUT_SECONDS` (optional, sane default) from configuration. When `N8N_CHAT_WEBHOOK_URL` is missing or empty, the backend MUST still boot and `POST /chat/n8n` MUST return a clear `503` proxy-unavailable response.
 
 #### Scenario: Webhook URL configured
 
@@ -106,13 +100,6 @@ The backend MUST read `N8N_CHAT_WEBHOOK_URL` (optional), `N8N_CHAT_TIMEOUT_SECON
 - GIVEN `N8N_CHAT_WEBHOOK_URL` is set to an empty string
 - WHEN the backend boots and a chat request arrives
 - THEN the route treats it as unconfigured and returns `503`
-
-#### Scenario: Auth token missing when webhook URL is configured
-
-- GIVEN `N8N_CHAT_WEBHOOK_URL` is set but `N8N_CHAT_AUTH_TOKEN` is not set
-- WHEN a chat request reaches `POST /chat/n8n`
-- THEN the route returns `503` with a clear "not configured" message
-- AND the backend does not call the n8n webhook anonymously
 
 ### Requirement: SSE Streaming Path Retained for Rollback
 

@@ -63,19 +63,3 @@ class TestSettings:
         settings = Settings(N8N_CHAT_TIMEOUT_SECONDS='120', _env_file=None)
 
         assert settings.n8n_chat_timeout_seconds == 120
-
-    def test_n8n_chat_auth_token_defaults_to_none(self, monkeypatch) -> None:
-        """Missing downstream auth token is accepted; the route treats it as unconfigured."""
-        monkeypatch.delenv('N8N_CHAT_AUTH_TOKEN', raising=False)
-
-        settings = Settings(_env_file=None)
-
-        assert settings.n8n_chat_auth_token is None
-
-    def test_n8n_chat_auth_token_can_be_set(self, monkeypatch) -> None:
-        """TRIANGULATE: Auth token is read from environment."""
-        monkeypatch.setenv('N8N_CHAT_AUTH_TOKEN', 'secret-token-123')
-
-        settings = Settings(_env_file=None)
-
-        assert settings.n8n_chat_auth_token == 'secret-token-123'

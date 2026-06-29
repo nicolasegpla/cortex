@@ -18,7 +18,7 @@ class N8NChatTimeoutError(Exception):
 
 
 class N8NChatService:
-    """Proxy authenticated chat messages to an n8n webhook.
+    """Proxy chat messages to an n8n webhook.
 
     The service sends exactly ``{ message, sessionId }`` to the configured
     webhook URL and validates that n8n replies with ``{ ok: true, answer: str }``.
@@ -44,17 +44,12 @@ class N8NChatService:
         payload = {"message": message, "sessionId": session_id}
         timeout = self.settings.n8n_chat_timeout_seconds
         webhook_url = self.settings.n8n_chat_webhook_url
-        auth_token = self.settings.n8n_chat_auth_token
-
-        headers = None
-        if auth_token:
-            headers = {"Authorization": f"Bearer {auth_token}"}
 
         logger.info("n8n-chat: sending message to webhook")
 
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.post(webhook_url, json=payload, headers=headers)
+                response = await client.post(webhook_url, json=payload)
                 response.raise_for_status()
                 body = response.json()
         except httpx.TimeoutException as exc:
