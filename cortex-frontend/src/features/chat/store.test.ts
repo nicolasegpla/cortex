@@ -16,18 +16,6 @@ vi.mock('@/services/api/client', async () => {
     };
 });
 
-function createMockStream(chunks: string[]): ReadableStream <Uint8Array> {
-    return new ReadableStream({
-        start(controller) {
-            const encoder = new TextEncoder();
-            for (const chunk of chunks) {
-                controller.enqueue(encoder.encode(chunk));
-            }
-            controller.close();
-        },
-    });
-}
-
 describe('useChatStore', () => {
     beforeEach(() => {
         localStorage.clear();
@@ -52,15 +40,16 @@ describe('useChatStore', () => {
         expect(state.activeModel).toBe('gpt-4o');
     });
 
-    describe('sendMessage', () => {
-        it('should append user message and stream assistant response', async () => {
-            const sseChunks = [
-                'event: delta\ndata: Hello\n\n',
-                'event: delta\ndata: world\n\n',
-                'event: done\ndata: \n\n',
-            ];
+    it('should not expose abort or abort-controller state for the n8n path', () => {
+        const state = useChatStore.getState();
 
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
+        expect('abort' in state).toBe(false);
+        expect('_abortController' in state).toBe(false);
+    });
+
+    describe('sendMessage', () => {
+        it('should append user message and single assistant answer', async () => {
+            vi.mocked(apiClient.post).mockResolvedValueOnce({ answer: 'Hello from n8n' });
 
             const { sendMessage } = useChatStore.getState();
             await sendMessage('Hi there');
@@ -68,112 +57,17 @@ describe('useChatStore', () => {
             const state = useChatStore.getState();
             expect(state.messages).toHaveLength(2);
             expect(state.messages[0]).toEqual({ role: 'user', content: 'Hi there' });
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Helloworld' });
+            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello from n8n' });
             expect(state.isLoading).toBe(false);
-            expect(apiClient.stream).toHaveBeenCalledWith('/chat/stream', {
-                model: 'gpt-4o',
-                messages: [{ role: 'user', content: 'Hi there' }],
-                provider: 'openai',
-                enable_tools: true,
+            expect(apiClient.post).toHaveBeenCalledWith('/chat/n8n', {
+                message: 'Hi there',
             });
-        });
-
-        it('should preserve multiline SSE payloads in a single event', async () => {
-            const sseChunks = [
-                'event: delta\ndata: Nombre: Cerveza A\ndata: Ciudad: Bogotá\ndata: Oportunidades: ninguna\n\n',
-                'event: done\ndata: \n\n',
-            ];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('dame informacion de cerveceria 2');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({
-                role: 'assistant',
-                content: 'Nombre: Cerveza A\nCiudad: Bogotá\nOportunidades: ninguna',
-            });
-        });
-
-        it('should reassemble an SSE event split across chunk boundaries', async () => {
-            const sseChunks = ['event: del', 'ta\ndata: Hello\n\n'];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello' });
-        });
-
-        it('should reassemble fragmented data lines across multiple chunks', async () => {
-            const sseChunks = ['event: delta\ndata: He', 'llo\n\nevent: delta\ndata: world\n\n'];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Helloworld' });
-        });
-
-        it('should preserve multiline data when fragmented mid-line', async () => {
-            const sseChunks = ['event: delta\ndata: Line 1\nda', 'ta: Line 2\n\n'];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({
-                role: 'assistant',
-                content: 'Line 1\nLine 2',
-            });
-        });
-
-        it('should ignore SSE comments and continue parsing fragmented events', async () => {
-            const sseChunks = [': pin', 'g\n\nevent: delta\ndata: Hello\n\n'];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello' });
-        });
-
-        it('should handle streaming error event', async () => {
-            const sseChunks = [
-                'event: delta\ndata: Partial\n\n',
-                'event: error\ndata: Provider failed\n\n',
-            ];
-
-            vi.mocked(apiClient.stream).mockResolvedValueOnce(createMockStream(sseChunks));
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1].content).toBe('Partial');
-            expect(state.error).toBe('Provider failed');
-            expect(state.isLoading).toBe(false);
         });
 
         it('should set loading state during send', async () => {
-            vi.mocked(apiClient.stream).mockImplementation(
+            vi.mocked(apiClient.post).mockImplementation(
                 () => new Promise((resolve) =>
-                    setTimeout(() => resolve(createMockStream(['event: done\ndata: \n\n'])), 10)
+                    setTimeout(() => resolve({ answer: 'ok' }), 10)
                 )
             );
 
@@ -186,8 +80,19 @@ describe('useChatStore', () => {
             expect(useChatStore.getState().isLoading).toBe(false);
         });
 
-        it('should handle network error', async () => {
-            vi.mocked(apiClient.stream).mockRejectedValueOnce(new Error('Connection lost'));
+        it('should trim whitespace before sending', async () => {
+            vi.mocked(apiClient.post).mockResolvedValueOnce({ answer: 'answer' });
+
+            const { sendMessage } = useChatStore.getState();
+            await sendMessage('   hello   ');
+
+            expect(apiClient.post).toHaveBeenCalledWith('/chat/n8n', {
+                message: 'hello',
+            });
+        });
+
+        it('should handle API error', async () => {
+            vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('n8n unavailable'));
 
             const { sendMessage } = useChatStore.getState();
             await sendMessage('test');
@@ -196,7 +101,7 @@ describe('useChatStore', () => {
             expect(state.messages).toHaveLength(2);
             expect(state.messages[0]).toEqual({ role: 'user', content: 'test' });
             expect(state.messages[1]).toEqual({ role: 'assistant', content: '' });
-            expect(state.error).toBe('Connection lost');
+            expect(state.error).toBe('n8n unavailable');
             expect(state.isLoading).toBe(false);
         });
 
@@ -204,34 +109,8 @@ describe('useChatStore', () => {
             const { sendMessage } = useChatStore.getState();
             await sendMessage('   ');
 
-            expect(apiClient.stream).not.toHaveBeenCalled();
+            expect(apiClient.post).not.toHaveBeenCalled();
             expect(useChatStore.getState().messages).toHaveLength(0);
-        });
-    });
-
-    describe('abort', () => {
-        it('should abort streaming and stop loading', async () => {
-            const controller = new AbortController();
-            
-            vi.mocked(apiClient.stream).mockImplementation(() => {
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve(createMockStream(['event: done\ndata: \n\n']));
-                    }, 100);
-                });
-            });
-
-            const { sendMessage, abort } = useChatStore.getState();
-            const promise = sendMessage('Long message');
-
-            // Abort while loading
-            expect(useChatStore.getState().isLoading).toBe(true);
-            abort();
-
-            await promise;
-
-            const state = useChatStore.getState();
-            expect(state.isLoading).toBe(false);
         });
     });
 

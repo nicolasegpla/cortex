@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     resend_api_key: str | None = Field(default=None, alias='RESEND_API_KEY')
     resend_from_email: str = Field(default='noreply@cortex.local', alias='RESEND_FROM_EMAIL')
     encryption_key: str | None = Field(default=None, alias='ENCRYPTION_KEY')
+    n8n_chat_webhook_url: str | None = Field(default=None, alias='N8N_CHAT_WEBHOOK_URL')
+    n8n_chat_timeout_seconds: int = Field(default=60, alias='N8N_CHAT_TIMEOUT_SECONDS')
+    n8n_chat_auth_token: str | None = Field(default=None, alias='N8N_CHAT_AUTH_TOKEN')
 
     @property
     def cors_origins(self) -> list[str]:

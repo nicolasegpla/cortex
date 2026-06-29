@@ -5,6 +5,8 @@ from app.schemas.chat import (
     ChatEvent,
     ChatMessage,
     ChatRequest,
+    N8NChatRequest,
+    N8NChatResponse,
     ToolCall,
     ToolDefinition,
     ToolResult,
@@ -190,3 +192,27 @@ class TestChatSchemas:
     def test_tool_result_empty_content(self):
         result = ToolResult(tool_call_id="call_789", name="count_breweries", content="")
         assert result.content == ""
+
+
+class TestN8NChatSchemas:
+    """Schemas for the n8n chat proxy."""
+
+    def test_n8n_chat_request_valid(self):
+        """RED: N8NChatRequest accepts a non-empty message."""
+        req = N8NChatRequest(message="hello")
+        assert req.message == "hello"
+
+    def test_n8n_chat_request_rejects_empty_message(self):
+        """TRIANGULATE: Empty message is rejected."""
+        with pytest.raises(ValidationError):
+            N8NChatRequest(message="")
+
+    def test_n8n_chat_response_round_trips_answer(self):
+        """RED: N8NChatResponse carries the answer string."""
+        resp = N8NChatResponse(answer="do this")
+        assert resp.answer == "do this"
+
+    def test_n8n_chat_response_serializes_to_json(self):
+        """TRIANGULATE: Response serializes to the frontend contract."""
+        resp = N8NChatResponse(answer="do this")
+        assert resp.model_dump() == {"answer": "do this"}
