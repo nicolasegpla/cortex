@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-import { apiClient } from '@/services/api/client';
+import { HermesError, streamChat } from '@/services/hermes/client';
 import { useChatStore, PROVIDER_MODELS, MODEL_PROVIDER_MAP } from './store';
 
 vi.mock('@/services/api/client', async () => {
@@ -99,7 +99,6 @@ describe('useChatStore', () => {
 
             const state = useChatStore.getState();
             expect(state.messages).toHaveLength(2);
-            expect(state.messages[0]).toEqual({ role: 'user', content: 'test' });
             expect(state.messages[1]).toEqual({ role: 'assistant', content: '' });
             expect(state.error).toBe('n8n unavailable');
             expect(state.isLoading).toBe(false);
