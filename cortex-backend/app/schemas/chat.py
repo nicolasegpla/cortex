@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ChatMessage(BaseModel):
@@ -48,3 +48,25 @@ class ToolCallResult(BaseModel):
 class ChatEvent(BaseModel):
     type: Literal["delta", "done", "error"]
     data: str | None
+
+
+class N8NChatRequest(BaseModel):
+    """Frontend → Backend payload for the n8n chat proxy."""
+
+    model_config = ConfigDict(extra='forbid')
+
+    message: str = Field(...)
+
+    @field_validator('message')
+    @classmethod
+    def _strip_and_require_message(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError('Message cannot be empty or whitespace-only')
+        return value
+
+
+class N8NChatResponse(BaseModel):
+    """Backend → Frontend response for the n8n chat proxy."""
+
+    answer: str

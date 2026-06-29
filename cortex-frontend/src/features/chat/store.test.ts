@@ -3,29 +3,18 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { HermesError, streamChat } from '@/services/hermes/client';
 import { useChatStore, PROVIDER_MODELS, MODEL_PROVIDER_MAP } from './store';
 
-vi.mock('@/services/hermes/client', () => ({
-    streamChat: vi.fn(),
-    HermesError: class HermesError extends Error {
-        readonly type: 'http' | 'network';
-        readonly status?: number;
-
-        constructor(type: 'http' | 'network', status?: number) {
-            super(
-                type === 'http' && status !== undefined
-                    ? `Hermes request failed with status ${status}`
-                    : 'Network error while connecting to Hermes'
-            );
-            this.type = type;
-            this.status = status;
-        }
-    },
-}));
-
-async function* createMockGenerator(deltas: string[]): AsyncGenerator<string> {
-    for (const delta of deltas) {
-        yield delta;
-    }
-}
+vi.mock('@/services/api/client', async () => {
+    const actual = await vi.importActual('@/services/api/client');
+    return {
+        ...actual,
+        apiClient: {
+            get: vi.fn(),
+            post: vi.fn(),
+            delete: vi.fn(),
+            stream: vi.fn(),
+        },
+    };
+});
 
 describe('useChatStore', () => {
     beforeEach(() => {
@@ -51,11 +40,16 @@ describe('useChatStore', () => {
         expect(state.activeModel).toBe('gpt-4o');
     });
 
+    it('should not expose abort or abort-controller state for the n8n path', () => {
+        const state = useChatStore.getState();
+
+        expect('abort' in state).toBe(false);
+        expect('_abortController' in state).toBe(false);
+    });
+
     describe('sendMessage', () => {
-        it('should append user message and stream assistant response', async () => {
-            vi.mocked(streamChat).mockReturnValueOnce(
-                createMockGenerator(['Hello', ' world'])
-            );
+        it('should append user message and single assistant answer', async () => {
+            vi.mocked(apiClient.post).mockResolvedValueOnce({ answer: 'Hello from n8n' });
 
             const { sendMessage } = useChatStore.getState();
             await sendMessage('Hi there');
@@ -63,19 +57,19 @@ describe('useChatStore', () => {
             const state = useChatStore.getState();
             expect(state.messages).toHaveLength(2);
             expect(state.messages[0]).toEqual({ role: 'user', content: 'Hi there' });
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello world' });
+            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Hello from n8n' });
             expect(state.isLoading).toBe(false);
-            expect(streamChat).toHaveBeenCalledWith({
-                model: 'gpt-4o',
-                messages: [{ role: 'user', content: 'Hi there' }],
-                signal: expect.any(AbortSignal),
+            expect(apiClient.post).toHaveBeenCalledWith('/chat/n8n', {
+                message: 'Hi there',
             });
         });
 
         it('should set loading state during send', async () => {
-            vi.mocked(streamChat).mockImplementationOnce(async function* () {
-                await new Promise((resolve) => setTimeout(resolve, 50));
-            });
+            vi.mocked(apiClient.post).mockImplementation(
+                () => new Promise((resolve) =>
+                    setTimeout(() => resolve({ answer: 'ok' }), 10)
+                )
+            );
 
             const { sendMessage } = useChatStore.getState();
             const promise = sendMessage('Hello');
@@ -86,57 +80,19 @@ describe('useChatStore', () => {
             expect(useChatStore.getState().isLoading).toBe(false);
         });
 
-        it('should handle HermesError', async () => {
-            vi.mocked(streamChat).mockImplementationOnce(async function* () {
-                throw new HermesError('http', 401);
-            });
+        it('should trim whitespace before sending', async () => {
+            vi.mocked(apiClient.post).mockResolvedValueOnce({ answer: 'answer' });
 
             const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
+            await sendMessage('   hello   ');
 
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[0]).toEqual({ role: 'user', content: 'test' });
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: '' });
-            expect(state.error).toBe('Hermes request failed with status 401');
-            expect(state.isLoading).toBe(false);
+            expect(apiClient.post).toHaveBeenCalledWith('/chat/n8n', {
+                message: 'hello',
+            });
         });
 
-        it('should handle network error from HermesError', async () => {
-            vi.mocked(streamChat).mockImplementationOnce(async function* () {
-                throw new HermesError('network');
-            });
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.error).toBe('Network error while connecting to Hermes');
-            expect(state.isLoading).toBe(false);
-        });
-
-        it('should handle HermesError thrown in the middle of streaming', async () => {
-            vi.mocked(streamChat).mockImplementationOnce(async function* () {
-                yield 'Partial';
-                throw new HermesError('http', 503);
-            });
-
-            const { sendMessage } = useChatStore.getState();
-            await sendMessage('test');
-
-            const state = useChatStore.getState();
-            expect(state.messages).toHaveLength(2);
-            expect(state.messages[1]).toEqual({ role: 'assistant', content: 'Partial' });
-            expect(state.error).toBe('Hermes request failed with status 503');
-            expect(state.isLoading).toBe(false);
-        });
-
-        it('should handle a generic error during streaming', async () => {
-            vi.mocked(streamChat).mockImplementationOnce(async function* () {
-                yield 'Start';
-                throw new Error('Unexpected failure');
-            });
+        it('should handle API error', async () => {
+            vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('n8n unavailable'));
 
             const { sendMessage } = useChatStore.getState();
             await sendMessage('test');
@@ -144,7 +100,7 @@ describe('useChatStore', () => {
             const state = useChatStore.getState();
             expect(state.messages).toHaveLength(2);
             expect(state.messages[1]).toEqual({ role: 'assistant', content: '' });
-            expect(state.error).toBe('Unexpected failure');
+            expect(state.error).toBe('n8n unavailable');
             expect(state.isLoading).toBe(false);
         });
 
@@ -152,31 +108,8 @@ describe('useChatStore', () => {
             const { sendMessage } = useChatStore.getState();
             await sendMessage('   ');
 
-            expect(streamChat).not.toHaveBeenCalled();
+            expect(apiClient.post).not.toHaveBeenCalled();
             expect(useChatStore.getState().messages).toHaveLength(0);
-        });
-    });
-
-    describe('abort', () => {
-        it('should abort streaming and stop loading', async () => {
-            const controller = new AbortController();
-
-            vi.mocked(streamChat).mockImplementation(async function* () {
-                await new Promise((resolve) => setTimeout(resolve, 100));
-                yield 'ignored';
-            });
-
-            const { sendMessage, abort } = useChatStore.getState();
-            const promise = sendMessage('Long message');
-
-            expect(useChatStore.getState().isLoading).toBe(true);
-            abort();
-
-            await promise;
-
-            const state = useChatStore.getState();
-            expect(state.isLoading).toBe(false);
-            expect(state.error).toBeNull();
         });
     });
 

@@ -4,6 +4,8 @@
 
 Inline, ChatGPT-style model selector rendered as a badge in the chat input bar. The user selects a model; the provider is derived from it. No provider selector and no intelligence-level selector are included.
 
+> **Scope note:** This selector is part of the legacy SSE `/chat/stream` chat path. The active n8n chat page intentionally does not render a model/provider selector; the only chat controls are the message input and send button.
+
 ## Requirements
 
 ### Requirement: Inline Model Selector Badge

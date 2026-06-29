@@ -64,10 +64,8 @@ interface ChatState {
     activeProvider: Provider;
     activeModel: string;
     hydrated: boolean;
-    _abortController: AbortController | null;
 
     sendMessage: (text: string) => Promise<void>;
-    abort: () => void;
     clearMessages: () => void;
     setActiveModel: (model: string) => void;
     hydrate: (model: string) => void;
@@ -166,7 +164,6 @@ export const useChatStore = create<ChatState>()(
         activeProvider: 'openai',
         activeModel: DEFAULT_MODELS['openai'],
         hydrated: false,
-        _abortController: null,
 
         sendMessage: async (text) => {
             const trimmed = text.trim();
@@ -178,30 +175,18 @@ export const useChatStore = create<ChatState>()(
 
             set({ messages, isLoading: true, error: null });
 
-            const abortController = new AbortController();
-            set({ _abortController: abortController });
-
-            let assistantContent = '';
-            const buildAssistantMessage = (): ChatMessage => ({
-                role: 'assistant',
-                content: assistantContent,
-            });
-
             try {
-                for await (const delta of streamChat({
-                    model: state.activeModel,
-                    messages: messages.map((m) => ({ role: m.role, content: m.content })),
-                    signal: abortController.signal,
-                })) {
-                    assistantContent += delta;
-                    set({
-                        messages: [...messages, buildAssistantMessage()],
-                    });
-                }
+                // MVP: n8n JSON proxy path. Replaces the previous SSE stream.
+                const response = await apiClient.post<{ answer: string }>('/chat/n8n', {
+                    message: trimmed,
+                });
 
                 set({
                     isLoading: false,
-                    messages: [...messages, buildAssistantMessage()],
+                    messages: [
+                        ...messages,
+                        { role: 'assistant', content: response.answer },
+                    ],
                 });
             } catch (err) {
                 if (err instanceof HermesError) {
@@ -222,17 +207,67 @@ export const useChatStore = create<ChatState>()(
                         { role: 'assistant', content: '' },
                     ],
                 });
-            } finally {
-                set({ _abortController: null });
             }
-        },
 
-        abort: () => {
-            const { _abortController } = get();
-            if (_abortController) {
-                _abortController.abort();
-                set({ isLoading: false, _abortController: null });
-            }
+            // ROLLBACK BLOCK: to restore the legacy SSE `/chat/stream` transport,
+            // re-introduce an `AbortController` + `abort()` action, then uncomment
+            // the block below and remove the n8n JSON block above.
+            //
+            // const abortController = new AbortController();
+            // try {
+            //     const stream = await apiClient.stream('/chat/stream', {
+            //         model: state.activeModel,
+            //         messages: messages.map((m) => ({ role: m.role, content: m.content })),
+            //         provider: state.activeProvider,
+            //         enable_tools: true,
+            //     });
+            //
+            //     let assistantContent = '';
+            //
+            //     for await (const chunk of readSSEChunks(stream)) {
+            //         if (abortController.signal.aborted) break;
+            //
+            //         if (chunk.event === 'delta') {
+            //             assistantContent += chunk.data;
+            //             set({
+            //                 messages: [
+            //                     ...messages,
+            //                     { role: 'assistant', content: assistantContent },
+            //                 ],
+            //             });
+            //         } else if (chunk.event === 'error') {
+            //             set({
+            //                 error: chunk.data || 'Error de streaming',
+            //                 isLoading: false,
+            //                 messages: [
+            //                     ...messages,
+            //                     { role: 'assistant', content: assistantContent },
+            //                 ],
+            //             });
+            //             return;
+            //         } else if (chunk.event === 'done') {
+            //             break;
+            //         }
+            //     }
+            //
+            //     set({
+            //         isLoading: false,
+            //         messages: [
+            //             ...messages,
+            //             { role: 'assistant', content: assistantContent },
+            //         ],
+            //     });
+            // } catch (err) {
+            //     const message = err instanceof Error ? err.message : 'No se pudo enviar el mensaje';
+            //     set({
+            //         error: message,
+            //         isLoading: false,
+            //         messages: [
+            //             ...messages,
+            //             { role: 'assistant', content: '' },
+            //         ],
+            //     });
+            // }
         },
 
         clearMessages: () => set({ messages: [], error: null }),

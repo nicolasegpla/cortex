@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useChatStore, DEFAULT_MODELS, MODEL_PROVIDER_MAP } from './store';
-import { useCredentialsStore } from './credentialsStore';
+import { useChatStore } from './store';
 import { MarkdownContent } from './MarkdownContent';
-import { ModelSelector } from '@/presentation/components/molecules/ModelSelector/ModelSelector';
 
 import './ChatPage.scss';
 
@@ -12,17 +10,10 @@ export function ChatPage() {
         messages,
         isLoading,
         error,
-        activeModel,
-        hydrated,
         sendMessage,
-        abort,
         clearMessages,
-        setActiveModel,
         clearError,
     } = useChatStore();
-
-    const { fetchCredentials, getValidatedProviders } = useCredentialsStore();
-    const validatedProviders = getValidatedProviders();
 
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,20 +28,6 @@ export function ChatPage() {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
-
-    useEffect(() => {
-        void fetchCredentials();
-    }, [fetchCredentials]);
-
-    useEffect(() => {
-        if (!hydrated) return;
-        if (validatedProviders.length === 0) return;
-
-        const activeProvider = MODEL_PROVIDER_MAP[activeModel];
-        if (activeProvider && validatedProviders.includes(activeProvider)) return;
-
-        setActiveModel(DEFAULT_MODELS[validatedProviders[0]]);
-    }, [activeModel, hydrated, setActiveModel, validatedProviders]);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -108,16 +85,9 @@ export function ChatPage() {
                     /* Empty state */
                     <div className="chat-page__empty">
                         <h1 className="chat-page__heading">¿En qué te puedo ayudar?</h1>
-
-                        {validatedProviders.length === 0 ? (
-                            <p className="chat-page__hint">
-                                Configurá un proveedor desde Configuración antes de iniciar una conversación.
-                            </p>
-                        ) : (
-                            <p className="chat-page__hint">
-                                Empezá una conversación escribiendo abajo.
-                            </p>
-                        )}
+                        <p className="chat-page__hint">
+                            Empezá una conversación escribiendo abajo.
+                        </p>
                     </div>
                 ) : (
                     /* Messages */
@@ -153,48 +123,33 @@ export function ChatPage() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={
-                            validatedProviders.length === 0
-                                ? 'Configurá un proveedor en Configuración para empezar a chatear'
-                                : 'Asigná una tarea o preguntá lo que necesites'
-                        }
+                        placeholder="Asigná una tarea o preguntá lo que necesites"
                         rows={1}
-                        disabled={isLoading || validatedProviders.length === 0}
+                        disabled={isLoading}
                         className="chat-page__textarea"
                     />
                     <div className="chat-page__input-toolbar">
-                        <div className="chat-page__model-selector">
-                            <ModelSelector
-                                activeModel={activeModel}
-                                validatedProviders={validatedProviders}
-                                onSelect={setActiveModel}
-                            />
-                        </div>
-                        
                         <div className="chat-page__input-actions">
-                            {isLoading ? (
-                                <button
-                                    onClick={abort}
-                                    className="chat-page__stop-btn"
-                                    title="Detener generación"
-                                    aria-label="Detener generación"
-                                >
-                                    <div className="chat-page__stop-icon" />
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => handleSubmit()}
-                                    disabled={!input.trim() || validatedProviders.length === 0}
-                                    className="chat-page__send-btn"
-                                    title="Enviar mensaje"
-                                    aria-label="Enviar mensaje"
-                                >
+                            <button
+                                onClick={() => handleSubmit()}
+                                disabled={!input.trim() || isLoading}
+                                className="chat-page__send-btn"
+                                title="Enviar mensaje"
+                                aria-label="Enviar mensaje"
+                                aria-busy={isLoading}
+                            >
+                                {isLoading ? (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="chat-page__spinner">
+                                        <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+                                        <path d="M12 2a10 10 0 0 1 10 10" />
+                                    </svg>
+                                ) : (
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <line x1="22" y1="2" x2="11" y2="13"/>
                                         <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                                     </svg>
-                                </button>
-                            )}
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>

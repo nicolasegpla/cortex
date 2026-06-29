@@ -1,7 +1,10 @@
+import os
 from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
+
+os.environ.setdefault('N8N_CHAT_WEBHOOK_URL', 'https://n8n.example.com/webhook/chat')
 
 from app.main import create_app
 
