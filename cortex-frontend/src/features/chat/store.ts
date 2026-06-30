@@ -193,7 +193,7 @@ export const useChatStore = create<ChatState>()(
                     set({
                         error: err.message,
                         isLoading: false,
-                        messages: [...messages, buildAssistantMessage()],
+                        messages: [...messages, { role: 'assistant', content: '' }],
                     });
                     return;
                 }
