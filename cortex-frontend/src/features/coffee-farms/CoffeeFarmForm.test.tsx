@@ -74,6 +74,7 @@ describe('CoffeeFarmForm', () => {
         );
 
         expect(screen.getByRole('heading', { name: 'Crear Finca de Café' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre de la Finca/i)).toBeRequired();
         expect(screen.getByLabelText(/Nombre de la Finca/i)).toHaveValue('');
         expect(screen.getByRole('button', { name: 'Crear Finca de Café' })).toBeInTheDocument();
     });
@@ -241,6 +242,60 @@ describe('CoffeeFarmForm', () => {
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    it('submits null for optional select fields when left unset', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'farm-new' });
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Finca/i), 'Finca Esperanza');
+        await user.click(screen.getByRole('button', { name: 'Crear Finca de Café' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            nombre_finca: 'Finca Esperanza',
+            tipo_actividad: null,
+            tipo_proceso: null,
+            nivel_tecnificacion: null,
+        });
+    });
+
+    it('submits the selected values for optional select fields', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'farm-new' });
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Finca/i), 'Finca Esperanza');
+        await user.selectOptions(screen.getByLabelText(/Tipo de Actividad/i), 'Productor');
+        await user.selectOptions(screen.getByLabelText(/Tipo de Proceso/i), 'Lavado');
+        await user.selectOptions(screen.getByLabelText(/Nivel de Tecnificación/i), 'Manual');
+        await user.click(screen.getByRole('button', { name: 'Crear Finca de Café' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            tipo_actividad: 'Productor',
+            tipo_proceso: 'Lavado',
+            nivel_tecnificacion: 'Manual',
         });
     });
 

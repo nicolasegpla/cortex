@@ -78,6 +78,7 @@ describe('BreweryForm', () => {
         );
 
         expect(screen.getByRole('heading', { name: 'Crear Cervecería' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toBeRequired();
         expect(screen.getByLabelText(/Nombre de la Cervecería/i)).toHaveValue('');
         expect(screen.getByRole('button', { name: 'Crear Cervecería' })).toBeInTheDocument();
     });
@@ -212,6 +213,54 @@ describe('BreweryForm', () => {
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    it('submits null for tipo_operacion when left unset', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'brewery-new' });
+
+        render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
+        await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            nombre_cerveceria: 'Nueva Cervecería',
+            tipo_operacion: null,
+        });
+    });
+
+    it('submits the selected tipo_operacion value', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'brewery-new' });
+
+        render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
+        await user.selectOptions(screen.getByLabelText(/Tipo de Operación/i), 'planta_propia');
+        await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            tipo_operacion: 'planta_propia',
         });
     });
 

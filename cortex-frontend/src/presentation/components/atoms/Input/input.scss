@@ -12,6 +12,16 @@
     color: vars.$color-text-primary;
 }
 
+.input-field__label-row {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-xs;
+}
+
+.input-field__required {
+    color: vars.$color-feedback-error-text;
+}
+
 .input-field__control {
     width: 100%;
     background-color: vars.$color-surface-primary;

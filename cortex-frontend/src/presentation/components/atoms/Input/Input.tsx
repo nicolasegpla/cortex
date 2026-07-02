@@ -5,16 +5,22 @@ import './input.scss';
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label: string;
     endAdornment?: ReactNode;
+    showRequiredAsterisk?: boolean;
 }
 
-export function Input({ className = '', endAdornment, id, label, name, ...props }: InputProps) {
+export function Input({ className = '', endAdornment, id, label, name, required, showRequiredAsterisk, ...props }: InputProps) {
     const inputId = id ?? name ?? label.toLowerCase().replace(/\s+/g, '-');
 
     return (
         <div className="input-field">
-            <label className="input-field__label" htmlFor={inputId}>
-                {label}
-            </label>
+            <div className="input-field__label-row">
+                <label className="input-field__label" htmlFor={inputId}>
+                    {label}
+                </label>
+                {required && showRequiredAsterisk && (
+                    <span className="input-field__required" aria-hidden="true">*</span>
+                )}
+            </div>
             <span className="input-field__control-wrapper">
                 <input
                     className={[
@@ -24,6 +30,7 @@ export function Input({ className = '', endAdornment, id, label, name, ...props 
                     ].filter(Boolean).join(' ')}
                     id={inputId}
                     name={name}
+                    required={required}
                     {...props}
                 />
                 {endAdornment && (

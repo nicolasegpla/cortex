@@ -127,6 +127,9 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
                 hectareas_totales: formData.hectareas_totales !== '' ? formData.hectareas_totales : null,
                 hectareas_cafe: formData.hectareas_cafe !== '' ? formData.hectareas_cafe : null,
                 puntaje_cafe: formData.puntaje_cafe !== '' ? formData.puntaje_cafe : null,
+                tipo_actividad: formData.tipo_actividad || null,
+                tipo_proceso: formData.tipo_proceso || null,
+                nivel_tecnificacion: formData.nivel_tecnificacion || null,
             };
 
             if (id) {
@@ -169,11 +172,12 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
             <fieldset className="form-section">
                 <legend>Identificación</legend>
                 <Input
-                    label="Nombre de la Finca *"
+                    label="Nombre de la Finca"
                     name="nombre_finca"
                     value={formData.nombre_finca}
                     onChange={handleChange}
                     required
+                    showRequiredAsterisk
                 />
                 <Input
                     label="Razón Social"

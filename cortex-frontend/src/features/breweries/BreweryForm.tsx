@@ -141,6 +141,7 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChan
                 estilos_cerveza: parseArray(formData.estilos_cerveza),
                 formatos_venta: parseArray(formData.formatos_venta),
                 litros_mes: formData.litros_mes ? parseInt(formData.litros_mes, 10) : null,
+                tipo_operacion: formData.tipo_operacion || null,
             };
 
             if (id) {
@@ -183,11 +184,12 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChan
             <fieldset className="form-section">
                 <legend>Identificación</legend>
                 <Input
-                    label="Nombre de la Cervecería *"
+                    label="Nombre de la Cervecería"
                     name="nombre_cerveceria"
                     value={formData.nombre_cerveceria}
                     onChange={handleChange}
                     required
+                    showRequiredAsterisk
                 />
                 <Input
                     label="Razón Social"

@@ -149,11 +149,12 @@ export function AnimalFeedProducerForm({ initialData, id, onSuccess, onCancel, o
             <fieldset className="form-section">
                 <legend>Identificación</legend>
                 <Input
-                    label="Razón Social *"
+                    label="Razón Social"
                     name="razon_social"
                     value={formData.razon_social}
                     onChange={handleChange}
                     required
+                    showRequiredAsterisk
                 />
                 <Input
                     label="Marca"

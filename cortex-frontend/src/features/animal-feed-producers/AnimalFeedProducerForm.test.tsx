@@ -66,6 +66,7 @@ describe('AnimalFeedProducerForm', () => {
         );
 
         expect(screen.getByRole('heading', { name: 'Crear Productor de Alimentos para Animales' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Razón Social/i)).toBeRequired();
         expect(screen.getByLabelText(/Razón Social/i)).toHaveValue('');
         expect(screen.getByRole('button', { name: 'Crear Productor' })).toBeInTheDocument();
     });

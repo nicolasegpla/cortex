@@ -169,11 +169,12 @@ export function WineProducerForm({ initialData, id, onSuccess, onCancel, onSavin
             <fieldset className="form-section">
                 <legend>Identificación</legend>
                 <Input
-                    label="Nombre Comercial *"
+                    label="Nombre Comercial"
                     name="nombre_comercial"
                     value={formData.nombre_comercial}
                     onChange={handleChange}
                     required
+                    showRequiredAsterisk
                 />
                 <Input
                     label="Razón Social"
