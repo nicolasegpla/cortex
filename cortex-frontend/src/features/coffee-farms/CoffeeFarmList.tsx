@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { formatDisplayValue } from '@/shared/displayUtils';
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
 import { TableLoadingRow } from '@/presentation/components/atoms';
 import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
@@ -225,11 +226,11 @@ export function CoffeeFarmList() {
                                                 }}
                                                 aria-label={`Ver detalles de ${farm.nombre_finca}`}
                                             >
-                                                {farm.nombre_finca}
+                                                {formatDisplayValue(farm.nombre_finca)}
                                             </button>
                                         </td>
-                                        <td>{farm.razon_social || '-'}</td>
-                                        <td>{farm.ciudad || '-'}</td>
+                                        <td>{formatDisplayValue(farm.razon_social)}</td>
+                                        <td>{formatDisplayValue(farm.ciudad)}</td>
                                     </tr>
                                 ))
                             )}

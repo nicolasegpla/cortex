@@ -69,10 +69,10 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
-        expect(screen.getByText('Nutrición Animal S.A.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Alimentos del Campo' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Agregar Productor' })).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'Crear Productor de Alimentos para Animales', level: 2 })).not.toBeInTheDocument();
     });
@@ -88,7 +88,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         const headers = screen.getAllByRole('columnheader');
@@ -109,10 +109,30 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getAllByText('Alimentos del Campo').length).toBeGreaterThanOrEqual(1);
+            expect(screen.getByRole('button', { name: 'Ver detalles de Alimentos del Campo' })).toBeInTheDocument();
         });
 
         expect(screen.getByRole('button', { name: 'Ver detalles de Alimentos del Campo' })).toBeInTheDocument();
+    });
+
+    it('renders table values in lowercase', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<AnimalFeedProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
+        });
+
+        expect(screen.getByText('nutrición animal s.a.')).toBeInTheDocument();
+        expect(screen.getAllByText('alimentos del campo').length).toBeGreaterThanOrEqual(2);
+        expect(screen.getByText('medellín')).toBeInTheDocument();
+        expect(screen.getByText('bogotá')).toBeInTheDocument();
     });
 
     it('opens the detail modal when the table row is clicked', async () => {
@@ -128,7 +148,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
@@ -148,7 +168,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
@@ -168,7 +188,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         const rowButton = screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' });
@@ -191,7 +211,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
@@ -226,7 +246,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
@@ -252,7 +272,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -281,7 +301,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -310,7 +330,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -331,7 +351,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -362,7 +382,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
@@ -429,7 +449,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
@@ -437,10 +457,10 @@ describe('AnimalFeedProducerList', () => {
         await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
-            expect(screen.queryByText('NutriAnimal')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Ver detalles de NutriAnimal' })).not.toBeInTheDocument();
         });
 
-        expect(screen.getAllByText('Alimentos del Campo').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByRole('button', { name: 'Ver detalles de Alimentos del Campo' })).toBeInTheDocument();
     });
 
     it('shows an explicit error in the modal when deletion is rejected', async () => {
@@ -464,7 +484,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' }));
@@ -475,7 +495,7 @@ describe('AnimalFeedProducerList', () => {
             expect(screen.getByRole('alert')).toHaveTextContent('No tiene permiso para eliminar');
         });
 
-        expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
     });
 
     it('refetches the list after a successful create submit', async () => {
@@ -505,7 +525,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -518,7 +538,7 @@ describe('AnimalFeedProducerList', () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText('Nutrición Nueva')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriNueva' })).toBeInTheDocument();
         });
 
         expect(screen.queryByRole('heading', { name: 'Crear Productor de Alimentos para Animales' })).not.toBeInTheDocument();
@@ -554,7 +574,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -598,7 +618,7 @@ describe('AnimalFeedProducerList', () => {
         renderWithRouter(<AnimalFeedProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('NutriAnimal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de NutriAnimal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));

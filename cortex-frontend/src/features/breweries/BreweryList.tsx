@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { formatDisplayValue } from '@/shared/displayUtils';
 import { useDeleteRecord } from '@/hooks/useDeleteRecord';
 import { TableLoadingRow } from '@/presentation/components/atoms';
 import { DeleteConfirmationModal, EntityDetailModal, EntityFormModal } from '@/presentation/components/organisms';
@@ -247,11 +248,11 @@ export function BreweryList() {
                                                 }}
                                                 aria-label={`Ver detalles de ${brewery.nombre_cerveceria}`}
                                             >
-                                                {brewery.nombre_cerveceria}
+                                                {formatDisplayValue(brewery.nombre_cerveceria)}
                                             </button>
                                         </td>
-                                        <td>{brewery.razon_social || '-'}</td>
-                                        <td>{brewery.ciudad || '-'}</td>
+                                        <td>{formatDisplayValue(brewery.razon_social)}</td>
+                                        <td>{formatDisplayValue(brewery.ciudad)}</td>
                                     </tr>
                                 ))
                             )}

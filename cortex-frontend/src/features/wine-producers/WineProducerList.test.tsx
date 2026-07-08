@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -76,10 +76,10 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
-        expect(screen.getByText('Bodega del Valle')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Bodega del Valle' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Agregar Productor' })).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino', level: 2 })).not.toBeInTheDocument();
     });
@@ -95,7 +95,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         const headers = screen.getAllByRole('columnheader');
@@ -103,6 +103,26 @@ describe('WineProducerList', () => {
         expect(headers[0]).toHaveTextContent('Nombre Comercial');
         expect(headers[1]).toHaveTextContent('Razón Social');
         expect(headers[2]).toHaveTextContent('Ciudad');
+    });
+
+    it('renders table values in lowercase', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
+        });
+
+        expect(screen.getByRole('button', { name: 'Ver detalles de Bodega del Valle' })).toBeInTheDocument();
+        expect(screen.getByText('viñedo real s.a.s.')).toBeInTheDocument();
+        expect(screen.getByText('medellín')).toBeInTheDocument();
+        expect(screen.getByText('bogotá')).toBeInTheDocument();
     });
 
     it('opens the detail modal when the table row is clicked', async () => {
@@ -118,7 +138,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
@@ -138,7 +158,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
@@ -158,7 +178,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         const rowButton = screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' });
@@ -181,7 +201,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
@@ -216,7 +236,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
@@ -242,7 +262,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -271,7 +291,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -300,7 +320,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -321,7 +341,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -352,7 +372,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
@@ -417,7 +437,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
@@ -425,10 +445,10 @@ describe('WineProducerList', () => {
         await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
-            expect(screen.queryByText('Viñedo Real')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Ver detalles de Viñedo Real' })).not.toBeInTheDocument();
         });
 
-        expect(screen.getByText('Bodega del Valle')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Bodega del Valle' })).toBeInTheDocument();
     });
 
     it('shows an explicit error in the modal when deletion is rejected', async () => {
@@ -452,7 +472,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
@@ -463,7 +483,7 @@ describe('WineProducerList', () => {
             expect(screen.getByRole('alert')).toHaveTextContent('No tiene permiso para eliminar');
         });
 
-        expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
     });
 
     it('refetches the list after a successful create submit', async () => {
@@ -493,7 +513,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -506,7 +526,7 @@ describe('WineProducerList', () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Nuevo')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Nuevo' })).toBeInTheDocument();
         });
 
         expect(screen.queryByRole('heading', { name: 'Crear Productor de Vino' })).not.toBeInTheDocument();
@@ -542,7 +562,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));
@@ -586,7 +606,7 @@ describe('WineProducerList', () => {
         renderWithRouter(<WineProducerList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Viñedo Real')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Productor' }));

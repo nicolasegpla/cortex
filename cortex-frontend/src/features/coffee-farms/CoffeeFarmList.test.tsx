@@ -77,10 +77,10 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
-        expect(screen.getByText('Finca Aurora')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Finca Aurora' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Agregar Finca de Café' })).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'Crear Finca de Café', level: 2 })).not.toBeInTheDocument();
     });
@@ -96,7 +96,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         const headers = screen.getAllByRole('columnheader');
@@ -104,6 +104,26 @@ describe('CoffeeFarmList', () => {
         expect(headers[0]).toHaveTextContent('Nombre');
         expect(headers[1]).toHaveTextContent('Razón Social');
         expect(headers[2]).toHaveTextContent('Ciudad');
+    });
+
+    it('renders table values in lowercase', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<CoffeeFarmList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
+        });
+
+        expect(screen.getByRole('button', { name: 'Ver detalles de Finca Aurora' })).toBeInTheDocument();
+        expect(screen.getByText('primavera s.a.')).toBeInTheDocument();
+        expect(screen.getByText('pitalito')).toBeInTheDocument();
+        expect(screen.getByText('popayán')).toBeInTheDocument();
     });
 
     it('opens the detail modal when the table row is clicked', async () => {
@@ -119,7 +139,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
@@ -139,7 +159,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
@@ -159,7 +179,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         const rowButton = screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' });
@@ -182,7 +202,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
@@ -217,7 +237,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
@@ -243,7 +263,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Finca de Café' }));
@@ -272,7 +292,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Finca de Café' }));
@@ -301,7 +321,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Finca de Café' }));
@@ -322,7 +342,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Finca de Café' }));
@@ -353,7 +373,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
@@ -418,7 +438,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
@@ -426,10 +446,10 @@ describe('CoffeeFarmList', () => {
         await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
-            expect(screen.queryByText('Finca Primavera')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Ver detalles de Finca Primavera' })).not.toBeInTheDocument();
         });
 
-        expect(screen.getByText('Finca Aurora')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Finca Aurora' })).toBeInTheDocument();
     });
 
     it('shows an explicit error in the modal when deletion is rejected', async () => {
@@ -453,7 +473,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
@@ -464,7 +484,7 @@ describe('CoffeeFarmList', () => {
             expect(screen.getByRole('alert')).toHaveTextContent('No tiene permiso para eliminar');
         });
 
-        expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
     });
 
     it('refetches the list after a successful create submit', async () => {
@@ -494,7 +514,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Finca de Café' }));
@@ -507,7 +527,7 @@ describe('CoffeeFarmList', () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Esperanza')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Esperanza' })).toBeInTheDocument();
         });
 
         expect(screen.queryByRole('heading', { name: 'Crear Finca de Café' })).not.toBeInTheDocument();
@@ -543,7 +563,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Finca de Café' }));
@@ -587,7 +607,7 @@ describe('CoffeeFarmList', () => {
         renderWithRouter(<CoffeeFarmList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Finca Primavera')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Finca de Café' }));

@@ -81,10 +81,10 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
-        expect(screen.getByText('Brew House')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Brew House' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Agregar Cervecería' })).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'Crear Cervecería', level: 2 })).not.toBeInTheDocument();
     });
@@ -100,7 +100,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         const headers = screen.getAllByRole('columnheader');
@@ -108,6 +108,26 @@ describe('BreweryList', () => {
         expect(headers[0]).toHaveTextContent('Nombre');
         expect(headers[1]).toHaveTextContent('Razón Social');
         expect(headers[2]).toHaveTextContent('Ciudad');
+    });
+
+    it('renders table values in lowercase', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockBreweries), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<BreweryList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
+        });
+
+        expect(screen.getByRole('button', { name: 'Ver detalles de Brew House' })).toBeInTheDocument();
+        expect(screen.getByText('cervecería artesanal s.a.s.')).toBeInTheDocument();
+        expect(screen.getByText('medellín')).toBeInTheDocument();
+        expect(screen.getByText('bogotá')).toBeInTheDocument();
     });
 
     it('opens the detail modal when the table row is clicked', async () => {
@@ -123,7 +143,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
@@ -143,7 +163,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
@@ -163,7 +183,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         const rowButton = screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' });
@@ -186,7 +206,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
@@ -221,7 +241,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
@@ -247,7 +267,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
@@ -276,7 +296,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
@@ -305,7 +325,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
@@ -326,7 +346,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
@@ -357,7 +377,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
@@ -422,7 +442,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
@@ -430,10 +450,10 @@ describe('BreweryList', () => {
         await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
         await waitFor(() => {
-            expect(screen.queryByText('Cervecería Artesanal')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).not.toBeInTheDocument();
         });
 
-        expect(screen.getByText('Brew House')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Brew House' })).toBeInTheDocument();
     });
 
     it('shows an explicit error in the modal when deletion is rejected', async () => {
@@ -457,7 +477,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' }));
@@ -468,7 +488,7 @@ describe('BreweryList', () => {
             expect(screen.getByRole('alert')).toHaveTextContent('No tiene permiso para eliminar');
         });
 
-        expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
     });
 
     it('refetches the list after a successful create submit', async () => {
@@ -498,7 +518,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
@@ -511,7 +531,7 @@ describe('BreweryList', () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText('Nueva Cervecería')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Nueva Cervecería' })).toBeInTheDocument();
         });
 
         expect(screen.queryByRole('heading', { name: 'Crear Cervecería' })).not.toBeInTheDocument();
@@ -547,7 +567,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
@@ -591,7 +611,7 @@ describe('BreweryList', () => {
         renderWithRouter(<BreweryList />);
 
         await waitFor(() => {
-            expect(screen.getByText('Cervecería Artesanal')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Ver detalles de Cervecería Artesanal' })).toBeInTheDocument();
         });
 
         await user.click(screen.getByRole('button', { name: 'Agregar Cervecería' }));
