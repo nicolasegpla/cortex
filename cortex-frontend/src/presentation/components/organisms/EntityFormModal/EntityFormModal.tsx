@@ -70,12 +70,6 @@ export function EntityFormModal({
         };
     }, []);
 
-    const handleBackdropClick = (event: React.MouseEvent<HTMLDialogElement>) => {
-        if (event.target === event.currentTarget) {
-            onClose();
-        }
-    };
-
     const handleDialogCancel = (event: React.SyntheticEvent<HTMLDialogElement>) => {
         const topmost = getTopmostModal();
         if (dialogRef.current && topmost !== dialogRef.current) {
@@ -92,7 +86,6 @@ export function EntityFormModal({
             ref={dialogRef}
             className="entity-form-modal"
             onCancel={handleDialogCancel}
-            onClick={handleBackdropClick}
             aria-modal={isOpen ? 'true' : undefined}
             aria-labelledby={headingId}
             aria-busy={isOpen ? isLoading : undefined}

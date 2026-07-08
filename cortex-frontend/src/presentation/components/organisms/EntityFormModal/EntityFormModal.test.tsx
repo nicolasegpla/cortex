@@ -73,8 +73,6 @@ describe('EntityFormModal', () => {
         // the <dialog> root. Native <dialog> modals do not fire cancel on
         // backdrop click, so the only way onClose could fire here is via an
         // explicit React click handler on the dialog element.
-        // Real-browser backdrop behavior is covered by the Playwright test
-        // tests/entity-form-modal/entity-form-modal.spec.ts.
         const user = userEvent.setup();
         const onClose = vi.fn();
 
