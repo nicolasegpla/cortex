@@ -68,7 +68,13 @@ describe('EntityFormModal', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onClose when the backdrop is clicked', async () => {
+    it('does not call onClose when the backdrop is clicked', async () => {
+        // This guards against regressions that re-attach an onClick handler to
+        // the <dialog> root. Native <dialog> modals do not fire cancel on
+        // backdrop click, so the only way onClose could fire here is via an
+        // explicit React click handler on the dialog element.
+        // Real-browser backdrop behavior is covered by the Playwright test
+        // tests/entity-form-modal/entity-form-modal.spec.ts.
         const user = userEvent.setup();
         const onClose = vi.fn();
 
@@ -76,7 +82,7 @@ describe('EntityFormModal', () => {
 
         await user.click(screen.getByRole('dialog'));
 
-        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(onClose).not.toHaveBeenCalled();
     });
 
     it('ignores Escape when another modal is on top', async () => {
