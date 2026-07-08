@@ -135,7 +135,7 @@ describe('WineProducerForm', () => {
 
         await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Viñedo Real');
         await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
-        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Medellín');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Bogotá D.C.');
         await user.type(screen.getByLabelText(/Tipo de Uva/i), 'Cabernet Sauvignon, Merlot');
         await user.type(screen.getByLabelText(/Levaduras Utilizadas/i), 'Levadura 1, Levadura 2');
         await user.type(screen.getByLabelText(/Tipo de Vino/i), 'Tinto, Rosado');
@@ -154,17 +154,17 @@ describe('WineProducerForm', () => {
         const [endpoint, payload] = vi.mocked(apiClient.post).mock.calls[0];
         expect(endpoint).toBe('/wine-producers');
         expect(payload).toMatchObject({
-            nombre_comercial: 'Viñedo Real',
+            nombre_comercial: 'viñedo real',
             pais: 'Colombia',
-            ciudad: 'Medellín',
-            tipo_uva: ['Cabernet Sauvignon', 'Merlot'],
-            levaduras_utilizadas: ['Levadura 1', 'Levadura 2'],
-            tipo_vino: ['Tinto', 'Rosado'],
-            marcas: ['Real', 'Reserva'],
-            botellas_utilizadas: ['Botella 750ml'],
-            nutrientes_utilizados: ['Nutriente A'],
-            conservantes_utilizados: ['Conservante B'],
-            clarificantes_utilizados: ['Clarificante C'],
+            ciudad: 'Bogotá D.C.',
+            tipo_uva: ['cabernet sauvignon', 'merlot'],
+            levaduras_utilizadas: ['levadura 1', 'levadura 2'],
+            tipo_vino: ['tinto', 'rosado'],
+            marcas: ['real', 'reserva'],
+            botellas_utilizadas: ['botella 750ml'],
+            nutrientes_utilizados: ['nutriente a'],
+            conservantes_utilizados: ['conservante b'],
+            clarificantes_utilizados: ['clarificante c'],
         });
 
         await waitFor(() => {
@@ -223,9 +223,9 @@ describe('WineProducerForm', () => {
         const [endpoint, payload] = vi.mocked(apiClient.put).mock.calls[0];
         expect(endpoint).toBe('/wine-producers/producer-1');
         expect(payload).toMatchObject({
-            nombre_comercial: 'Viñedo Renovado',
-            tipo_uva: ['Cabernet Sauvignon', 'Merlot'],
-            marcas: ['Real', 'Reserva'],
+            nombre_comercial: 'viñedo renovado',
+            tipo_uva: ['cabernet sauvignon', 'merlot'],
+            marcas: ['real', 'reserva'],
             produccion_anual: '10000 litros',
         });
 

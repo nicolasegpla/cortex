@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button, Input } from '@/presentation/components/atoms';
 import { CountryCitySelect } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
+import { normalizeFormPayload } from '@/shared/formUtils';
 import { apiClient } from '@/services/api/client';
 
 import type { CoffeeFarm } from './CoffeeFarmList';
@@ -67,6 +68,25 @@ const EMPTY_FORM: CoffeeFarmFormData = {
     oportunidades: '',
 };
 
+const LOWERCASE_FIELDS = [
+    'nombre_finca',
+    'razon_social',
+    'nit',
+    'marca',
+    'direccion',
+    'departamento',
+    'nombre_contacto',
+    'celular',
+    'correo',
+    'hectareas_totales',
+    'hectareas_cafe',
+    'puntaje_cafe',
+    'variedades_sembradas',
+    'equipos',
+    'observaciones',
+    'oportunidades',
+];
+
 export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingChange }: CoffeeFarmFormProps) {
     const isEditMode = Boolean(initialData ?? id);
     const [loading, setLoading] = useState(isEditMode && !initialData);
@@ -119,7 +139,7 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
         onSavingChange?.(true);
 
         try {
-            const payload = {
+            const payload = normalizeFormPayload({
                 ...formData,
                 variedades_sembradas: parseArray(formData.variedades_sembradas),
                 equipos: parseArray(formData.equipos),
@@ -130,7 +150,7 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
                 tipo_actividad: formData.tipo_actividad || null,
                 tipo_proceso: formData.tipo_proceso || null,
                 nivel_tecnificacion: formData.nivel_tecnificacion || null,
-            };
+            }, LOWERCASE_FIELDS);
 
             if (id) {
                 await apiClient.put(`/coffee-farms/${id}`, payload);

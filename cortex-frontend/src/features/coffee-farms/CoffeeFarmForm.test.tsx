@@ -128,7 +128,7 @@ describe('CoffeeFarmForm', () => {
         await user.type(screen.getByLabelText(/Nombre de la Finca/i), 'Finca Esperanza');
         await user.type(screen.getByLabelText(/Marca/i), 'Café Primavera');
         await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
-        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Medellín');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Bogotá D.C.');
         await user.type(screen.getByLabelText(/Variedades Sembradas/i), 'Castillo, Caturra');
         await user.type(screen.getByLabelText(/Equipos/i), 'Secadero, Despulpadora');
 
@@ -141,12 +141,12 @@ describe('CoffeeFarmForm', () => {
         const [endpoint, payload] = vi.mocked(apiClient.post).mock.calls[0];
         expect(endpoint).toBe('/coffee-farms');
         expect(payload).toMatchObject({
-            nombre_finca: 'Finca Esperanza',
-            marca: 'Café Primavera',
+            nombre_finca: 'finca esperanza',
+            marca: 'café primavera',
             pais: 'Colombia',
-            ciudad: 'Medellín',
-            variedades_sembradas: ['Castillo', 'Caturra'],
-            equipos: ['Secadero', 'Despulpadora'],
+            ciudad: 'Bogotá D.C.',
+            variedades_sembradas: ['castillo', 'caturra'],
+            equipos: ['secadero', 'despulpadora'],
         });
 
         await waitFor(() => {
@@ -234,9 +234,9 @@ describe('CoffeeFarmForm', () => {
         const [endpoint, payload] = vi.mocked(apiClient.put).mock.calls[0];
         expect(endpoint).toBe('/coffee-farms/farm-1');
         expect(payload).toMatchObject({
-            nombre_finca: 'Finca Renovada',
-            variedades_sembradas: ['Castillo', 'Caturra'],
-            equipos: ['Secadero', 'Despulpadora'],
+            nombre_finca: 'finca renovada',
+            variedades_sembradas: ['castillo', 'caturra'],
+            equipos: ['secadero', 'despulpadora'],
             numero_arboles: 2500,
         });
 
@@ -264,7 +264,7 @@ describe('CoffeeFarmForm', () => {
 
         const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
         expect(payload).toMatchObject({
-            nombre_finca: 'Finca Esperanza',
+            nombre_finca: 'finca esperanza',
             tipo_actividad: null,
             tipo_proceso: null,
             nivel_tecnificacion: null,

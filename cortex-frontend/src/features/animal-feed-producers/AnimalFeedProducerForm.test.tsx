@@ -119,7 +119,7 @@ describe('AnimalFeedProducerForm', () => {
 
         await user.type(screen.getByLabelText(/Razón Social/i), 'Nutrición Animal S.A.');
         await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
-        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Medellín');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Bogotá D.C.');
         await user.type(screen.getByLabelText(/Especies Manejadas/i), 'Bovinos, Porcinos');
         await user.type(screen.getByLabelText(/Productos Fabricados/i), 'Concentrado, Premezcla');
 
@@ -132,11 +132,11 @@ describe('AnimalFeedProducerForm', () => {
         const [endpoint, payload] = vi.mocked(apiClient.post).mock.calls[0];
         expect(endpoint).toBe('/animal-feed-producers');
         expect(payload).toMatchObject({
-            razon_social: 'Nutrición Animal S.A.',
+            razon_social: 'nutrición animal s.a.',
             pais: 'Colombia',
-            ciudad: 'Medellín',
-            especies_manejadas: ['Bovinos', 'Porcinos'],
-            productos_fabricados: ['Concentrado', 'Premezcla'],
+            ciudad: 'Bogotá D.C.',
+            especies_manejadas: ['bovinos', 'porcinos'],
+            productos_fabricados: ['concentrado', 'premezcla'],
         });
 
         await waitFor(() => {
@@ -195,9 +195,9 @@ describe('AnimalFeedProducerForm', () => {
         const [endpoint, payload] = vi.mocked(apiClient.put).mock.calls[0];
         expect(endpoint).toBe('/animal-feed-producers/producer-1');
         expect(payload).toMatchObject({
-            razon_social: 'Nutrición Animal Renovada',
-            especies_manejadas: ['Bovinos', 'Porcinos'],
-            productos_fabricados: ['Concentrado', 'Premezcla'],
+            razon_social: 'nutrición animal renovada',
+            especies_manejadas: ['bovinos', 'porcinos'],
+            productos_fabricados: ['concentrado', 'premezcla'],
         });
 
         await waitFor(() => {

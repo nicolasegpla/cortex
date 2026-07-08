@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button, Input } from '@/presentation/components/atoms';
 import { CountryCitySelect } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
+import { normalizeFormPayload } from '@/shared/formUtils';
 import { apiClient } from '@/services/api/client';
 
 import type { Brewery } from './BreweryList';
@@ -75,6 +76,28 @@ const EMPTY_FORM: BreweryFormData = {
     oportunidades: '',
 };
 
+const LOWERCASE_FIELDS = [
+    'nombre_cerveceria',
+    'razon_social',
+    'nit',
+    'direccion',
+    'nombre_contacto',
+    'nombre_cervecero',
+    'celular_1',
+    'celular_2',
+    'correo',
+    'maltas_utilizadas',
+    'lupulos_utilizados',
+    'levaduras_utilizadas',
+    'estilos_cerveza',
+    'marca_equipo',
+    'calidad_equipo',
+    'formatos_venta',
+    'donde_vende',
+    'observaciones',
+    'oportunidades',
+];
+
 export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChange }: BreweryFormProps) {
     const isEditMode = Boolean(initialData ?? id);
     const [loading, setLoading] = useState(isEditMode && !initialData);
@@ -133,7 +156,7 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChan
         onSavingChange?.(true);
 
         try {
-            const payload = {
+            const payload = normalizeFormPayload({
                 ...formData,
                 maltas_utilizadas: parseArray(formData.maltas_utilizadas),
                 lupulos_utilizados: parseArray(formData.lupulos_utilizados),
@@ -142,7 +165,7 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChan
                 formatos_venta: parseArray(formData.formatos_venta),
                 litros_mes: formData.litros_mes ? parseInt(formData.litros_mes, 10) : null,
                 tipo_operacion: formData.tipo_operacion || null,
-            };
+            }, LOWERCASE_FIELDS);
 
             if (id) {
                 await apiClient.put(`/breweries/${id}`, payload);

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button, Input } from '@/presentation/components/atoms';
 import { CountryCitySelect } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
+import { normalizeFormPayload } from '@/shared/formUtils';
 import { apiClient } from '@/services/api/client';
 
 import type { AnimalFeedProducer } from './AnimalFeedProducerList';
@@ -50,6 +51,21 @@ const EMPTY_FORM: AnimalFeedProducerFormData = {
     observaciones: '',
     oportunidades: '',
 };
+
+const LOWERCASE_FIELDS = [
+    'razon_social',
+    'marca',
+    'nit',
+    'direccion',
+    'departamento',
+    'nombre_contacto',
+    'celular',
+    'correo',
+    'especies_manejadas',
+    'productos_fabricados',
+    'observaciones',
+    'oportunidades',
+];
 
 export function AnimalFeedProducerForm({ initialData, id, onSuccess, onCancel, onSavingChange }: AnimalFeedProducerFormProps) {
     const isEditMode = Boolean(initialData ?? id);
@@ -103,11 +119,11 @@ export function AnimalFeedProducerForm({ initialData, id, onSuccess, onCancel, o
         onSavingChange?.(true);
 
         try {
-            const payload = {
+            const payload = normalizeFormPayload({
                 ...formData,
                 especies_manejadas: parseArray(formData.especies_manejadas),
                 productos_fabricados: parseArray(formData.productos_fabricados),
-            };
+            }, LOWERCASE_FIELDS);
 
             if (id) {
                 await apiClient.put(`/animal-feed-producers/${id}`, payload);

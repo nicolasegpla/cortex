@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button, Input } from '@/presentation/components/atoms';
 import { CountryCitySelect } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
+import { normalizeFormPayload } from '@/shared/formUtils';
 import { apiClient } from '@/services/api/client';
 
 import type { WineProducer } from './WineProducerList';
@@ -65,6 +66,28 @@ const EMPTY_FORM: WineProducerFormData = {
     oportunidades: '',
 };
 
+const LOWERCASE_FIELDS = [
+    'nombre_comercial',
+    'razon_social',
+    'nit',
+    'direccion',
+    'nombre_contacto',
+    'celular',
+    'correo',
+    'marcas',
+    'fuente_azucar',
+    'tipo_uva',
+    'tipo_vino',
+    'levaduras_utilizadas',
+    'botellas_utilizadas',
+    'nutrientes_utilizados',
+    'conservantes_utilizados',
+    'clarificantes_utilizados',
+    'produccion_anual',
+    'observaciones',
+    'oportunidades',
+];
+
 export function WineProducerForm({ initialData, id, onSuccess, onCancel, onSavingChange }: WineProducerFormProps) {
     const isEditMode = Boolean(initialData ?? id);
     const [loading, setLoading] = useState(isEditMode && !initialData);
@@ -117,7 +140,7 @@ export function WineProducerForm({ initialData, id, onSuccess, onCancel, onSavin
         onSavingChange?.(true);
 
         try {
-            const payload = {
+            const payload = normalizeFormPayload({
                 ...formData,
                 marcas: parseArray(formData.marcas),
                 tipo_uva: parseArray(formData.tipo_uva),
@@ -127,7 +150,7 @@ export function WineProducerForm({ initialData, id, onSuccess, onCancel, onSavin
                 nutrientes_utilizados: parseArray(formData.nutrientes_utilizados),
                 conservantes_utilizados: parseArray(formData.conservantes_utilizados),
                 clarificantes_utilizados: parseArray(formData.clarificantes_utilizados),
-            };
+            }, LOWERCASE_FIELDS);
 
             if (id) {
                 await apiClient.put(`/wine-producers/${id}`, payload);

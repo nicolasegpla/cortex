@@ -132,7 +132,7 @@ describe('BreweryForm', () => {
         await user.type(screen.getByLabelText(/Malta que Utiliza/i), 'Pale Ale, Caramelo');
         await user.type(screen.getByLabelText(/Litros que Hace al Mes/i), '500');
         await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
-        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Medellín');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Bogotá D.C.');
 
         await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
 
@@ -143,11 +143,44 @@ describe('BreweryForm', () => {
         const [endpoint, payload] = vi.mocked(apiClient.post).mock.calls[0];
         expect(endpoint).toBe('/breweries');
         expect(payload).toMatchObject({
-            nombre_cerveceria: 'Nueva Cervecería',
-            maltas_utilizadas: ['Pale Ale', 'Caramelo'],
+            nombre_cerveceria: 'nueva cervecería',
+            maltas_utilizadas: ['pale ale', 'caramelo'],
             litros_mes: 500,
             pais: 'Colombia',
-            ciudad: 'Medellín',
+            ciudad: 'Bogotá D.C.',
+        });
+
+        await waitFor(() => {
+            expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    it('preserves the original casing for capacidad_brewhouse and capacidad_fermentacion', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'brewery-new' });
+
+        render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
+        await user.type(screen.getByLabelText(/Capacidad del Brewhouse/i), '500L');
+        await user.type(screen.getByLabelText(/Capacidad de Fermentación/i), '2000L');
+        await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
+        await user.selectOptions(screen.getByLabelText(/Ciudad/i), 'Bogotá D.C.');
+
+        await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            capacidad_brewhouse: '500L',
+            capacidad_fermentacion: '2000L',
         });
 
         await waitFor(() => {
@@ -206,8 +239,8 @@ describe('BreweryForm', () => {
         const [endpoint, payload] = vi.mocked(apiClient.put).mock.calls[0];
         expect(endpoint).toBe('/breweries/brewery-1');
         expect(payload).toMatchObject({
-            nombre_cerveceria: 'Cervecería Renovada',
-            maltas_utilizadas: ['Pilsner', 'Munich'],
+            nombre_cerveceria: 'cervecería renovada',
+            maltas_utilizadas: ['pilsner', 'munich'],
             litros_mes: 1000,
         });
 
@@ -235,7 +268,7 @@ describe('BreweryForm', () => {
 
         const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
         expect(payload).toMatchObject({
-            nombre_cerveceria: 'Nueva Cervecería',
+            nombre_cerveceria: 'nueva cervecería',
             tipo_operacion: null,
         });
     });
