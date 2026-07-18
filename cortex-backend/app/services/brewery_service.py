@@ -3,78 +3,95 @@
 from uuid import UUID
 
 from app.schemas.breweries import BreweryCreate, BreweryUpdate
+from app.services.entity_contact_phone_service import EntityContactPhoneService
 from app.utils.text_matching import build_accent_tolerant_query
 
 
 class BreweryService:
     """Service layer for brewery CRUD operations using Supabase."""
 
-    def __init__(self, supabase_client) -> None:
+    _ENTITY_TYPE = "brewery"
+
+    def __init__(
+        self,
+        supabase_client,
+        phone_service: EntityContactPhoneService,
+    ) -> None:
         self.supabase = supabase_client
+        self.phone_service = phone_service
+
+    def _exclude_phones(self, payload: BreweryCreate | BreweryUpdate) -> dict:
+        """Dump payload excluding the virtual ``phones`` field."""
+        return payload.model_dump(
+            exclude_unset=True,
+            exclude_none=True,
+            exclude={"phones"},
+        )
+
+    def _merge_phones(self, record: dict | None, entity_id: UUID) -> dict | None:
+        """Attach ordered phones from the shared phone store to a record."""
+        if record is None:
+            return None
+        record["phones"] = self.phone_service.get_phones(self._ENTITY_TYPE, entity_id)
+        return record
 
     def create(self, payload: BreweryCreate) -> dict:
-        """Create a new brewery in Supabase.
-
-        Args:
-            payload: The brewery data to create.
-
-        Returns:
-            dict: The created brewery record.
-        """
-        data = payload.model_dump(exclude_unset=True)
+        """Create a new brewery in Supabase and persist its phones."""
+        data = self._exclude_phones(payload)
         response = self.supabase.table("breweries").insert(data).execute()
-        return response.data[0] if response.data else {}
+        record = response.data[0] if response.data else {}
+        if record:
+            brewery_id = UUID(record["id"])
+            self.phone_service.replace_phones(
+                self._ENTITY_TYPE, brewery_id, payload.phones
+            )
+            record = self._merge_phones(record, brewery_id)
+        return record
 
     def list_all(self) -> list[dict]:
-        """List all breweries from Supabase.
-
-        Returns:
-            list[dict]: List of brewery records.
-        """
+        """List all breweries from Supabase with their ordered phones."""
         response = self.supabase.table("breweries").select("*").execute()
-        return response.data or []
+        records = response.data or []
+        if not records:
+            return records
+
+        ids = [UUID(record["id"]) for record in records]
+        phones_by_id = self.phone_service.batch_load_phones(self._ENTITY_TYPE, ids)
+        for record in records:
+            record["phones"] = phones_by_id.get(UUID(record["id"]), [])
+        return records
 
     def get_by_id(self, brewery_id: UUID) -> dict | None:
-        """Get a single brewery by ID.
-
-        Args:
-            brewery_id: The UUID of the brewery.
-
-        Returns:
-            dict | None: The brewery record or None if not found.
-        """
+        """Get a single brewery by ID with its ordered phones."""
         response = (
             self.supabase.table("breweries").select("*").eq("id", str(brewery_id)).execute()
         )
-        return response.data[0] if response.data else None
+        record = response.data[0] if response.data else None
+        return self._merge_phones(record, brewery_id)
 
     def update(self, brewery_id: UUID, payload: BreweryUpdate) -> dict | None:
-        """Update an existing brewery.
+        """Update an existing brewery and replace its phones."""
+        data = self._exclude_phones(payload)
+        if data:
+            response = (
+                self.supabase.table("breweries").update(data).eq("id", str(brewery_id)).execute()
+            )
+            record = response.data[0] if response.data else None
+        else:
+            record = self.get_by_id(brewery_id)
 
-        Args:
-            brewery_id: The UUID of the brewery to update.
-            payload: The update data (only provided fields are updated).
-
-        Returns:
-            dict | None: The updated brewery record or None if not found.
-        """
-        data = payload.model_dump(exclude_unset=True, exclude_none=True)
-        if not data:
-            return self.get_by_id(brewery_id)
-
-        response = (
-            self.supabase.table("breweries").update(data).eq("id", str(brewery_id)).execute()
-        )
-        return response.data[0] if response.data else None
+        if record is not None:
+            self.phone_service.replace_phones(
+                self._ENTITY_TYPE, brewery_id, payload.phones
+            )
+            record = self._merge_phones(record, brewery_id)
+        return record
 
     def delete(self, brewery_id: UUID) -> bool:
         """Delete a brewery by ID.
 
-        Args:
-            brewery_id: The UUID of the brewery to delete.
-
-        Returns:
-            bool: True if deleted, False if not found.
+        Phone cleanup is handled by the database AFTER DELETE trigger; the
+        service does not call the phone service here.
         """
         response = (
             self.supabase.table("breweries").delete().eq("id", str(brewery_id)).execute()
@@ -83,12 +100,21 @@ class BreweryService:
 
     _BREWERY_CHAT_PROJECTION = (
         "id,nombre_cerveceria,razon_social,nit,nombre_cervecero,nombre_contacto,"
-        "celular_1,celular_2,correo,direccion,ciudad,pais,tipo_operacion,"
+        "phones,correo,direccion,ciudad,pais,tipo_operacion,"
         "maltas_utilizadas,lupulos_utilizados,levaduras_utilizadas,"
         "utiliza_otros_productos,estilos_cerveza,marca_equipo,capacidad_brewhouse,"
         "capacidad_fermentacion,litros_mes,calidad_equipo,formatos_venta,"
         "donde_vende,observaciones,oportunidades,created_at,updated_at"
     )
+
+    def _apply_phone_filter(self, query, phone: str | None):
+        """Filter query by shared phone rows using a two-step lookup."""
+        if phone is None:
+            return query
+        entity_ids = self.phone_service.find_entity_ids_by_phone(
+            self._ENTITY_TYPE, phone
+        )
+        return query.in_("id", [str(entity_id) for entity_id in entity_ids])
 
     def search(
         self,
@@ -118,53 +144,14 @@ class BreweryService:
         observations: str | None = None,
         opportunities: str | None = None,
     ) -> list[dict]:
-        """Search breweries with optional filters.
-
-        Supports natural-language questions over ALL safe brewery business fields.
-        Text filters use case-insensitive partial matching (ilike).
-        Array filters (hop/malt/yeast/beer_styles/sales_formats) use Postgres contains (cs).
-        Bool filters use exact matching (eq).
-        Numeric filters use exact matching (eq).
-
-        Args:
-            city: Filter by city (ciudad).
-            country: Filter by country (pais).
-            operation_type: Filter by operation type (tipo_operacion).
-            brewery_name: Partial match on brewery name (nombre_cerveceria).
-            brewer_name: Partial match on brewer name (nombre_cervecero).
-            contact_name: Partial match on contact name (nombre_contacto).
-            address: Partial match on address (direccion).
-            phone: Partial match on primary or secondary phone (celular_1/2).
-            email: Partial match on email (correo).
-            hop: Brewery uses this hop (lupulos_utilizados).
-            malt: Brewery uses this malt (maltas_utilizadas).
-            legal_name: Partial match on legal business name (razon_social).
-            tax_id: Partial match on tax ID (nit).
-            yeast: Brewery uses this yeast (levaduras_utilizadas).
-            uses_other_products: Whether brewery uses other products (utiliza_otros_productos).
-            beer_styles: Brewery produces this beer style (estilos_cerveza).
-            equipment_brand: Partial match on equipment brand (marca_equipo).
-            brewhouse_capacity: Partial match on brewhouse capacity (capacidad_brewhouse).
-            fermentation_capacity: Partial match on fermentation capacity (capacidad_fermentacion).
-            liters_per_month: Exact match on monthly production liters (litros_mes).
-            equipment_quality: Partial match on equipment quality (calidad_equipo).
-            sales_formats: Brewery uses this sales format (formatos_venta).
-            sells_where: Partial match on where they sell (donde_vende).
-            observations: Partial match on observations (observaciones).
-            opportunities: Partial match on opportunities (oportunidades).
-
-        Returns:
-            list[dict]: Matching brewery records with safe fields projected.
-        """
+        """Search breweries with optional filters."""
         query = self.supabase.table("breweries").select(self._BREWERY_CHAT_PROJECTION)
 
-        # Accent-tolerant exact filters for categorical/location fields
         query = build_accent_tolerant_query(query, "ciudad", city, method="eq")
         query = build_accent_tolerant_query(query, "pais", country, method="eq")
         if operation_type is not None:
             query = query.eq("tipo_operacion", operation_type)
 
-        # Accent-tolerant partial text filters for names, address, email
         query = build_accent_tolerant_query(
             query, "nombre_cerveceria", brewery_name, method="ilike"
         )
@@ -177,33 +164,24 @@ class BreweryService:
         query = build_accent_tolerant_query(query, "direccion", address, method="ilike")
         query = build_accent_tolerant_query(query, "correo", email, method="ilike")
 
-        # Phone search across celular_1 and celular_2
-        if phone is not None:
-            query = query.or_(
-                f"celular_1.ilike.%{phone}%,celular_2.ilike.%{phone}%"
-            )
+        query = self._apply_phone_filter(query, phone)
 
-        # Array contains filters for hops and malts (exact — arrays are tricky for accents)
         if hop is not None:
             query = query.cs("lupulos_utilizados", [hop])
         if malt is not None:
             query = query.cs("maltas_utilizadas", [malt])
 
-        # Accent-tolerant expanded text filters
         query = build_accent_tolerant_query(query, "razon_social", legal_name, method="ilike")
         query = build_accent_tolerant_query(query, "nit", tax_id, method="ilike")
 
-        # Array contains filters for yeast and beer styles
         if yeast is not None:
             query = query.cs("levaduras_utilizadas", [yeast])
         if beer_styles is not None:
             query = query.cs("estilos_cerveza", [beer_styles])
 
-        # Bool exact filter
         if uses_other_products is not None:
             query = query.eq("utiliza_otros_productos", uses_other_products)
 
-        # Accent-tolerant equipment and capacity text filters
         query = build_accent_tolerant_query(
             query, "marca_equipo", equipment_brand, method="ilike"
         )
@@ -217,18 +195,15 @@ class BreweryService:
             query, "calidad_equipo", equipment_quality, method="ilike"
         )
 
-        # Numeric exact filter
         if liters_per_month is not None:
             query = query.eq("litros_mes", liters_per_month)
 
-        # Sales and distribution filters
         if sales_formats is not None:
             query = query.cs("formatos_venta", [sales_formats])
         query = build_accent_tolerant_query(
             query, "donde_vende", sells_where, method="ilike"
         )
 
-        # Accent-tolerant notes and opportunities text filters
         query = build_accent_tolerant_query(
             query, "observaciones", observations, method="ilike"
         )
@@ -271,57 +246,14 @@ class BreweryService:
         order_by: str | None = None,
         desc: bool = False,
     ) -> list[dict]:
-        """Inspect brewery records with optional light filters and bounded results.
-
-        This is the primary tool for general analytical questions about brewery data.
-        Use it when the user asks to browse, list, inspect, or analyze brewery fields
-        such as beer styles, equipment, opportunities, observations, etc.
-
-        Results are bounded for safety and performance.
-
-        Args:
-            city: Filter by city (ciudad).
-            country: Filter by country (pais).
-            operation_type: Filter by operation type (tipo_operacion).
-            brewery_name: Partial match on brewery name (nombre_cerveceria).
-            brewer_name: Partial match on brewer name (nombre_cervecero).
-            contact_name: Partial match on contact name (nombre_contacto).
-            address: Partial match on address (direccion).
-            phone: Partial match on primary or secondary phone (celular_1/2).
-            email: Partial match on email (correo).
-            hop: Brewery uses this hop (lupulos_utilizados).
-            malt: Brewery uses this malt (maltas_utilizadas).
-            legal_name: Partial match on legal business name (razon_social).
-            tax_id: Partial match on tax ID (nit).
-            yeast: Brewery uses this yeast (levaduras_utilizadas).
-            uses_other_products: Whether brewery uses other products (utiliza_otros_productos).
-            beer_styles: Brewery produces this beer style (estilos_cerveza).
-            equipment_brand: Partial match on equipment brand (marca_equipo).
-            brewhouse_capacity: Partial match on brewhouse capacity (capacidad_brewhouse).
-            fermentation_capacity: Partial match on fermentation capacity (capacidad_fermentacion).
-            liters_per_month: Exact match on monthly production liters (litros_mes).
-            equipment_quality: Partial match on equipment quality (calidad_equipo).
-            sales_formats: Brewery uses this sales format (formatos_venta).
-            sells_where: Partial match on where they sell (donde_vende).
-            observations: Partial match on observations (observaciones).
-            opportunities: Partial match on opportunities (oportunidades).
-            limit: Max records to return (default 20, capped at 50).
-            offset: Pagination offset.
-            order_by: Column to order by (e.g., 'nombre_cerveceria', 'created_at').
-            desc: Sort descending if True.
-
-        Returns:
-            list[dict]: Brewery records with safe fields, bounded by limit.
-        """
+        """Inspect brewery records with optional light filters and bounded results."""
         query = self.supabase.table("breweries").select(self._BREWERY_CHAT_PROJECTION)
 
-        # Accent-tolerant exact filters for categorical/location fields
         query = build_accent_tolerant_query(query, "ciudad", city, method="eq")
         query = build_accent_tolerant_query(query, "pais", country, method="eq")
         if operation_type is not None:
             query = query.eq("tipo_operacion", operation_type)
 
-        # Accent-tolerant partial text filters for names, address, email
         query = build_accent_tolerant_query(
             query, "nombre_cerveceria", brewery_name, method="ilike"
         )
@@ -334,33 +266,24 @@ class BreweryService:
         query = build_accent_tolerant_query(query, "direccion", address, method="ilike")
         query = build_accent_tolerant_query(query, "correo", email, method="ilike")
 
-        # Phone search across celular_1 and celular_2
-        if phone is not None:
-            query = query.or_(
-                f"celular_1.ilike.%{phone}%,celular_2.ilike.%{phone}%"
-            )
+        query = self._apply_phone_filter(query, phone)
 
-        # Array contains filters for hops and malts (exact — arrays are tricky for accents)
         if hop is not None:
             query = query.cs("lupulos_utilizados", [hop])
         if malt is not None:
             query = query.cs("maltas_utilizadas", [malt])
 
-        # Accent-tolerant expanded text filters
         query = build_accent_tolerant_query(query, "razon_social", legal_name, method="ilike")
         query = build_accent_tolerant_query(query, "nit", tax_id, method="ilike")
 
-        # Array contains filters for yeast and beer styles
         if yeast is not None:
             query = query.cs("levaduras_utilizadas", [yeast])
         if beer_styles is not None:
             query = query.cs("estilos_cerveza", [beer_styles])
 
-        # Bool exact filter
         if uses_other_products is not None:
             query = query.eq("utiliza_otros_productos", uses_other_products)
 
-        # Accent-tolerant equipment and capacity text filters
         query = build_accent_tolerant_query(
             query, "marca_equipo", equipment_brand, method="ilike"
         )
@@ -374,18 +297,15 @@ class BreweryService:
             query, "calidad_equipo", equipment_quality, method="ilike"
         )
 
-        # Numeric exact filter
         if liters_per_month is not None:
             query = query.eq("litros_mes", liters_per_month)
 
-        # Sales and distribution filters
         if sales_formats is not None:
             query = query.cs("formatos_venta", [sales_formats])
         query = build_accent_tolerant_query(
             query, "donde_vende", sells_where, method="ilike"
         )
 
-        # Accent-tolerant notes and opportunities text filters
         query = build_accent_tolerant_query(
             query, "observaciones", observations, method="ilike"
         )
@@ -393,14 +313,11 @@ class BreweryService:
             query, "oportunidades", opportunities, method="ilike"
         )
 
-        # Apply ordering
         if order_by is not None:
             query = query.order(order_by, desc=desc)
 
-        # Apply bounded limit (max 50)
         query = query.limit(min(limit, 50))
 
-        # Apply offset if provided
         if offset is not None:
             query = query.offset(offset)
 
@@ -408,10 +325,6 @@ class BreweryService:
         return response.data or []
 
     def count(self) -> int:
-        """Count total breweries in the database.
-
-        Returns:
-            int: Total number of brewery records.
-        """
+        """Count total breweries in the database."""
         response = self.supabase.table("breweries").select("*", count="exact").execute()
         return getattr(response, "count", 0) or 0

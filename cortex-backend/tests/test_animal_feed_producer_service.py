@@ -17,17 +17,30 @@ class TestAnimalFeedProducerService:
         return MagicMock()
 
     @pytest.fixture
-    def service(self, mock_supabase):
-        return AnimalFeedProducerService(mock_supabase)
+    def mock_phone_service(self):
+        """Create a mocked EntityContactPhoneService."""
+        mock = MagicMock()
+        mock.get_phones.return_value = []
+        mock.batch_load_phones.return_value = {}
+        mock.replace_phones.return_value = None
+        return mock
 
-    def test_create_animal_feed_producer_calls_supabase_insert(self, service, mock_supabase) -> None:
+    @pytest.fixture
+    def service(self, mock_supabase, mock_phone_service):
+        return AnimalFeedProducerService(mock_supabase, mock_phone_service)
+
+    def test_create_animal_feed_producer_calls_supabase_insert_and_saves_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
+        producer_id = uuid4()
         payload = AnimalFeedProducerCreate(
             razon_social="Nutri Feed S.A.",
             ciudad="Bogotá",
             especies_manejadas=["Bovinos", "Porcinos"],
+            phones=["3001234567"],
         )
         expected_data = {
-            "id": str(uuid4()),
+            "id": str(producer_id),
             "razon_social": "Nutri Feed S.A.",
             "ciudad": "Bogotá",
             "especies_manejadas": ["Bovinos", "Porcinos"],
@@ -39,29 +52,70 @@ class TestAnimalFeedProducerService:
         result = service.create(payload)
 
         mock_supabase.table.assert_called_once_with("animal_feed_producers")
-        mock_supabase.table.return_value.insert.assert_called_once_with(
-            {
-                "razon_social": "Nutri Feed S.A.",
-                "ciudad": "Bogotá",
-                "especies_manejadas": ["Bovinos", "Porcinos"],
-            }
+        insert_payload = mock_supabase.table.return_value.insert.call_args[0][0]
+        assert "phones" not in insert_payload
+        assert "celular" not in insert_payload
+        mock_phone_service.replace_phones.assert_called_once_with(
+            "animal_feed_producer", producer_id, ["3001234567"]
         )
         assert result == expected_data
 
-    def test_list_animal_feed_producers_calls_supabase_select(self, service, mock_supabase) -> None:
+    def test_create_animal_feed_producer_without_phones_clears_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
+        producer_id = uuid4()
+        payload = AnimalFeedProducerCreate(
+            razon_social="Nutri Feed S.A.",
+        )
+        expected_data = {"id": str(producer_id), "razon_social": "Nutri Feed S.A."}
+        mock_supabase.table.return_value.insert.return_value.execute.return_value.data = [
+            expected_data
+        ]
+
+        service.create(payload)
+
+        mock_phone_service.replace_phones.assert_called_once_with(
+            "animal_feed_producer", producer_id, []
+        )
+
+    def test_list_animal_feed_producers_merges_batched_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
+        id_1 = uuid4()
+        id_2 = uuid4()
         expected_data = [
-            {"id": str(uuid4()), "razon_social": "Nutri Feed S.A."},
-            {"id": str(uuid4()), "razon_social": "Alimentos del Campo"},
+            {"id": str(id_1), "razon_social": "Nutri Feed S.A."},
+            {"id": str(id_2), "razon_social": "Alimentos del Campo"},
         ]
         mock_supabase.table.return_value.select.return_value.execute.return_value.data = expected_data
+        mock_phone_service.batch_load_phones.return_value = {
+            id_1: ["300"],
+            id_2: ["301"],
+        }
 
         result = service.list_all()
 
         mock_supabase.table.assert_called_once_with("animal_feed_producers")
         mock_supabase.table.return_value.select.assert_called_once_with("*")
-        assert result == expected_data
+        mock_phone_service.batch_load_phones.assert_called_once_with(
+            "animal_feed_producer", [id_1, id_2]
+        )
+        assert result[0]["phones"] == ["300"]
+        assert result[1]["phones"] == ["301"]
 
-    def test_get_by_id_existing_producer_returns_data(self, service, mock_supabase) -> None:
+    def test_list_animal_feed_producers_with_no_results_returns_empty_list(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
+        mock_supabase.table.return_value.select.return_value.execute.return_value.data = []
+
+        result = service.list_all()
+
+        assert result == []
+        mock_phone_service.batch_load_phones.assert_not_called()
+
+    def test_get_by_id_existing_producer_merges_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         producer_id = uuid4()
         expected_data = {
             "id": str(producer_id),
@@ -70,15 +124,22 @@ class TestAnimalFeedProducerService:
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
             expected_data
         ]
+        mock_phone_service.get_phones.return_value = ["300"]
 
         result = service.get_by_id(producer_id)
 
         mock_supabase.table.return_value.select.return_value.eq.assert_called_once_with(
             "id", str(producer_id)
         )
-        assert result == expected_data
+        mock_phone_service.get_phones.assert_called_once_with(
+            "animal_feed_producer", producer_id
+        )
+        assert result["razon_social"] == "Nutri Feed S.A."
+        assert result["phones"] == ["300"]
 
-    def test_get_by_id_nonexistent_producer_returns_none(self, service, mock_supabase) -> None:
+    def test_get_by_id_nonexistent_producer_returns_none(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         producer_id = uuid4()
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = (
             []
@@ -87,17 +148,19 @@ class TestAnimalFeedProducerService:
         result = service.get_by_id(producer_id)
 
         assert result is None
+        mock_phone_service.get_phones.assert_not_called()
 
-    def test_update_existing_producer_returns_updated_data(self, service, mock_supabase) -> None:
+    def test_update_existing_producer_excludes_phones_and_replaces_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         producer_id = uuid4()
         payload = AnimalFeedProducerUpdate(
             razon_social="Nutri Feed Actualizada",
-            productos_fabricados=["Concentrado", "Premezcla"],
+            phones=["310"],
         )
         expected_data = {
             "id": str(producer_id),
             "razon_social": "Nutri Feed Actualizada",
-            "productos_fabricados": ["Concentrado", "Premezcla"],
         }
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
             expected_data
@@ -105,15 +168,17 @@ class TestAnimalFeedProducerService:
 
         result = service.update(producer_id, payload)
 
-        mock_supabase.table.return_value.update.assert_called_once_with(
-            {
-                "razon_social": "Nutri Feed Actualizada",
-                "productos_fabricados": ["Concentrado", "Premezcla"],
-            }
+        update_payload = mock_supabase.table.return_value.update.call_args[0][0]
+        assert "phones" not in update_payload
+        assert "celular" not in update_payload
+        mock_phone_service.replace_phones.assert_called_once_with(
+            "animal_feed_producer", producer_id, ["310"]
         )
-        assert result == expected_data
+        assert result["razon_social"] == "Nutri Feed Actualizada"
 
-    def test_update_nonexistent_producer_returns_none(self, service, mock_supabase) -> None:
+    def test_update_nonexistent_producer_returns_none(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         producer_id = uuid4()
         payload = AnimalFeedProducerUpdate(razon_social="Nutri Feed Actualizada")
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = (
@@ -123,8 +188,11 @@ class TestAnimalFeedProducerService:
         result = service.update(producer_id, payload)
 
         assert result is None
+        mock_phone_service.replace_phones.assert_not_called()
 
-    def test_delete_existing_producer_returns_true(self, service, mock_supabase) -> None:
+    def test_delete_existing_producer_returns_true_and_does_not_clean_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         producer_id = uuid4()
         mock_supabase.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = [
             {"id": str(producer_id)}
@@ -134,8 +202,11 @@ class TestAnimalFeedProducerService:
 
         mock_supabase.table.return_value.delete.assert_called_once()
         assert result is True
+        mock_phone_service.delete_phones.assert_not_called()
 
-    def test_delete_nonexistent_producer_returns_false(self, service, mock_supabase) -> None:
+    def test_delete_nonexistent_producer_returns_false(
+        self, service, mock_supabase
+    ) -> None:
         producer_id = uuid4()
         mock_supabase.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = (
             []
