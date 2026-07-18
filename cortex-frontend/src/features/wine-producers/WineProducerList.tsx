@@ -20,6 +20,7 @@ export interface WineProducer {
     pais: string | null;
     nombre_contacto: string | null;
     celular: string | null;
+    phones: string[] | null;
     correo: string | null;
     marcas: string[] | null;
     fuente_azucar: string | null;
