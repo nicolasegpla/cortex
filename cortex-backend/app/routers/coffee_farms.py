@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import User, get_current_user, require_role
 from app.schemas.coffee_farms import CoffeeFarmCreate, CoffeeFarmResponse, CoffeeFarmUpdate
 from app.services.coffee_farm_service import CoffeeFarmService
+from app.services.entity_contact_phone_service import EntityContactPhoneService
 from app.services.supabase_service import SupabaseService
 
 router = APIRouter(prefix='/coffee-farms', tags=['coffee-farms'])
@@ -21,7 +22,8 @@ def get_coffee_farm_service() -> CoffeeFarmService:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Supabase no está configurado",
         )
-    return CoffeeFarmService(client)
+    phone_service = EntityContactPhoneService(client)
+    return CoffeeFarmService(client, phone_service)
 
 
 @router.post('', response_model=CoffeeFarmResponse, status_code=status.HTTP_201_CREATED)

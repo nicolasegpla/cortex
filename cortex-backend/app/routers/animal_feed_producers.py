@@ -11,6 +11,7 @@ from app.schemas.animal_feed_producers import (
     AnimalFeedProducerUpdate,
 )
 from app.services.animal_feed_producer_service import AnimalFeedProducerService
+from app.services.entity_contact_phone_service import EntityContactPhoneService
 from app.services.supabase_service import SupabaseService
 
 router = APIRouter(prefix='/animal-feed-producers', tags=['animal-feed-producers'])
@@ -25,7 +26,8 @@ def get_animal_feed_producer_service() -> AnimalFeedProducerService:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Supabase no está configurado",
         )
-    return AnimalFeedProducerService(client)
+    phone_service = EntityContactPhoneService(client)
+    return AnimalFeedProducerService(client, phone_service)
 
 
 @router.post('', response_model=AnimalFeedProducerResponse, status_code=status.HTTP_201_CREATED)

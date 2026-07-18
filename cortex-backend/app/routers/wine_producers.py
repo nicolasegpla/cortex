@@ -10,6 +10,7 @@ from app.schemas.wine_producers import (
     WineProducerResponse,
     WineProducerUpdate,
 )
+from app.services.entity_contact_phone_service import EntityContactPhoneService
 from app.services.supabase_service import SupabaseService
 from app.services.wine_producer_service import WineProducerService
 
@@ -25,7 +26,8 @@ def get_wine_producer_service() -> WineProducerService:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Supabase no está configurado",
         )
-    return WineProducerService(client)
+    phone_service = EntityContactPhoneService(client)
+    return WineProducerService(client, phone_service)
 
 
 @router.post('', response_model=WineProducerResponse, status_code=status.HTTP_201_CREATED)

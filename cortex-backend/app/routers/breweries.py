@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import User, get_current_user, require_role
 from app.schemas.breweries import BreweryCreate, BreweryResponse, BreweryUpdate
 from app.services.brewery_service import BreweryService
+from app.services.entity_contact_phone_service import EntityContactPhoneService
 from app.services.supabase_service import SupabaseService
 
 router = APIRouter(prefix='/breweries', tags=['breweries'])
@@ -21,7 +22,8 @@ def get_brewery_service() -> BreweryService:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Supabase no está configurado",
         )
-    return BreweryService(client)
+    phone_service = EntityContactPhoneService(client)
+    return BreweryService(client, phone_service)
 
 
 @router.post('', response_model=BreweryResponse, status_code=status.HTTP_201_CREATED)
