@@ -35,6 +35,16 @@ class BreweryService:
         record["phones"] = self.phone_service.get_phones(self._ENTITY_TYPE, entity_id)
         return record
 
+    def _merge_batch_phones(self, records: list[dict]) -> list[dict]:
+        """Attach ordered phones from the shared phone store to each record."""
+        if not records:
+            return records
+        ids = [UUID(record["id"]) for record in records]
+        phones_by_id = self.phone_service.batch_load_phones(self._ENTITY_TYPE, ids)
+        for record in records:
+            record["phones"] = phones_by_id.get(UUID(record["id"]), [])
+        return records
+
     def create(self, payload: BreweryCreate) -> dict:
         """Create a new brewery in Supabase and persist its phones."""
         data = self._exclude_phones(payload)
@@ -52,14 +62,7 @@ class BreweryService:
         """List all breweries from Supabase with their ordered phones."""
         response = self.supabase.table("breweries").select("*").execute()
         records = response.data or []
-        if not records:
-            return records
-
-        ids = [UUID(record["id"]) for record in records]
-        phones_by_id = self.phone_service.batch_load_phones(self._ENTITY_TYPE, ids)
-        for record in records:
-            record["phones"] = phones_by_id.get(UUID(record["id"]), [])
-        return records
+        return self._merge_batch_phones(records)
 
     def get_by_id(self, brewery_id: UUID) -> dict | None:
         """Get a single brewery by ID with its ordered phones."""
@@ -100,7 +103,7 @@ class BreweryService:
 
     _BREWERY_CHAT_PROJECTION = (
         "id,nombre_cerveceria,razon_social,nit,nombre_cervecero,nombre_contacto,"
-        "phones,correo,direccion,ciudad,pais,tipo_operacion,"
+        "correo,direccion,ciudad,pais,tipo_operacion,"
         "maltas_utilizadas,lupulos_utilizados,levaduras_utilizadas,"
         "utiliza_otros_productos,estilos_cerveza,marca_equipo,capacidad_brewhouse,"
         "capacidad_fermentacion,litros_mes,calidad_equipo,formatos_venta,"
@@ -212,7 +215,7 @@ class BreweryService:
         )
 
         response = query.execute()
-        return response.data or []
+        return self._merge_batch_phones(response.data or [])
 
     def inspect(
         self,
@@ -322,7 +325,7 @@ class BreweryService:
             query = query.offset(offset)
 
         response = query.execute()
-        return response.data or []
+        return self._merge_batch_phones(response.data or [])
 
     def count(self) -> int:
         """Count total breweries in the database."""

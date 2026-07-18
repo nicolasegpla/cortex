@@ -128,21 +128,25 @@ class EntityContactPhoneService:
         self.supabase.table(self.TABLE).insert(rows).execute()
 
     def find_entity_ids_by_phone(self, entity_type: str, phone: str) -> list[UUID]:
-        """Return entity IDs whose stored phone matches exactly.
+        """Return entity IDs whose stored phone matches partially (case-insensitive).
+
+        The lookup uses an ILIKE containment query so a short segment such as
+        ``"300"`` matches the full number ``"3001234567"``. The caller is
+        expected to pass the raw search value; the service wraps it with ``%``.
 
         Args:
             entity_type: One of the supported entity type constants.
-            phone: Phone string to match (normalized by the caller if needed).
+            phone: Phone string to match partially.
 
         Returns:
-            list[UUID]: Entity IDs with the given phone, deduplicated by query order.
+            list[UUID]: Entity IDs with a matching phone, deduplicated by query order.
         """
         self._validate_entity_type(entity_type)
         response = (
             self.supabase.table(self.TABLE)
             .select("entity_id")
             .eq("entity_type", entity_type)
-            .eq("phone", phone)
+            .ilike("phone", f"%{phone}%")
             .execute()
         )
         rows = response.data or []

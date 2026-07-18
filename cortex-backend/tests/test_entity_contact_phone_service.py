@@ -164,10 +164,10 @@ class TestEntityContactPhoneService:
 
     # --- find_entity_ids_by_phone ---
 
-    def test_find_entity_ids_by_phone_returns_matching_entity_ids(self, service, mock_supabase):
+    def test_find_entity_ids_by_phone_uses_ilike_partial_match(self, service, mock_supabase):
         id_1 = uuid4()
         id_2 = uuid4()
-        mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        mock_supabase.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = [
             {"entity_id": str(id_1)},
             {"entity_id": str(id_2)},
         ]
@@ -178,10 +178,21 @@ class TestEntityContactPhoneService:
         mock_supabase.table.assert_called_once_with("entity_contact_phones")
         mock_supabase.table.return_value.select.assert_called_once_with("entity_id")
         mock_supabase.table.return_value.select.return_value.eq.assert_any_call("entity_type", "brewery")
-        mock_supabase.table.return_value.select.return_value.eq.return_value.eq.assert_any_call("phone", "300")
+        mock_supabase.table.return_value.select.return_value.eq.return_value.ilike.assert_called_once_with("phone", "%300%")
+
+    def test_find_entity_ids_by_phone_uses_ilike_for_full_number(self, service, mock_supabase):
+        id_1 = uuid4()
+        mock_supabase.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = [
+            {"entity_id": str(id_1)},
+        ]
+
+        result = service.find_entity_ids_by_phone("brewery", "3001234567")
+
+        assert result == [id_1]
+        mock_supabase.table.return_value.select.return_value.eq.return_value.ilike.assert_called_once_with("phone", "%3001234567%")
 
     def test_find_entity_ids_by_phone_returns_empty_when_no_match(self, service, mock_supabase):
-        mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+        mock_supabase.table.return_value.select.return_value.eq.return_value.ilike.return_value.execute.return_value.data = []
 
         result = service.find_entity_ids_by_phone("brewery", "300")
 
