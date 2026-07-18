@@ -25,8 +25,7 @@ const mockBrewery = {
     pais: 'Colombia',
     nombre_contacto: 'Juan Pérez',
     nombre_cervecero: 'María López',
-    celular_1: '3001112222',
-    celular_2: '3003334444',
+    phones: ['3001112222', '3003334444'],
     correo: 'juan@cerveceria.com',
     maltas_utilizadas: ['Pilsner', 'Munich'],
     lupulos_utilizados: ['Cascade', 'Citra'],
@@ -148,7 +147,10 @@ describe('BreweryForm', () => {
             litros_mes: 500,
             pais: 'Colombia',
             ciudad: 'Bogotá D.C.',
+            phones: [],
         });
+        expect(payload).not.toHaveProperty('celular_1');
+        expect(payload).not.toHaveProperty('celular_2');
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
@@ -242,11 +244,52 @@ describe('BreweryForm', () => {
             nombre_cerveceria: 'cervecería renovada',
             maltas_utilizadas: ['pilsner', 'munich'],
             litros_mes: 1000,
+            phones: ['3001112222', '3003334444'],
         });
+        expect(payload).not.toHaveProperty('celular_1');
+        expect(payload).not.toHaveProperty('celular_2');
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
         });
+    });
+
+    it('preloads phones in order when editing', () => {
+        render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} id="brewery-1" initialData={mockBrewery} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText('Teléfono 1')).toHaveValue('3001112222');
+        expect(screen.getByLabelText('Teléfono 2')).toHaveValue('3003334444');
+        expect(apiClient.get).not.toHaveBeenCalled();
+    });
+
+    it('filters blank phone rows only at submit', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'brewery-new' });
+
+        render(
+            <MemoryRouter>
+                <BreweryForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Cervecería/i), 'Nueva Cervecería');
+        await user.click(screen.getByRole('button', { name: /Agregar teléfono/i }));
+        await user.type(screen.getByLabelText('Teléfono 1'), '3009998888');
+        await user.click(screen.getByRole('button', { name: 'Crear Cervecería' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            phones: ['3009998888'],
+        });
+        expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
     });
 
     it('submits null for tipo_operacion when left unset', async () => {

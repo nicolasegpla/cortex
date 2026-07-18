@@ -22,6 +22,7 @@ export interface Brewery {
     nombre_cervecero: string | null;
     celular_1: string | null;
     celular_2: string | null;
+    phones: string[] | null;
     correo: string | null;
     maltas_utilizadas: string[] | null;
     lupulos_utilizados: string[] | null;

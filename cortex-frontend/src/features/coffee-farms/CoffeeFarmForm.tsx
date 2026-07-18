@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Button, Input } from '@/presentation/components/atoms';
-import { CountryCitySelect } from '@/presentation/components/molecules';
+import { CountryCitySelect, PhoneListInput } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { normalizeFormPayload } from '@/shared/formUtils';
 import { apiClient } from '@/services/api/client';
@@ -20,7 +20,7 @@ interface CoffeeFarmFormData {
     ciudad: string;
     pais: string;
     nombre_contacto: string;
-    celular: string;
+    phones: string[];
     correo: string;
     tipo_actividad: string;
     hectareas_totales: string;
@@ -53,7 +53,7 @@ const EMPTY_FORM: CoffeeFarmFormData = {
     ciudad: '',
     pais: '',
     nombre_contacto: '',
-    celular: '',
+    phones: [],
     correo: '',
     tipo_actividad: '',
     hectareas_totales: '',
@@ -76,7 +76,6 @@ const LOWERCASE_FIELDS = [
     'direccion',
     'departamento',
     'nombre_contacto',
-    'celular',
     'correo',
     'hectareas_totales',
     'hectareas_cafe',
@@ -150,6 +149,7 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
                 tipo_actividad: formData.tipo_actividad || null,
                 tipo_proceso: formData.tipo_proceso || null,
                 nivel_tecnificacion: formData.nivel_tecnificacion || null,
+                phones: formData.phones.filter((phone) => phone.trim() !== ''),
             }, LOWERCASE_FIELDS);
 
             if (id) {
@@ -248,11 +248,9 @@ export function CoffeeFarmForm({ initialData, id, onSuccess, onCancel, onSavingC
                     value={formData.nombre_contacto}
                     onChange={handleChange}
                 />
-                <Input
-                    label="Celular"
-                    name="celular"
-                    value={formData.celular}
-                    onChange={handleChange}
+                <PhoneListInput
+                    phones={formData.phones}
+                    onChange={(phones) => setFormData((prev) => ({ ...prev, phones }))}
                 />
                 <Input
                     label="Correo"
@@ -406,7 +404,7 @@ function transformForForm(farm: CoffeeFarm): CoffeeFarmFormData {
         ciudad: farm.ciudad ?? '',
         pais: farm.pais ?? '',
         nombre_contacto: farm.nombre_contacto ?? '',
-        celular: farm.celular ?? '',
+        phones: farm.phones ?? [],
         correo: farm.correo ?? '',
         tipo_actividad: farm.tipo_actividad ?? '',
         hectareas_totales: farm.hectareas_totales ?? '',

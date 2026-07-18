@@ -22,6 +22,7 @@ export interface CoffeeFarm {
     pais: string | null;
     nombre_contacto: string | null;
     celular: string | null;
+    phones: string[] | null;
     correo: string | null;
     tipo_actividad: string | null;
     hectareas_totales: string | null;
