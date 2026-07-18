@@ -25,7 +25,7 @@ const mockProducer = {
     ciudad: 'Medellín',
     pais: 'Colombia',
     nombre_contacto: 'Ana López',
-    celular: '3001112222',
+    phones: ['3001112222'],
     correo: 'ana@nutrianimal.com',
     especies_manejadas: ['Bovinos', 'Porcinos'],
     productos_fabricados: ['Concentrado', 'Premezcla'],
@@ -137,7 +137,9 @@ describe('AnimalFeedProducerForm', () => {
             ciudad: 'Bogotá D.C.',
             especies_manejadas: ['bovinos', 'porcinos'],
             productos_fabricados: ['concentrado', 'premezcla'],
+            phones: [],
         });
+        expect(payload).not.toHaveProperty('celular');
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
@@ -198,11 +200,50 @@ describe('AnimalFeedProducerForm', () => {
             razon_social: 'nutrición animal renovada',
             especies_manejadas: ['bovinos', 'porcinos'],
             productos_fabricados: ['concentrado', 'premezcla'],
+            phones: ['3001112222'],
         });
+        expect(payload).not.toHaveProperty('celular');
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
         });
+    });
+
+    it('preloads phones in order when editing', () => {
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerForm {...baseProps} id="producer-1" initialData={mockProducer} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText('Teléfono 1')).toHaveValue('3001112222');
+        expect(apiClient.get).not.toHaveBeenCalled();
+    });
+
+    it('filters blank phone rows only at submit', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'producer-new' });
+
+        render(
+            <MemoryRouter>
+                <AnimalFeedProducerForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Razón Social/i), 'Nutrición Animal S.A.');
+        await user.click(screen.getByRole('button', { name: /Agregar teléfono/i }));
+        await user.type(screen.getByLabelText('Teléfono 1'), '3009998888');
+        await user.click(screen.getByRole('button', { name: 'Crear Productor' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            phones: ['3009998888'],
+        });
+        expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
     });
 
     it('calls onCancel when the cancel button is clicked', async () => {

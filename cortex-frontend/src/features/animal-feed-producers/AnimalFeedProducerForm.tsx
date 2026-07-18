@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Button, Input } from '@/presentation/components/atoms';
-import { CountryCitySelect } from '@/presentation/components/molecules';
+import { CountryCitySelect, PhoneListInput } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { normalizeFormPayload } from '@/shared/formUtils';
 import { apiClient } from '@/services/api/client';
@@ -19,7 +19,7 @@ interface AnimalFeedProducerFormData {
     ciudad: string;
     pais: string;
     nombre_contacto: string;
-    celular: string;
+    phones: string[];
     correo: string;
     especies_manejadas: string;
     productos_fabricados: string;
@@ -44,7 +44,7 @@ const EMPTY_FORM: AnimalFeedProducerFormData = {
     ciudad: '',
     pais: '',
     nombre_contacto: '',
-    celular: '',
+    phones: [],
     correo: '',
     especies_manejadas: '',
     productos_fabricados: '',
@@ -59,7 +59,6 @@ const LOWERCASE_FIELDS = [
     'direccion',
     'departamento',
     'nombre_contacto',
-    'celular',
     'correo',
     'especies_manejadas',
     'productos_fabricados',
@@ -123,6 +122,7 @@ export function AnimalFeedProducerForm({ initialData, id, onSuccess, onCancel, o
                 ...formData,
                 especies_manejadas: parseArray(formData.especies_manejadas),
                 productos_fabricados: parseArray(formData.productos_fabricados),
+                phones: formData.phones.filter((phone) => phone.trim() !== ''),
             }, LOWERCASE_FIELDS);
 
             if (id) {
@@ -215,11 +215,9 @@ export function AnimalFeedProducerForm({ initialData, id, onSuccess, onCancel, o
                     value={formData.nombre_contacto}
                     onChange={handleChange}
                 />
-                <Input
-                    label="Celular"
-                    name="celular"
-                    value={formData.celular}
-                    onChange={handleChange}
+                <PhoneListInput
+                    phones={formData.phones}
+                    onChange={(phones) => setFormData((prev) => ({ ...prev, phones }))}
                 />
                 <Input
                     label="Correo"
@@ -294,7 +292,7 @@ function transformForForm(producer: AnimalFeedProducer): AnimalFeedProducerFormD
         ciudad: producer.ciudad ?? '',
         pais: producer.pais ?? '',
         nombre_contacto: producer.nombre_contacto ?? '',
-        celular: producer.celular ?? '',
+        phones: producer.phones ?? [],
         correo: producer.correo ?? '',
         especies_manejadas: joinArray(producer.especies_manejadas),
         productos_fabricados: joinArray(producer.productos_fabricados),

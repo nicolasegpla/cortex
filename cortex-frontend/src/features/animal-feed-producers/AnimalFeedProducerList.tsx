@@ -21,6 +21,7 @@ export interface AnimalFeedProducer {
     pais: string | null;
     nombre_contacto: string | null;
     celular: string | null;
+    phones: string[] | null;
     correo: string | null;
     especies_manejadas: string[] | null;
     productos_fabricados: string[] | null;
