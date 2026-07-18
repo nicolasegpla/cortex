@@ -27,6 +27,7 @@ class TestBreweryCreate:
         assert brewery.ciudad == "Bogotá"
         assert brewery.pais == "Colombia"
         assert brewery.tipo_operacion == "planta_propia"
+        assert brewery.phones == []
 
     def test_nombre_cerveceria_is_required(self) -> None:
         with pytest.raises(ValidationError) as exc_info:
@@ -73,6 +74,17 @@ class TestBreweryCreate:
         assert brewery.ciudad is None
         assert brewery.pais is None
 
+    def test_phones_default_to_empty_list(self) -> None:
+        brewery = BreweryCreate(nombre_cerveceria="Test")
+        assert brewery.phones == []
+
+    def test_phones_accept_multiple_numbers(self) -> None:
+        brewery = BreweryCreate(
+            nombre_cerveceria="Test",
+            phones=["3001234567", "3017654321"],
+        )
+        assert brewery.phones == ["3001234567", "3017654321"]
+
 
 class TestBreweryUpdate:
     """Test BreweryUpdate schema (all fields optional)."""
@@ -82,6 +94,7 @@ class TestBreweryUpdate:
 
         assert brewery.nombre_cerveceria is None
         assert brewery.razon_social is None
+        assert brewery.phones == []
 
     def test_partial_update_succeeds(self) -> None:
         brewery = BreweryUpdate(nombre_cerveceria="Updated Name")
@@ -94,6 +107,10 @@ class TestBreweryUpdate:
             BreweryUpdate(tipo_operacion="invalid")
 
         assert "tipo_operacion" in str(exc_info.value)
+
+    def test_update_phones_replaces_list(self) -> None:
+        brewery = BreweryUpdate(phones=["300"])
+        assert brewery.phones == ["300"]
 
 
 class TestBreweryResponse:
@@ -117,6 +134,7 @@ class TestBreweryResponse:
         assert response.nombre_cerveceria == "Test Brewery"
         assert response.created_at == now
         assert response.updated_at == now
+        assert response.phones == []
 
     def test_response_serializes_to_dict(self) -> None:
         from uuid import uuid4
@@ -129,6 +147,7 @@ class TestBreweryResponse:
             id=brewery_id,
             nombre_cerveceria="Test Brewery",
             ciudad="Bogotá",
+            phones=["3001234567"],
             created_at=now,
             updated_at=now,
         )
@@ -136,4 +155,5 @@ class TestBreweryResponse:
         data = response.model_dump()
         assert data["nombre_cerveceria"] == "Test Brewery"
         assert data["ciudad"] == "Bogotá"
+        assert data["phones"] == ["3001234567"]
         assert "id" in data
