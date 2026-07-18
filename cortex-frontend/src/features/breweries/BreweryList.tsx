@@ -122,8 +122,7 @@ export function BreweryList() {
             heading: 'Contacto',
             fields: [
                 { label: 'Nombre de Contacto', value: brewery.nombre_contacto || '-' },
-                { label: 'Celular 1', value: brewery.celular_1 || '-' },
-                { label: 'Celular 2', value: brewery.celular_2 || '-' },
+                { label: 'Teléfonos', value: formatArray(brewery.phones) },
                 { label: 'Correo', value: brewery.correo || '-' },
             ],
         },

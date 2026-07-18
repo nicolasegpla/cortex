@@ -18,6 +18,7 @@ const mockFarms = [
         pais: 'Colombia',
         nombre_contacto: 'Juan Pérez',
         celular: '3001234567',
+        phones: ['3001234567'],
         correo: 'juan@primavera.com',
         tipo_actividad: 'Productor',
         hectareas_totales: '12.50',
@@ -222,6 +223,77 @@ describe('CoffeeFarmList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
         await user.click(screen.getByRole('dialog'));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('renders phones in the contact section of the detail modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<CoffeeFarmList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+        expect(screen.getByRole('heading', { name: 'Finca Primavera' })).toBeInTheDocument();
+        expect(screen.getByText('Teléfonos')).toBeInTheDocument();
+        expect(screen.getByText('3001234567')).toBeInTheDocument();
+    });
+
+    it('does not render the legacy Celular label in the detail modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockFarms), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<CoffeeFarmList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+
+        expect(screen.queryByText('Celular')).not.toBeInTheDocument();
+    });
+
+    it('shows a dash for phones when the list is empty', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        const farmWithoutPhones = {
+            ...mockFarms[0],
+            phones: [],
+        };
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify([farmWithoutPhones, mockFarms[1]]), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<CoffeeFarmList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' })).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
+
+        const phoneLabel = screen.getByText('Teléfonos');
+        const phoneValue = phoneLabel.nextElementSibling;
+        expect(phoneValue).toHaveTextContent('-');
     });
 
     it('closes the detail modal and opens the form modal when Edit is clicked', async () => {

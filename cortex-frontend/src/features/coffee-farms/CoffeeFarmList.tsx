@@ -105,7 +105,7 @@ export function CoffeeFarmList() {
             heading: 'Contacto',
             fields: [
                 { label: 'Nombre de Contacto', value: farm.nombre_contacto || '-' },
-                { label: 'Celular', value: farm.celular || '-' },
+                { label: 'Teléfonos', value: formatArray(farm.phones) },
                 { label: 'Correo', value: farm.correo || '-' },
             ],
         },
