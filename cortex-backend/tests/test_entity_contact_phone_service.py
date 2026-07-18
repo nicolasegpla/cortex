@@ -72,12 +72,15 @@ class TestEntityContactPhoneService:
     # --- batch_load_phones ---
 
     def test_batch_load_phones_returns_dict_grouped_by_entity_id(self, service, mock_supabase):
+        """RELIABILITY-003: rows returned in reverse order must be normalized
+        into the correct (entity_id, sort_order) sequence by the service."""
         id_1 = uuid4()
         id_2 = uuid4()
+        # Deliberately unordered rows; the service must sort them.
         mock_supabase.table.return_value.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = [
-            {"entity_id": str(id_1), "phone": "300", "sort_order": 1},
             {"entity_id": str(id_1), "phone": "301", "sort_order": 2},
             {"entity_id": str(id_2), "phone": "310", "sort_order": 1},
+            {"entity_id": str(id_1), "phone": "300", "sort_order": 1},
         ]
 
         result = service.batch_load_phones("brewery", [id_1, id_2])
@@ -123,6 +126,41 @@ class TestEntityContactPhoneService:
 
         mock_supabase.table.return_value.delete.assert_called_once()
         mock_supabase.table.return_value.insert.assert_not_called()
+
+    def test_replace_phones_normalizes_and_assigns_consecutive_sort_order(self, service, mock_supabase):
+        """RELIABILITY-001: replace payload must trim, drop blanks, dedupe first
+        occurrence, and use consecutive sort_order values."""
+        entity_id = uuid4()
+        phones = ["  300  ", "", "301", " 300 ", "302", "   ", "301"]
+        mock_supabase.table.return_value.delete.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+        mock_supabase.table.return_value.insert.return_value.execute.return_value.data = []
+
+        service.replace_phones("brewery", entity_id, phones)
+
+        mock_supabase.table.return_value.insert.assert_called_once_with([
+            {"entity_type": "brewery", "entity_id": str(entity_id), "phone": "300", "sort_order": 1},
+            {"entity_type": "brewery", "entity_id": str(entity_id), "phone": "301", "sort_order": 2},
+            {"entity_type": "brewery", "entity_id": str(entity_id), "phone": "302", "sort_order": 3},
+        ])
+
+    def test_replace_phones_deletes_before_insert(self, service, mock_supabase):
+        """RELIABILITY-002: delete must execute before insert in replace_phones."""
+        entity_id = uuid4()
+        phones = ["300"]
+        call_order = []
+
+        delete_execute = (
+            mock_supabase.table.return_value.delete.return_value
+            .eq.return_value.eq.return_value.execute
+        )
+        delete_execute.side_effect = lambda: call_order.append("delete") or MagicMock(data=[])
+
+        insert_execute = mock_supabase.table.return_value.insert.return_value.execute
+        insert_execute.side_effect = lambda: call_order.append("insert") or MagicMock(data=[])
+
+        service.replace_phones("brewery", entity_id, phones)
+
+        assert call_order == ["delete", "insert"]
 
     # --- find_entity_ids_by_phone ---
 
