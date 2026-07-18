@@ -20,9 +20,19 @@ class TestBreweryService:
         return mock
 
     @pytest.fixture
-    def service(self, mock_supabase):
-        """Create a BreweryService with mocked client."""
-        return BreweryService(mock_supabase)
+    def mock_phone_service(self):
+        """Create a mocked EntityContactPhoneService."""
+        mock = MagicMock()
+        mock.get_phones.return_value = []
+        mock.batch_load_phones.return_value = {}
+        mock.replace_phones.return_value = None
+        mock.find_entity_ids_by_phone.return_value = []
+        return mock
+
+    @pytest.fixture
+    def service(self, mock_supabase, mock_phone_service):
+        """Create a BreweryService with mocked client and phone service."""
+        return BreweryService(mock_supabase, mock_phone_service)
 
     @pytest.fixture
     def sample_brewery_data(self):
@@ -39,13 +49,17 @@ class TestBreweryService:
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
-    def test_create_brewery_calls_supabase_insert(self, service, mock_supabase) -> None:
+    def test_create_brewery_calls_supabase_insert_and_saves_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
+        brewery_id = uuid4()
         payload = BreweryCreate(
             nombre_cerveceria="Test Brewery",
             ciudad="Medellín",
+            phones=["3001234567", "3017654321"],
         )
         expected_data = {
-            "id": str(uuid4()),
+            "id": str(brewery_id),
             "nombre_cerveceria": "Test Brewery",
             "ciudad": "Medellín",
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -59,26 +73,69 @@ class TestBreweryService:
 
         mock_supabase.table.assert_called_once_with("breweries")
         mock_supabase.table.return_value.insert.assert_called_once()
+        # Phones should not be part of the breweries insert payload
+        insert_payload = mock_supabase.table.return_value.insert.call_args[0][0]
+        assert "phones" not in insert_payload
+        assert "celular_1" not in insert_payload
+        assert "celular_2" not in insert_payload
+        mock_phone_service.replace_phones.assert_called_once_with(
+            "brewery", brewery_id, ["3001234567", "3017654321"]
+        )
         assert result["nombre_cerveceria"] == "Test Brewery"
-        assert result["ciudad"] == "Medellín"
 
-    def test_list_breweries_calls_supabase_select(self, service, mock_supabase) -> None:
+    def test_create_brewery_without_phones_still_clears_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
+        brewery_id = uuid4()
+        payload = BreweryCreate(nombre_cerveceria="Test Brewery")
+        expected_data = {"id": str(brewery_id), "nombre_cerveceria": "Test Brewery"}
+        mock_supabase.table.return_value.insert.return_value.execute.return_value.data = [
+            expected_data
+        ]
+
+        service.create(payload)
+
+        mock_phone_service.replace_phones.assert_called_once_with("brewery", brewery_id, [])
+
+    def test_list_breweries_merges_batched_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
+        id_1 = uuid4()
+        id_2 = uuid4()
         expected_data = [
-            {"id": str(uuid4()), "nombre_cerveceria": "Brewery 1"},
-            {"id": str(uuid4()), "nombre_cerveceria": "Brewery 2"},
+            {"id": str(id_1), "nombre_cerveceria": "Brewery 1"},
+            {"id": str(id_2), "nombre_cerveceria": "Brewery 2"},
         ]
         mock_supabase.table.return_value.select.return_value.execute.return_value.data = (
             expected_data
         )
+        mock_phone_service.batch_load_phones.return_value = {
+            id_1: ["300"],
+            id_2: ["301", "302"],
+        }
 
         result = service.list_all()
 
         mock_supabase.table.assert_called_once_with("breweries")
         mock_supabase.table.return_value.select.assert_called_once_with("*")
+        mock_phone_service.batch_load_phones.assert_called_once_with("brewery", [id_1, id_2])
         assert len(result) == 2
-        assert result[0]["nombre_cerveceria"] == "Brewery 1"
+        assert result[0]["phones"] == ["300"]
+        assert result[1]["phones"] == ["301", "302"]
 
-    def test_get_by_id_existing_brewery_returns_data(self, service, mock_supabase) -> None:
+    def test_list_breweries_with_no_results_returns_empty_list(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
+        mock_supabase.table.return_value.select.return_value.execute.return_value.data = []
+
+        result = service.list_all()
+
+        assert result == []
+        mock_phone_service.batch_load_phones.assert_not_called()
+
+    def test_get_by_id_existing_brewery_merges_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         brewery_id = uuid4()
         expected_data = {
             "id": str(brewery_id),
@@ -87,16 +144,21 @@ class TestBreweryService:
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
             expected_data
         ]
+        mock_phone_service.get_phones.return_value = ["300", "301"]
 
         result = service.get_by_id(brewery_id)
 
         assert result is not None
         assert result["nombre_cerveceria"] == "Found Brewery"
+        assert result["phones"] == ["300", "301"]
         mock_supabase.table.return_value.select.return_value.eq.assert_called_once_with(
             "id", str(brewery_id)
         )
+        mock_phone_service.get_phones.assert_called_once_with("brewery", brewery_id)
 
-    def test_get_by_id_nonexistent_brewery_returns_none(self, service, mock_supabase) -> None:
+    def test_get_by_id_nonexistent_brewery_returns_none(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         brewery_id = uuid4()
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = (
             []
@@ -105,10 +167,13 @@ class TestBreweryService:
         result = service.get_by_id(brewery_id)
 
         assert result is None
+        mock_phone_service.get_phones.assert_not_called()
 
-    def test_update_existing_brewery_returns_updated_data(self, service, mock_supabase) -> None:
+    def test_update_existing_brewery_excludes_phones_from_payload_and_replaces_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         brewery_id = uuid4()
-        payload = BreweryUpdate(nombre_cerveceria="Updated Name")
+        payload = BreweryUpdate(nombre_cerveceria="Updated Name", phones=["310"])
         expected_data = {
             "id": str(brewery_id),
             "nombre_cerveceria": "Updated Name",
@@ -121,9 +186,17 @@ class TestBreweryService:
 
         assert result is not None
         assert result["nombre_cerveceria"] == "Updated Name"
-        mock_supabase.table.return_value.update.assert_called_once()
+        update_payload = mock_supabase.table.return_value.update.call_args[0][0]
+        assert "phones" not in update_payload
+        assert "celular_1" not in update_payload
+        assert "celular_2" not in update_payload
+        mock_phone_service.replace_phones.assert_called_once_with(
+            "brewery", brewery_id, ["310"]
+        )
 
-    def test_update_nonexistent_brewery_returns_none(self, service, mock_supabase) -> None:
+    def test_update_nonexistent_brewery_returns_none(
+        self, service, mock_supabase
+    ) -> None:
         brewery_id = uuid4()
         payload = BreweryUpdate(nombre_cerveceria="Updated Name")
         mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = (
@@ -134,7 +207,9 @@ class TestBreweryService:
 
         assert result is None
 
-    def test_delete_existing_brewery_returns_true(self, service, mock_supabase) -> None:
+    def test_delete_existing_brewery_returns_true_and_does_not_clean_phones(
+        self, service, mock_supabase, mock_phone_service
+    ) -> None:
         brewery_id = uuid4()
         mock_supabase.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = [
             {"id": str(brewery_id)}
@@ -144,8 +219,11 @@ class TestBreweryService:
 
         assert result is True
         mock_supabase.table.return_value.delete.assert_called_once()
+        mock_phone_service.delete_phones.assert_not_called()  # DB trigger owns cleanup
 
-    def test_delete_nonexistent_brewery_returns_false(self, service, mock_supabase) -> None:
+    def test_delete_nonexistent_brewery_returns_false(
+        self, service, mock_supabase
+    ) -> None:
         brewery_id = uuid4()
         mock_supabase.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = (
             []
@@ -160,7 +238,7 @@ class TestBreweryService:
     def _brewery_projection(self):
         return (
             "id,nombre_cerveceria,razon_social,nit,nombre_cervecero,nombre_contacto,"
-            "celular_1,celular_2,correo,direccion,ciudad,pais,tipo_operacion,"
+            "correo,direccion,ciudad,pais,tipo_operacion,"
             "maltas_utilizadas,lupulos_utilizados,levaduras_utilizadas,"
             "utiliza_otros_productos,estilos_cerveza,marca_equipo,capacidad_brewhouse,"
             "capacidad_fermentacion,litros_mes,calidad_equipo,formatos_venta,"
@@ -179,6 +257,65 @@ class TestBreweryService:
         mock_supabase.table.assert_called_once_with("breweries")
         mock_supabase.table.return_value.select.assert_called_once_with(self._brewery_projection())
         assert len(result) == 2
+
+    def test_search_with_phone_uses_two_step_query(self, service, mock_supabase, mock_phone_service) -> None:
+        matching_id = uuid4()
+        expected = [{"id": str(matching_id), "nombre_cerveceria": "Brewery 1"}]
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.in_.return_value = query_builder
+        query_builder.execute.return_value.data = expected
+        mock_phone_service.find_entity_ids_by_phone.return_value = [matching_id]
+
+        result = service.search(phone="3001234567")
+
+        mock_phone_service.find_entity_ids_by_phone.assert_called_once_with(
+            "brewery", "3001234567"
+        )
+        query_builder.in_.assert_called_once_with("id", [str(matching_id)])
+        assert len(result) == 1
+
+    def test_search_with_phone_no_matches_returns_empty(self, service, mock_supabase, mock_phone_service) -> None:
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.in_.return_value = query_builder
+        query_builder.execute.return_value.data = []
+        mock_phone_service.find_entity_ids_by_phone.return_value = []
+
+        result = service.search(phone="999")
+
+        query_builder.in_.assert_called_once_with("id", [])
+        assert result == []
+
+    def test_search_attaches_phones_after_retrieval(self, service, mock_supabase, mock_phone_service) -> None:
+        id_1 = uuid4()
+        id_2 = uuid4()
+        expected_data = [
+            {"id": str(id_1), "nombre_cerveceria": "Brewery 1"},
+            {"id": str(id_2), "nombre_cerveceria": "Brewery 2"},
+        ]
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.execute.return_value.data = expected_data
+        mock_phone_service.batch_load_phones.return_value = {
+            id_1: ["300"],
+            id_2: ["301", "302"],
+        }
+
+        result = service.search()
+
+        mock_phone_service.batch_load_phones.assert_called_once_with("brewery", [id_1, id_2])
+        assert len(result) == 2
+        assert result[0]["phones"] == ["300"]
+        assert result[1]["phones"] == ["301", "302"]
+
+    def test_search_with_phone_no_results_does_not_batch_load_phones(self, service, mock_supabase, mock_phone_service) -> None:
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.in_.return_value = query_builder
+        query_builder.execute.return_value.data = []
+        mock_phone_service.find_entity_ids_by_phone.return_value = []
+
+        result = service.search(phone="999")
+
+        assert result == []
+        mock_phone_service.batch_load_phones.assert_not_called()
 
     def test_search_with_city_filter_applies_accent_tolerant(self, service, mock_supabase) -> None:
         expected = [{"id": str(uuid4()), "ciudad": "Bogotá"}]
@@ -221,8 +358,9 @@ class TestBreweryService:
         query_builder.or_.assert_called_once_with("ciudad.ilike.Medellín,ciudad.ilike.Medellin")
         query_builder.eq.assert_called_once_with("tipo_operacion", "planta_propia")
         assert len(result) == 1
+
     def test_search_with_partial_filters(self, service, mock_supabase) -> None:
-        expected = [{'id': str(uuid4()), 'pais': 'Colombia'}]
+        expected = [{"id": str(uuid4()), "pais": "Colombia"}]
         query_builder = mock_supabase.table.return_value.select.return_value
         query_builder.ilike.return_value = query_builder
         query_builder.execute.return_value.data = expected
@@ -231,6 +369,7 @@ class TestBreweryService:
 
         query_builder.ilike.assert_called_once_with("pais", "Colombia")
         assert len(result) == 1
+
     def test_count_returns_int(self, service, mock_supabase) -> None:
         mock_response = MagicMock()
         mock_response.count = 42
@@ -294,19 +433,6 @@ class TestBreweryService:
         result = service.search(address="Calle 123")
 
         query_builder.ilike.assert_any_call("direccion", "%Calle 123%")
-        assert len(result) == 1
-
-    def test_search_with_phone_uses_or_ilike(self, service, mock_supabase) -> None:
-        expected = [{"id": str(uuid4()), "celular_1": "3001234567"}]
-        query_builder = mock_supabase.table.return_value.select.return_value
-        query_builder.or_.return_value = query_builder
-        query_builder.execute.return_value.data = expected
-
-        result = service.search(phone="3001234567")
-
-        query_builder.or_.assert_called_once_with(
-            "celular_1.ilike.%3001234567%,celular_2.ilike.%3001234567%"
-        )
         assert len(result) == 1
 
     def test_search_with_email_uses_ilike(self, service, mock_supabase) -> None:
@@ -506,12 +632,15 @@ class TestBreweryService:
 
         mock_supabase.table.return_value.select.assert_called_once_with(
             "id,nombre_cerveceria,razon_social,nit,nombre_cervecero,nombre_contacto,"
-            "celular_1,celular_2,correo,direccion,ciudad,pais,tipo_operacion,"
+            "correo,direccion,ciudad,pais,tipo_operacion,"
             "maltas_utilizadas,lupulos_utilizados,levaduras_utilizadas,"
             "utiliza_otros_productos,estilos_cerveza,marca_equipo,capacidad_brewhouse,"
             "capacidad_fermentacion,litros_mes,calidad_equipo,formatos_venta,"
             "donde_vende,observaciones,oportunidades,created_at,updated_at"
         )
+        # phones is a virtual field stored in entity_contact_phones, not a physical column.
+        select_arg = mock_supabase.table.return_value.select.call_args[0][0]
+        assert "phones" not in select_arg
 
     # --- inspect() (Phase 4: inspect breweries tool) ---
 
@@ -612,6 +741,66 @@ class TestBreweryService:
 
         result = service.inspect(city="Bogotá", beer_styles="IPA", limit=10)
 
-
         query_builder.or_.assert_called_once_with("ciudad.ilike.Bogotá,ciudad.ilike.Bogota")
         query_builder.limit.assert_called_once_with(10)
+
+    def test_inspect_with_phone_uses_two_step_query(self, service, mock_supabase, mock_phone_service) -> None:
+        matching_id = uuid4()
+        expected = [{"id": str(matching_id), "nombre_cerveceria": "Brewery 1"}]
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.limit.return_value = query_builder
+        query_builder.in_.return_value = query_builder
+        query_builder.execute.return_value.data = expected
+        mock_phone_service.find_entity_ids_by_phone.return_value = [matching_id]
+
+        result = service.inspect(phone="300")
+
+        mock_phone_service.find_entity_ids_by_phone.assert_called_once_with("brewery", "300")
+        query_builder.in_.assert_called_once_with("id", [str(matching_id)])
+        assert len(result) == 1
+
+    def test_inspect_with_phone_no_matches_returns_empty(self, service, mock_supabase, mock_phone_service) -> None:
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.limit.return_value = query_builder
+        query_builder.in_.return_value = query_builder
+        query_builder.execute.return_value.data = []
+        mock_phone_service.find_entity_ids_by_phone.return_value = []
+
+        result = service.inspect(phone="999")
+
+        query_builder.in_.assert_called_once_with("id", [])
+        assert result == []
+
+    def test_inspect_attaches_phones_after_retrieval(self, service, mock_supabase, mock_phone_service) -> None:
+        id_1 = uuid4()
+        id_2 = uuid4()
+        expected_data = [
+            {"id": str(id_1), "nombre_cerveceria": "Brewery 1"},
+            {"id": str(id_2), "nombre_cerveceria": "Brewery 2"},
+        ]
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.limit.return_value = query_builder
+        query_builder.execute.return_value.data = expected_data
+        mock_phone_service.batch_load_phones.return_value = {
+            id_1: ["300"],
+            id_2: ["301", "302"],
+        }
+
+        result = service.inspect()
+
+        mock_phone_service.batch_load_phones.assert_called_once_with("brewery", [id_1, id_2])
+        assert len(result) == 2
+        assert result[0]["phones"] == ["300"]
+        assert result[1]["phones"] == ["301", "302"]
+
+    def test_inspect_with_phone_no_results_does_not_batch_load_phones(self, service, mock_supabase, mock_phone_service) -> None:
+        query_builder = mock_supabase.table.return_value.select.return_value
+        query_builder.limit.return_value = query_builder
+        query_builder.in_.return_value = query_builder
+        query_builder.execute.return_value.data = []
+        mock_phone_service.find_entity_ids_by_phone.return_value = []
+
+        result = service.inspect(phone="999")
+
+        assert result == []
+        mock_phone_service.batch_load_phones.assert_not_called()
