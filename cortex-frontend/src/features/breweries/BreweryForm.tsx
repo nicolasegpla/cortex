@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Button, Input } from '@/presentation/components/atoms';
-import { CountryCitySelect } from '@/presentation/components/molecules';
+import { CountryCitySelect, PhoneListInput } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { normalizeFormPayload } from '@/shared/formUtils';
 import { apiClient } from '@/services/api/client';
@@ -19,8 +19,7 @@ interface BreweryFormData {
     pais: string;
     nombre_contacto: string;
     nombre_cervecero: string;
-    celular_1: string;
-    celular_2: string;
+    phones: string[];
     correo: string;
     maltas_utilizadas: string;
     lupulos_utilizados: string;
@@ -56,8 +55,7 @@ const EMPTY_FORM: BreweryFormData = {
     pais: '',
     nombre_contacto: '',
     nombre_cervecero: '',
-    celular_1: '',
-    celular_2: '',
+    phones: [],
     correo: '',
     maltas_utilizadas: '',
     lupulos_utilizados: '',
@@ -83,8 +81,6 @@ const LOWERCASE_FIELDS = [
     'direccion',
     'nombre_contacto',
     'nombre_cervecero',
-    'celular_1',
-    'celular_2',
     'correo',
     'maltas_utilizadas',
     'lupulos_utilizados',
@@ -165,6 +161,7 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChan
                 formatos_venta: parseArray(formData.formatos_venta),
                 litros_mes: formData.litros_mes ? parseInt(formData.litros_mes, 10) : null,
                 tipo_operacion: formData.tipo_operacion || null,
+                phones: formData.phones.filter((phone) => phone.trim() !== ''),
             }, LOWERCASE_FIELDS);
 
             if (id) {
@@ -257,17 +254,9 @@ export function BreweryForm({ initialData, id, onSuccess, onCancel, onSavingChan
                     value={formData.nombre_cervecero}
                     onChange={handleChange}
                 />
-                <Input
-                    label="Celular 1"
-                    name="celular_1"
-                    value={formData.celular_1}
-                    onChange={handleChange}
-                />
-                <Input
-                    label="Celular 2"
-                    name="celular_2"
-                    value={formData.celular_2}
-                    onChange={handleChange}
+                <PhoneListInput
+                    phones={formData.phones}
+                    onChange={(phones) => setFormData((prev) => ({ ...prev, phones }))}
                 />
                 <Input
                     label="Correo"
@@ -437,8 +426,7 @@ function transformForForm(brewery: Brewery): BreweryFormData {
         pais: brewery.pais ?? '',
         nombre_contacto: brewery.nombre_contacto ?? '',
         nombre_cervecero: brewery.nombre_cervecero ?? '',
-        celular_1: brewery.celular_1 ?? '',
-        celular_2: brewery.celular_2 ?? '',
+        phones: brewery.phones ?? [],
         correo: brewery.correo ?? '',
         maltas_utilizadas: joinArray(brewery.maltas_utilizadas),
         lupulos_utilizados: joinArray(brewery.lupulos_utilizados),

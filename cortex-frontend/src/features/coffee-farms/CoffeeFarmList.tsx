@@ -22,6 +22,7 @@ export interface CoffeeFarm {
     pais: string | null;
     nombre_contacto: string | null;
     celular: string | null;
+    phones: string[] | null;
     correo: string | null;
     tipo_actividad: string | null;
     hectareas_totales: string | null;
@@ -104,7 +105,7 @@ export function CoffeeFarmList() {
             heading: 'Contacto',
             fields: [
                 { label: 'Nombre de Contacto', value: farm.nombre_contacto || '-' },
-                { label: 'Celular', value: farm.celular || '-' },
+                { label: 'Teléfonos', value: formatArray(farm.phones) },
                 { label: 'Correo', value: farm.correo || '-' },
             ],
         },

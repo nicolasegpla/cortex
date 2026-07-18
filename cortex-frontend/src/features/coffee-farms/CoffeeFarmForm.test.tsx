@@ -26,7 +26,7 @@ const mockFarm = {
     ciudad: 'Pitalito',
     pais: 'Colombia',
     nombre_contacto: 'Juan Pérez',
-    celular: '3001234567',
+    phones: ['3001234567'],
     correo: 'juan@primavera.com',
     tipo_actividad: 'Productor',
     hectareas_totales: '12.50',
@@ -147,7 +147,9 @@ describe('CoffeeFarmForm', () => {
             ciudad: 'Bogotá D.C.',
             variedades_sembradas: ['castillo', 'caturra'],
             equipos: ['secadero', 'despulpadora'],
+            phones: [],
         });
+        expect(payload).not.toHaveProperty('celular');
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
@@ -238,11 +240,50 @@ describe('CoffeeFarmForm', () => {
             variedades_sembradas: ['castillo', 'caturra'],
             equipos: ['secadero', 'despulpadora'],
             numero_arboles: 2500,
+            phones: ['3001234567'],
         });
+        expect(payload).not.toHaveProperty('celular');
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
         });
+    });
+
+    it('preloads phones in order when editing', () => {
+        render(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} id="farm-1" initialData={mockFarm} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText('Teléfono 1')).toHaveValue('3001234567');
+        expect(apiClient.get).not.toHaveBeenCalled();
+    });
+
+    it('filters blank phone rows only at submit', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'farm-new' });
+
+        render(
+            <MemoryRouter>
+                <CoffeeFarmForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre de la Finca/i), 'Finca Esperanza');
+        await user.click(screen.getByRole('button', { name: /Agregar teléfono/i }));
+        await user.type(screen.getByLabelText('Teléfono 1'), '3009998888');
+        await user.click(screen.getByRole('button', { name: 'Crear Finca de Café' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            phones: ['3009998888'],
+        });
+        expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
     });
 
     it('submits null for optional select fields when left unset', async () => {

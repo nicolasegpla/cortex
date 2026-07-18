@@ -22,6 +22,7 @@ export interface Brewery {
     nombre_cervecero: string | null;
     celular_1: string | null;
     celular_2: string | null;
+    phones: string[] | null;
     correo: string | null;
     maltas_utilizadas: string[] | null;
     lupulos_utilizados: string[] | null;
@@ -121,8 +122,7 @@ export function BreweryList() {
             heading: 'Contacto',
             fields: [
                 { label: 'Nombre de Contacto', value: brewery.nombre_contacto || '-' },
-                { label: 'Celular 1', value: brewery.celular_1 || '-' },
-                { label: 'Celular 2', value: brewery.celular_2 || '-' },
+                { label: 'Teléfonos', value: formatArray(brewery.phones) },
                 { label: 'Correo', value: brewery.correo || '-' },
             ],
         },
