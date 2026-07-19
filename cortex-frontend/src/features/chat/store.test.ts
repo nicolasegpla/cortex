@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-import { HermesError, streamChat } from '@/services/hermes/client';
-import { useChatStore, PROVIDER_MODELS, MODEL_PROVIDER_MAP } from './store';
+import { apiClient } from '@/services/api/client';
+import { useChatStore } from './store';
 
 vi.mock('@/services/api/client', async () => {
     const actual = await vi.importActual('@/services/api/client');
@@ -23,9 +23,6 @@ describe('useChatStore', () => {
             messages: [],
             isLoading: false,
             error: null,
-            activeProvider: 'openai',
-            activeModel: 'gpt-4o',
-            hydrated: false,
         });
         vi.clearAllMocks();
     });
@@ -36,8 +33,6 @@ describe('useChatStore', () => {
         expect(state.messages).toEqual([]);
         expect(state.isLoading).toBe(false);
         expect(state.error).toBeNull();
-        expect(state.activeProvider).toBe('openai');
-        expect(state.activeModel).toBe('gpt-4o');
     });
 
     it('should not expose abort or abort-controller state for the n8n path', () => {
@@ -45,6 +40,16 @@ describe('useChatStore', () => {
 
         expect('abort' in state).toBe(false);
         expect('_abortController' in state).toBe(false);
+    });
+
+    it('should not expose provider/model state or actions', () => {
+        const state = useChatStore.getState();
+
+        expect('activeProvider' in state).toBe(false);
+        expect('activeModel' in state).toBe(false);
+        expect('hydrated' in state).toBe(false);
+        expect('setActiveModel' in state).toBe(false);
+        expect('hydrate' in state).toBe(false);
     });
 
     describe('sendMessage', () => {
@@ -129,116 +134,25 @@ describe('useChatStore', () => {
         });
     });
 
-    describe('setActiveModel', () => {
-        it('should update active model', () => {
-            const { setActiveModel } = useChatStore.getState();
-            setActiveModel('deepseek-v4-pro');
+    describe('legacy persistence', () => {
+        it('should rehydrate ignoring legacy model/provider fields without wiping storage', async () => {
+            localStorage.setItem(
+                'cortex-chat-preferences',
+                JSON.stringify({
+                    state: { activeModel: 'gpt-4o', activeProvider: 'openai' },
+                    version: 0,
+                })
+            );
 
-            expect(useChatStore.getState().activeModel).toBe('deepseek-v4-pro');
-        });
+            await useChatStore.persist.rehydrate();
 
-        it('should derive active provider from selected model', () => {
-            const { setActiveModel } = useChatStore.getState();
-            setActiveModel('claude-3-5-sonnet-20241022');
-
-            expect(useChatStore.getState().activeProvider).toBe('anthropic');
-            expect(useChatStore.getState().activeModel).toBe('claude-3-5-sonnet-20241022');
-        });
-
-        it('should derive deepseek provider from deepseek model', () => {
-            const { setActiveModel } = useChatStore.getState();
-            setActiveModel('deepseek-chat');
-
-            expect(useChatStore.getState().activeProvider).toBe('deepseek');
-            expect(useChatStore.getState().activeModel).toBe('deepseek-chat');
-        });
-
-        it('should persist only the active model selection to localStorage', async () => {
-            const { setActiveModel } = useChatStore.getState();
-
-            setActiveModel('deepseek-v4-pro');
-
-            await new Promise((resolve) => setTimeout(resolve, 10));
-
-            const saved = JSON.parse(localStorage.getItem('cortex-chat-preferences') || '{}');
-            expect(saved.state.activeModel).toBe('deepseek-v4-pro');
-            expect(saved.state).not.toHaveProperty('activeProvider');
-        });
-    });
-
-    describe('hydrate', () => {
-        it('should mark the store as hydrated and keep a valid selection', () => {
-            const { hydrate } = useChatStore.getState();
-
-            hydrate('deepseek-v4-pro');
-
-            expect(useChatStore.getState().hydrated).toBe(true);
-            expect(useChatStore.getState().activeProvider).toBe('deepseek');
-            expect(useChatStore.getState().activeModel).toBe('deepseek-v4-pro');
-        });
-
-        it('should sanitize an invalid persisted model during hydration', () => {
-            const { hydrate } = useChatStore.getState();
-
-            hydrate('nonexistent-model');
-
-            expect(useChatStore.getState().hydrated).toBe(true);
-            expect(useChatStore.getState().activeProvider).toBe('openai');
-            expect(useChatStore.getState().activeModel).toBe('gpt-4o');
-        });
-
-        it('should fall back to the default provider/model for an unknown persisted model', () => {
-            const { hydrate } = useChatStore.getState();
-
-            hydrate('unknown-model');
-
-            expect(useChatStore.getState().hydrated).toBe(true);
-            expect(useChatStore.getState().activeProvider).toBe('openai');
-            expect(useChatStore.getState().activeModel).toBe('gpt-4o');
-        });
-    });
-
-    describe('PROVIDER_MODELS', () => {
-        it('should include all 4 deepseek models', () => {
-            const deepseekModels = PROVIDER_MODELS.deepseek.map((m) => m.id);
-            expect(deepseekModels).toContain('deepseek-v4-flash');
-            expect(deepseekModels).toContain('deepseek-v4-pro');
-            expect(deepseekModels).toContain('deepseek-chat');
-            expect(deepseekModels).toContain('deepseek-reasoner');
-        });
-
-        it('should mark v4-flash and v4-pro as preferred', () => {
-            const flash = PROVIDER_MODELS.deepseek.find((m) => m.id === 'deepseek-v4-flash');
-            const pro = PROVIDER_MODELS.deepseek.find((m) => m.id === 'deepseek-v4-pro');
-            expect(flash?.preferred).toBe(true);
-            expect(pro?.preferred).toBe(true);
-        });
-
-        it('should not mark legacy models as preferred', () => {
-            const chat = PROVIDER_MODELS.deepseek.find((m) => m.id === 'deepseek-chat');
-            const reasoner = PROVIDER_MODELS.deepseek.find((m) => m.id === 'deepseek-reasoner');
-            expect(chat?.preferred).toBeUndefined();
-            expect(reasoner?.preferred).toBeUndefined();
-        });
-    });
-
-    describe('MODEL_PROVIDER_MAP', () => {
-        it('should map every model id to its provider', () => {
-            for (const [provider, models] of Object.entries(PROVIDER_MODELS)) {
-                for (const model of models) {
-                    expect(MODEL_PROVIDER_MAP[model.id]).toBe(provider);
-                }
-            }
-        });
-
-        it('should derive openai provider for gpt models', () => {
-            expect(MODEL_PROVIDER_MAP['gpt-4o']).toBe('openai');
-            expect(MODEL_PROVIDER_MAP['gpt-4o-mini']).toBe('openai');
-        });
-
-        it('should derive gemini provider for gemini models', () => {
-            expect(MODEL_PROVIDER_MAP['gemini-2.0-flash']).toBe('gemini');
-            expect(MODEL_PROVIDER_MAP['gemini-1.5-pro']).toBe('gemini');
+            const state = useChatStore.getState();
+            expect(state.messages).toEqual([]);
+            expect(state.isLoading).toBe(false);
+            expect(state.error).toBeNull();
+            expect('activeModel' in state).toBe(false);
+            expect('activeProvider' in state).toBe(false);
+            expect(localStorage.getItem('cortex-chat-preferences')).not.toBeNull();
         });
     });
 });
