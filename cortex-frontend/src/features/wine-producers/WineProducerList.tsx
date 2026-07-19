@@ -98,7 +98,7 @@ export function WineProducerList() {
             heading: 'Contacto',
             fields: [
                 { label: 'Nombre de Contacto', value: producer.nombre_contacto || '-' },
-                { label: 'Celular', value: producer.celular || '-' },
+                { label: 'Teléfonos', value: formatArray(producer.phones) },
                 { label: 'Correo', value: producer.correo || '-' },
             ],
         },

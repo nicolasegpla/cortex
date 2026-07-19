@@ -16,6 +16,7 @@ const mockProducers = [
         pais: 'Colombia',
         nombre_contacto: 'Carlos López',
         celular: '3001112222',
+        phones: ['320 9842458', '3001112222'],
         correo: 'carlos@vinedoreal.com',
         marcas: ['Real', 'Reserva'],
         fuente_azucar: 'Uva',
@@ -221,6 +222,77 @@ describe('WineProducerList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
         await user.click(screen.getByRole('dialog'));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('renders phones in the contact section of the detail modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
+        expect(screen.getByRole('heading', { name: 'Viñedo Real' })).toBeInTheDocument();
+        expect(screen.getByText('Teléfonos')).toBeInTheDocument();
+        expect(screen.getByText('320 9842458, 3001112222')).toBeInTheDocument();
+    });
+
+    it('does not render the legacy Celular label in the detail modal', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify(mockProducers), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
+
+        expect(screen.queryByText('Celular')).not.toBeInTheDocument();
+    });
+
+    it('shows a dash for phones when the list is empty', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+        const producerWithoutPhones = {
+            ...mockProducers[0],
+            phones: [],
+        };
+
+        globalThis.fetch = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify([producerWithoutPhones, mockProducers[1]]), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderWithRouter(<WineProducerList />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' })).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: 'Ver detalles de Viñedo Real' }));
+
+        const phoneLabel = screen.getByText('Teléfonos');
+        const phoneValue = phoneLabel.nextElementSibling;
+        expect(phoneValue).toHaveTextContent('-');
     });
 
     it('closes the detail modal and opens the form modal when Edit is clicked', async () => {
