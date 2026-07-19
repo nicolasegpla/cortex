@@ -24,6 +24,9 @@ function renderChatPage() {
     );
 }
 
+// The mock state intentionally mirrors the shrunken store interface:
+// provider/model fields (activeModel, activeProvider, setActiveModel, hydrate)
+// were removed in cortexdist-21 — the chat runs exclusively on POST /chat/n8n.
 function createMockState(overrides: Partial<ReturnType<typeof useChatStore>> = {}) {
     return {
         messages: [],
