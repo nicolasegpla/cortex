@@ -1,17 +1,17 @@
-# CORTEX v0.1.0
+# CORTEX v0.4.0
 
-Current system overview. This document reflects the state of the codebase as of release `v0.1.0`.
+Current system overview. This document reflects the state of the codebase as of release `v0.4.0`.
 
 ## Quick path
 
 1. The frontend and backend run as separate Docker services.
 2. Supabase Cloud is the operational data platform for auth and data.
-3. The chat path is backend-first, read-only, and SQL-backed.
-4. Four entity tables are fully wired: breweries, coffee farms, wine producers, and animal feed producers.
+3. The active chat path is the authenticated backend `/chat/n8n` proxy to the configured n8n/Hermes route.
+4. Four entity tables are fully wired with ordered `phones[]` contact support: breweries, coffee farms, wine producers, and animal feed producers.
 
 ## What CORTEX is today
 
-CORTEX is a reusable single-tenant application base for delivering client-specific business flows. In `v0.1.0` it provides a working web shell, a working backend, Supabase-backed auth and data, and a chat interface that can answer questions over the existing entity tables without exposing unrestricted database access.
+CORTEX is a reusable single-tenant application base for delivering client-specific business flows. In `v0.4.0` it provides a working web shell, a working backend, Supabase-backed auth and data, an authenticated n8n/Hermes chat route, and ordered multi-phone contact workflows for the current entity domains.
 
 ## Technical shape
 
@@ -23,14 +23,14 @@ CORTEX is a reusable single-tenant application base for delivering client-specif
 | Routing | React Router |
 | Backend | FastAPI modular monolith, Python 3.12 |
 | Data layer | Supabase Cloud (PostgreSQL + Auth) |
-| Chat pipeline | Backend-first read-only SQL orchestration |
+| Chat pipeline | Backend `/chat/n8n` proxy to the configured n8n/Hermes route; legacy `/chat/stream` SSE SQL path retained for rollback |
 | LLM providers | OpenAI, Anthropic, Google Gemini, DeepSeek |
 | Encryption | Fernet for stored provider API keys |
 | Package manager | pnpm (frontend), pip (backend) |
 | Testing | Vitest + Testing Library (frontend), pytest (backend) |
 | Local orchestration | Docker Compose |
 
-## Scope in v0.1.0
+## Scope in v0.4.0
 
 ### Included
 
@@ -42,8 +42,9 @@ CORTEX is a reusable single-tenant application base for delivering client-specif
   - Coffee farms
   - Wine producers
   - Animal feed producers
-- Chat interface with SSE streaming, Markdown rendering, and provider/model selection.
-- Backend chat orchestrator that introspects the Supabase schema, asks an LLM for a read-only SELECT, validates the SQL, executes it, and synthesizes a natural-language answer.
+- Ordered `phones[]` support across backend payloads, persistence, forms, lists, and detail views for all four entity domains.
+- Chat interface using the backend `/chat/n8n` route, which sends authenticated messages to the configured n8n/Hermes workflow and renders the returned answer.
+- Legacy `/chat/stream` SSE SQL orchestration path retained as a rollback option.
 - Encrypted storage of per-user LLM provider API keys with a test endpoint.
 - Adapter registry for OpenAI, Anthropic, Google Gemini, and DeepSeek.
 - Docker-based local workflow with dedicated frontend and backend images.
@@ -66,7 +67,7 @@ Supabase is the source of truth for:
 
 - Operational entity tables.
 - Auth users, sessions, and JWTs.
-- File storage (prepared, not yet used in v0.1.0).
+- File storage (prepared, not yet used in v0.4.0).
 - Schema introspection via a dedicated RPC used by the chat orchestrator.
 
 ### Backend
@@ -76,13 +77,14 @@ The backend owns:
 - API routing and CORS.
 - Supabase Auth flow integration.
 - Entity CRUD orchestration.
-- Server-side chat SQL generation, validation, execution, and response synthesis.
+- Active chat proxying through `/chat/n8n`, including authenticated session id forwarding and n8n response validation.
+- Legacy chat SQL generation, validation, execution, and response synthesis when using the rollback `/chat/stream` path.
 - Encryption of provider API keys before storage.
 - Role enforcement for super_admin vs operativo.
 
 ### Chat database access
 
-Chat-to-database access is backend-first and read-only.
+The active chat route is backend-mediated through `/chat/n8n`. The legacy chat-to-database route is backend-first and read-only when the rollback `/chat/stream` path is used.
 
 - The LLM receives schema metadata from a backend RPC, not direct database access.
 - Generated SQL is validated against a whitelist before execution.
@@ -96,7 +98,7 @@ See `chat-db-readonly-access.md` for the detailed architecture and extension che
 The frontend owns:
 
 - Auth shell, login page, and session recovery.
-- Chat page with streaming messages and model selection.
+- Chat page that posts to the backend n8n proxy and renders Markdown answers.
 - Configuration page for provider credentials and user management.
 - Database hub and CRUD views for the four entity domains.
 - API consumption with automatic logout on 401.
@@ -145,4 +147,4 @@ cortex-frontend/
 
 ## Next step
 
-Harden the chat path by moving from LLM-generated SQL to backend-assembled deterministic queries for common entity lookups, then add a cross-table global search with a fixed result contract.
+Harden the active n8n/Hermes chat integration with production observability, then add a cross-table global search with a fixed result contract when the first client workflow needs it.

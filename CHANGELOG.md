@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.4.0] - 2026-07-19
+
+### Added
+
+- Active authenticated chat path through the backend n8n proxy, forwarding each message with the user's session id to the configured Hermes/n8n route.
+- Ordered multi-phone contact support across backend entity schemas, CRUD services, and the shared `entity_contact_phones` store.
+- `PhoneListInput` editing across brewery, coffee farm, wine producer, and animal feed producer forms.
+- Phone detail rendering for all four entity detail views.
+
+### Changed
+
+- Chat UI now uses the backend `/chat/n8n` JSON route as the active path; the legacy `/chat/stream` SSE flow remains documented in code as a rollback path.
+- `VERSION` and frontend package metadata aligned to `0.4.0`.
+
+### Fixed
+
+- Entity forms now keep normalized optional select and free-text values consistent while preserving modal state during backdrop clicks.
+- Coffee farm phone ordering coverage now matches the ordered detail rendering behavior.
+
 ## [0.3.0] - 2026-06-24
 
 ### Added

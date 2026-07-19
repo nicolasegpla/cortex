@@ -1,6 +1,6 @@
 # CORTEX Deployment Guide
 
-This guide documents the real deployment process for CORTEX v0.2.0.
+This guide documents the current deployment process for CORTEX.
 
 Hosting architecture:
 

@@ -1,6 +1,6 @@
-# CORTEX v0.3.0
+# CORTEX v0.4.0
 
-Reusable single-tenant foundation for client deployments. This release documents the state of the codebase as it works today.
+Reusable single-tenant foundation for client deployments. This release documents the current backend-mediated chat path and ordered multi-phone contact support across producer workflows.
 
 ## Quick start
 
@@ -8,16 +8,17 @@ Reusable single-tenant foundation for client deployments. This release documents
 2. Run frontend tests: `cd cortex-frontend && pnpm test`
 3. Run backend tests: `cd cortex-backend && pytest`
 
-## What works in v0.3.0
+## What works in v0.4.0
 
 ### Frontend
 
 - React 19 + Vite + TypeScript + SCSS, managed with pnpm.
 - Auth shell: login, session restore, logout, role-aware routing (`super_admin` / `operativo`).
-- Chat interface with streaming answers via Server-Sent Events, Markdown rendering, and model selector.
+- Chat interface backed by the authenticated backend `/chat/n8n` route, with Markdown rendering and legacy `/chat/stream` SSE code retained as a rollback path.
 - Configuration screen for LLM provider API keys (OpenAI, Anthropic, Google Gemini, DeepSeek).
 - User management screen (super_admin only) to create and delete managed users.
 - Database hub and full CRUD lists/forms for four entity tables: breweries, coffee farms, wine producers, and animal feed producers.
+- Ordered multi-phone contact editing and detail rendering for breweries, coffee farms, wine producers, and animal feed producers.
 - Phase 1 PWA support: installable app manifest, service worker for same-origin static asset caching, native install prompt on supported browsers, and manual install guidance for iPhone Safari.
 
 ### Backend
@@ -27,7 +28,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 - Auth endpoints: `/auth/login`, `/auth/me`, `/auth/logout`.
 - Admin user endpoints: `/admin/users` (create, list, delete) with a guard against deleting the last super_admin. User creation is invite-only: a `super_admin` provisions the account, the backend generates a Supabase invite link with `generate_link(type="invite")`, and the branded invite email is sent through Resend. Invited users activate the account at `/auth/invite` and set their password.
 - Four entity routers with full CRUD: `/breweries`, `/coffee-farms`, `/animal-feed-producers`, `/wine-producers`.
-- Chat pipeline: `/chat/stream` orchestrates a read-only SQL flow (schema introspection → LLM-generated SELECT → SQL validation → execution → natural-language synthesis) and streams the result via SSE.
+- Active chat pipeline: `/chat/n8n` proxies authenticated messages to the configured n8n/Hermes route and returns a stable JSON answer. The legacy `/chat/stream` read-only SQL SSE flow remains available in code as a rollback path.
 - Provider credential router: `/provider-credentials` stores API keys encrypted at rest and supports a test endpoint.
 - LLM adapter registry supporting OpenAI, Anthropic, Google Gemini, and DeepSeek.
 - Generic `/entities` router is currently a placeholder (returns HTTP 501).
@@ -45,7 +46,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 | Frontend | React 19, Vite, TypeScript, SCSS, pnpm, Zustand, React Router |
 | Backend | FastAPI modular monolith, Python 3.12 |
 | Data platform | Supabase Cloud (PostgreSQL + Auth + storage) |
-| Chat DB access | Backend-first read-only SQL orchestration with schema introspection, SQL validation, and bounded result sets |
+| Chat route | Backend `/chat/n8n` proxy to the configured n8n/Hermes route; legacy `/chat/stream` SSE SQL path retained for rollback |
 | LLM providers | OpenAI, Anthropic, Google Gemini, DeepSeek via adapter registry |
 | Auth | Supabase Auth JWT, Bearer tokens, role-based access control |
 | Encryption | Fernet encryption for stored provider API keys |
@@ -90,7 +91,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 │   ├── CORTEX.md              # System overview
 │   ├── chat-db-readonly-access.md  # Chat DB access guardrails
 │   └── CORTEX_VISION.md       # Product vision
-└── VERSION                    # Single source of truth: 0.3.0
+└── VERSION                    # Single source of truth: 0.4.0
 ```
 
 ## Commands
@@ -181,7 +182,7 @@ See the `.env.example` files inside `cortex-frontend/` and `cortex-backend/`.
 
 ## Next steps
 
-- Harden the chat orchestrator by moving from LLM-generated SQL to backend-assembled deterministic queries for common entity lookups.
+- Harden the active n8n/Hermes chat integration with production observability and operational runbooks.
 - Add backend-built global search across the four entity tables with a fixed cross-table result contract.
 - Flesh out the generic `/entities` router or remove it once the entity-specific routers prove sufficient.
 - Add production infrastructure hardening, observability, and deployment automation.
@@ -189,4 +190,4 @@ See the `.env.example` files inside `cortex-frontend/` and `cortex-backend/`.
 
 ## Version
 
-This release is `v0.3.0`. The `VERSION` file at the repository root is the source of truth.
+This release is `v0.4.0`. The `VERSION` file at the repository root is the source of truth.
