@@ -18,7 +18,7 @@ const mockFarms = [
         pais: 'Colombia',
         nombre_contacto: 'Juan Pérez',
         celular: '3001234567',
-        phones: ['3001234567', '3107654321'],
+        phones: ['3107654321', '3001234567'],
         correo: 'juan@primavera.com',
         tipo_actividad: 'Productor',
         hectareas_totales: '12.50',
@@ -244,7 +244,7 @@ describe('CoffeeFarmList', () => {
         await user.click(screen.getByRole('button', { name: 'Ver detalles de Finca Primavera' }));
         expect(screen.getByRole('heading', { name: 'Finca Primavera' })).toBeInTheDocument();
         expect(screen.getByText('Teléfonos')).toBeInTheDocument();
-        expect(screen.getByText('3001234567, 3107654321')).toBeInTheDocument();
+        expect(screen.getByText('3107654321, 3001234567')).toBeInTheDocument();
     });
 
     it('does not render the legacy Celular label in the detail modal', async () => {
