@@ -62,6 +62,10 @@
     overflow: hidden;
 }
 
+.config-page__body--no-nav {
+    grid-template-columns: 1fr;
+}
+
 .config-page__nav {
     display: flex;
     flex-direction: column;
