@@ -8,16 +8,19 @@ Provide Configuration as a multi-panel shell for administrative settings.
 
 ### Requirement: Configuration supports role-aware tabs
 
-The system MUST render Configuration as a tabbed workspace with a persistent tab list and one active content panel. It MUST default to `Proveedores de modelos` and MUST show `Usuarios` only to authenticated `super_admin` users.
+The system MUST default to `Usuarios` tab and MUST show it only to `super_admin` users. The `Proveedores de modelos` tab MUST NOT appear. When no tabs are visible (non-super-admin), the system SHALL hide the nav sidebar.
 
-#### Scenario: Super admin sees both configuration tabs
-- GIVEN an authenticated `super_admin` opens Configuration
-- WHEN the page renders
-- THEN the system shows `Proveedores de modelos` and `Usuarios`
-- AND `Proveedores de modelos` is active until the user selects another tab
+(Previously: defaulted to `Proveedores de modelos`; no zero-tab fallback.)
 
-#### Scenario: Non-admin does not receive the Usuarios tab
-- GIVEN an authenticated user without `super_admin` role opens Configuration
+#### Scenario: Super admin sees Usuarios only
+
+- GIVEN a `super_admin` opens Configuration
 - WHEN the page renders
-- THEN the system shows `Proveedores de modelos` only
-- AND no `Usuarios` tab is available to select
+- THEN only `Usuarios` is visible and active
+- AND `Proveedores de modelos` is absent
+
+#### Scenario: Non-admin sees no tabs
+
+- GIVEN a non-super-admin opens Configuration
+- WHEN the page renders
+- THEN the nav sidebar is hidden and content renders directly
