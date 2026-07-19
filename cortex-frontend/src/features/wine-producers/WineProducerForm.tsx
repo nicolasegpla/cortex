@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Button, Input } from '@/presentation/components/atoms';
-import { CountryCitySelect } from '@/presentation/components/molecules';
+import { CountryCitySelect, PhoneListInput } from '@/presentation/components/molecules';
 import { joinArray, parseArray } from '@/shared/arrayUtils';
 import { normalizeFormPayload } from '@/shared/formUtils';
 import { apiClient } from '@/services/api/client';
@@ -18,7 +18,7 @@ interface WineProducerFormData {
     ciudad: string;
     pais: string;
     nombre_contacto: string;
-    celular: string;
+    phones: string[];
     correo: string;
     marcas: string;
     fuente_azucar: string;
@@ -50,7 +50,7 @@ const EMPTY_FORM: WineProducerFormData = {
     ciudad: '',
     pais: '',
     nombre_contacto: '',
-    celular: '',
+    phones: [],
     correo: '',
     marcas: '',
     fuente_azucar: '',
@@ -72,7 +72,6 @@ const LOWERCASE_FIELDS = [
     'nit',
     'direccion',
     'nombre_contacto',
-    'celular',
     'correo',
     'marcas',
     'fuente_azucar',
@@ -150,6 +149,7 @@ export function WineProducerForm({ initialData, id, onSuccess, onCancel, onSavin
                 nutrientes_utilizados: parseArray(formData.nutrientes_utilizados),
                 conservantes_utilizados: parseArray(formData.conservantes_utilizados),
                 clarificantes_utilizados: parseArray(formData.clarificantes_utilizados),
+                phones: formData.phones.filter((phone) => phone.trim() !== ''),
             }, LOWERCASE_FIELDS);
 
             if (id) {
@@ -236,11 +236,9 @@ export function WineProducerForm({ initialData, id, onSuccess, onCancel, onSavin
                     value={formData.nombre_contacto}
                     onChange={handleChange}
                 />
-                <Input
-                    label="Celular"
-                    name="celular"
-                    value={formData.celular}
-                    onChange={handleChange}
+                <PhoneListInput
+                    phones={formData.phones}
+                    onChange={(phones) => setFormData((prev) => ({ ...prev, phones }))}
                 />
                 <Input
                     label="Correo"
@@ -372,7 +370,7 @@ function transformForForm(producer: WineProducer): WineProducerFormData {
         ciudad: producer.ciudad ?? '',
         pais: producer.pais ?? '',
         nombre_contacto: producer.nombre_contacto ?? '',
-        celular: producer.celular ?? '',
+        phones: producer.phones ?? [],
         correo: producer.correo ?? '',
         marcas: joinArray(producer.marcas),
         fuente_azucar: producer.fuente_azucar ?? '',

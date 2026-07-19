@@ -24,7 +24,7 @@ const mockProducer = {
     ciudad: 'Medellín',
     pais: 'Colombia',
     nombre_contacto: 'Carlos López',
-    celular: '3001112222',
+    phones: ['3001112222'],
     correo: 'carlos@vinedoreal.com',
     marcas: ['Real', 'Reserva'],
     fuente_azucar: 'Uva',
@@ -165,7 +165,9 @@ describe('WineProducerForm', () => {
             nutrientes_utilizados: ['nutriente a'],
             conservantes_utilizados: ['conservante b'],
             clarificantes_utilizados: ['clarificante c'],
+            phones: [],
         });
+        expect(payload).not.toHaveProperty('celular');
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
@@ -227,11 +229,50 @@ describe('WineProducerForm', () => {
             tipo_uva: ['cabernet sauvignon', 'merlot'],
             marcas: ['real', 'reserva'],
             produccion_anual: '10000 litros',
+            phones: ['3001112222'],
         });
+        expect(payload).not.toHaveProperty('celular');
 
         await waitFor(() => {
             expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
         });
+    });
+
+    it('preloads phones in order when editing', () => {
+        render(
+            <MemoryRouter>
+                <WineProducerForm {...baseProps} id="producer-1" initialData={mockProducer} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByLabelText('Teléfono 1')).toHaveValue('3001112222');
+        expect(apiClient.get).not.toHaveBeenCalled();
+    });
+
+    it('filters blank phone rows only at submit', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.post).mockResolvedValueOnce({ id: 'producer-new' });
+
+        render(
+            <MemoryRouter>
+                <WineProducerForm {...baseProps} />
+            </MemoryRouter>
+        );
+
+        await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Viñedo Real');
+        await user.click(screen.getByRole('button', { name: /Agregar teléfono/i }));
+        await user.type(screen.getByLabelText('Teléfono 1'), '3009998888');
+        await user.click(screen.getByRole('button', { name: 'Crear Productor' }));
+
+        await waitFor(() => {
+            expect(apiClient.post).toHaveBeenCalledTimes(1);
+        });
+
+        const [, payload] = vi.mocked(apiClient.post).mock.calls[0];
+        expect(payload).toMatchObject({
+            phones: ['3009998888'],
+        });
+        expect(baseProps.onSuccess).toHaveBeenCalledTimes(1);
     });
 
     it('calls onCancel when the cancel button is clicked', async () => {

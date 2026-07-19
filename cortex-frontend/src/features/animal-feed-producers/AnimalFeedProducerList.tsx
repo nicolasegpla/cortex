@@ -21,6 +21,7 @@ export interface AnimalFeedProducer {
     pais: string | null;
     nombre_contacto: string | null;
     celular: string | null;
+    phones: string[] | null;
     correo: string | null;
     especies_manejadas: string[] | null;
     productos_fabricados: string[] | null;
@@ -95,7 +96,7 @@ export function AnimalFeedProducerList() {
             heading: 'Contacto',
             fields: [
                 { label: 'Nombre de Contacto', value: producer.nombre_contacto || '-' },
-                { label: 'Celular', value: producer.celular || '-' },
+                { label: 'Teléfonos', value: formatArray(producer.phones) },
                 { label: 'Correo', value: producer.correo || '-' },
             ],
         },

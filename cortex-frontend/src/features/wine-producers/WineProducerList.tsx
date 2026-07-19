@@ -20,6 +20,7 @@ export interface WineProducer {
     pais: string | null;
     nombre_contacto: string | null;
     celular: string | null;
+    phones: string[] | null;
     correo: string | null;
     marcas: string[] | null;
     fuente_azucar: string | null;
@@ -97,7 +98,7 @@ export function WineProducerList() {
             heading: 'Contacto',
             fields: [
                 { label: 'Nombre de Contacto', value: producer.nombre_contacto || '-' },
-                { label: 'Celular', value: producer.celular || '-' },
+                { label: 'Teléfonos', value: formatArray(producer.phones) },
                 { label: 'Correo', value: producer.correo || '-' },
             ],
         },
