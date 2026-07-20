@@ -23,7 +23,7 @@ CORTEX is a reusable single-tenant application base for delivering client-specif
 | Routing | React Router |
 | Backend | FastAPI modular monolith, Python 3.12 |
 | Data layer | Supabase Cloud (PostgreSQL + Auth) |
-| Chat pipeline | Backend `/chat/n8n` proxy to the configured n8n/Hermes route; legacy `/chat/stream` SSE SQL path retained for rollback |
+| Chat pipeline | Backend `/chat/n8n` proxy to the configured n8n/Hermes route |
 | Package manager | pnpm (frontend), pip (backend) |
 | Testing | Vitest + Testing Library (frontend), pytest (backend) |
 | Local orchestration | Docker Compose |
@@ -42,7 +42,6 @@ CORTEX is a reusable single-tenant application base for delivering client-specif
   - Animal feed producers
 - Ordered `phones[]` support across backend payloads, persistence, forms, lists, and detail views for all four entity domains.
 - Chat interface using the backend `/chat/n8n` route, which sends authenticated messages to the configured n8n/Hermes workflow and renders the returned answer.
-- Legacy `/chat/stream` SSE SQL orchestration path retained as a rollback option.
 - Docker-based local workflow with dedicated frontend and backend images.
 - Test foundations on both sides.
 
@@ -74,12 +73,11 @@ The backend owns:
 - Supabase Auth flow integration.
 - Entity CRUD orchestration.
 - Active chat proxying through `/chat/n8n`, including authenticated session id forwarding and n8n response validation.
-- Legacy chat SQL generation, validation, execution, and response synthesis when using the rollback `/chat/stream` path.
 - Role enforcement for super_admin vs operativo.
 
 ### Chat database access
 
-The active chat route is backend-mediated through `/chat/n8n`. The legacy chat-to-database route is backend-first and read-only when the rollback `/chat/stream` path is used.
+The only active chat route is backend-mediated through `/chat/n8n`. The backend's retained chat-to-database SQL code (no longer exposed as a route) is read-only by design:
 
 - The LLM receives schema metadata from a backend RPC, not direct database access.
 - Generated SQL is validated against a whitelist before execution.

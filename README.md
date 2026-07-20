@@ -16,7 +16,7 @@ n8n owns agents, models, providers, and credentials; Cortex proxies chat only th
 
 - React 19 + Vite + TypeScript + SCSS, managed with pnpm.
 - Auth shell: login, session restore, logout, role-aware routing (`super_admin` / `operativo`).
-- Chat interface backed by the authenticated backend `/chat/n8n` route, with Markdown rendering and legacy `/chat/stream` SSE code retained as a rollback path.
+- Chat interface backed by the authenticated backend `/chat/n8n` route, with Markdown rendering.
 - User management screen (super_admin only) to create and delete managed users.
 - Database hub and full CRUD lists/forms for four entity tables: breweries, coffee farms, wine producers, and animal feed producers.
 - Ordered multi-phone contact editing and detail rendering for breweries, coffee farms, wine producers, and animal feed producers.
@@ -29,7 +29,7 @@ n8n owns agents, models, providers, and credentials; Cortex proxies chat only th
 - Auth endpoints: `/auth/login`, `/auth/me`, `/auth/logout`.
 - Admin user endpoints: `/admin/users` (create, list, delete) with a guard against deleting the last super_admin. User creation is invite-only: a `super_admin` provisions the account, the backend generates a Supabase invite link with `generate_link(type="invite")`, and the branded invite email is sent through Resend. Invited users activate the account at `/auth/invite` and set their password.
 - Four entity routers with full CRUD: `/breweries`, `/coffee-farms`, `/animal-feed-producers`, `/wine-producers`.
-- Active chat pipeline: `/chat/n8n` proxies authenticated messages to the configured n8n/Hermes route and returns a stable JSON answer. The legacy `/chat/stream` read-only SQL SSE flow remains available in code as a rollback path.
+- Active chat pipeline: `/chat/n8n` proxies authenticated messages to the configured n8n/Hermes route and returns a stable JSON answer.
 - Generic `/entities` router is currently a placeholder (returns HTTP 501).
 
 ### Infrastructure
@@ -45,7 +45,7 @@ n8n owns agents, models, providers, and credentials; Cortex proxies chat only th
 | Frontend | React 19, Vite, TypeScript, SCSS, pnpm, Zustand, React Router |
 | Backend | FastAPI modular monolith, Python 3.12 |
 | Data platform | Supabase Cloud (PostgreSQL + Auth + storage) |
-| Chat route | Backend `/chat/n8n` proxy to the configured n8n/Hermes route; legacy `/chat/stream` SSE SQL path retained for rollback |
+| Chat route | Backend `/chat/n8n` proxy to the configured n8n/Hermes route |
 | Auth | Supabase Auth JWT, Bearer tokens, role-based access control |
 | Package manager | pnpm for frontend, pip for backend |
 | Testing | Vitest + Testing Library (frontend), pytest (backend) |
