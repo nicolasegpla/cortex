@@ -101,18 +101,9 @@ The backend MUST read `N8N_CHAT_WEBHOOK_URL` (optional) and `N8N_CHAT_TIMEOUT_SE
 - WHEN the backend boots and a chat request arrives
 - THEN the route treats it as unconfigured and returns `503`
 
+### REMOVED Requirements
+
 ### Requirement: SSE Streaming Path Retained for Rollback
 
-The existing `/chat/stream` route MUST remain available and unmodified so rollback can restore the legacy SSE frontend transport without any backend changes to `/chat/stream`. The new `/chat/n8n` route MUST coexist with `/chat/stream` without behavioral coupling.
-
-#### Scenario: Rollback by restoring the legacy frontend transport
-
-- GIVEN `/chat/n8n` is the active transport
-- WHEN the frontend restores the legacy SSE `/chat/stream` transport implementation
-- THEN chat continues to function over SSE without any backend change
-
-#### Scenario: Both routes coexist
-
-- GIVEN both `/chat/n8n` and `/chat/stream` are deployed
-- WHEN either route is called independently
-- THEN the other route is unaffected
+(Reason: the backend `/chat/stream` SSE route (`app/routers/chat.py`) is deleted — the entire legacy streaming path is gone. The frontend caller was removed in PR #39, and now the server-side endpoint is deleted. There is no rollback path to restore.)
+(Migration: None.)

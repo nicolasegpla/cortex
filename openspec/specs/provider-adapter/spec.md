@@ -29,11 +29,9 @@ The system MUST provide a direct adapter for OpenAI, Anthropic, Gemini, and Deep
 - THEN Cortex uses the adapter's standard streaming path
 - AND the request does not fail solely because tools are unavailable
 
+### REMOVED Requirements
+
 ### Requirement: Provider Validation Outcome
 
-Each adapter MUST validate the user-managed credential for its own provider and SHALL return ready, invalid, or unavailable status without disclosing secrets.
-
-#### Scenario: Validation fails safely
-- GIVEN a revoked, malformed, or unreachable provider credential
-- WHEN validation runs
-- THEN the adapter returns a non-secret failure outcome
+(Reason: The adapter-level `validate_credential` feature was tied to the backend-stored provider credentials system. With the removal of `ProviderCredentialService`, `EncryptionService`, and all backend credential storage (`remove-provider-credentials-backend`), there is no credential to validate and no caller of adapter validation. Adapters no longer expose a `validate_credential` method.)
+(Migration: None.)
