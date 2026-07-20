@@ -34,6 +34,7 @@ Traces: "README presents only active features" + "Ownership boundary discoverabl
 - [x] 1.6 R6: reword line 63 `adapters/` annotation → `# legacy adapter code (pending removal)`
 - [x] 1.7 R7: insert n8n-ownership one-liner (design §Interfaces) as new paragraph after line 3
 - [x] 1.8 R8: delete line 172 (`ENCRYPTION_KEY` env-var entry)
+- [x] 1.10 [Orchestrator-ruled scope addition] Remove stale `/chat/stream` rollback mentions: chat-interface bullet (line 19), chat-pipeline bullet (line 32), "Chat route" architecture table row (line 48)
 - [x] 1.9 Render check: no orphaned bullets or dangling intros
 
 ## Phase 2: docs/CORTEX.md
@@ -48,6 +49,7 @@ Traces: "CORTEX.md architecture matches reality" + "Ownership boundary discovera
 - [x] 2.6 C6: reword line 102 to `- User management page for super_admin.`
 - [x] 2.7 C7: reword line 117 `adapters/` annotation → `# legacy adapter code (pending removal)`
 - [x] 2.8 C8: append n8n-ownership sentence (design §Interfaces) to "What CORTEX is today"
+- [x] 2.10 [Orchestrator-ruled scope addition] Remove stale `/chat/stream` rollback mentions: "Chat pipeline" table row (line 26), scope bullet (line 45), backend-owns bullet (line 77); reword "Chat database access" intro (line 82) so `/chat/n8n` is the only active route and guardrail bullets frame the retained-but-unrouted SQL code
 - [x] 2.9 Render check: architecture table coherent
 
 ## Phase 3: docs/DEPLOYMENT.md
@@ -68,7 +70,7 @@ Traces: umbrella requirement (Q2 — no dedicated scenario).
 
 Traces: design §Testing Strategy. Verification = grep + render pass.
 
-- [ ] 5.1 `rg -n "ENCRYPTION_KEY|LLM adapter|adapter registry|provider credentials|Fernet|LLM providers" README.md docs/CORTEX.md docs/DEPLOYMENT.md docs/VERSIONING.md` → 0 — **ACTUAL: 1 hit**, CORTEX.md line 14: the design-mandated C8 sentence ("Cortex has no active LLM adapter or credential storage") matches its own grep pattern. Negative ownership statement, not a stale reference. Flagged for verify adjudication (design self-conflict).
+- [x] 5.1 `rg -n "ENCRYPTION_KEY|LLM adapter|adapter registry|provider credentials|Fernet|LLM providers" README.md docs/CORTEX.md docs/DEPLOYMENT.md docs/VERSIONING.md` → 0 TRUE hits — RESOLVED per orchestrator ruling 1: verification is negation-aware (ignores "no active", "no longer", "removed", "legacy ... pending removal"). The CORTEX.md:14 C8 sentence is a spec-correct negation, not a stale reference. Refined check (raw hits piped through `rg -v` negation filter) returns zero TRUE hits.
 - [x] 5.2 `rg -n "n8n owns" README.md docs/CORTEX.md` → 2 hits
 - [x] 5.3 `rg -n "legacy adapter code" README.md docs/CORTEX.md` → 2 hits
 - [x] 5.4 `git diff --name-only` lists exactly 4 markdown files
