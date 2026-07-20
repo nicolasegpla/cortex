@@ -5,7 +5,7 @@ class ProviderRegistry:
     """Registry for LLM provider adapters.
 
     Owns adapter instantiation, model catalog per provider, and
-    credential-aware provider listing.
+    adapter-presence-only provider listing.
     """
 
     def __init__(self) -> None:
@@ -29,34 +29,21 @@ class ProviderRegistry:
             )
         return adapter_cls()
 
-    def list_providers(
-        self,
-        credential_service=None,
-        user_id: str | None = None,
-    ) -> list[dict]:
-        """Return metadata for all registered providers.
-
-        Args:
-            credential_service: Optional service with ``get_decrypted_key``.
-            user_id: Optional user ID for credential lookup.
+    def list_providers(self) -> list[dict]:
+        """Return metadata for all registered providers (adapter-presence only).
 
         Returns:
             List of provider dicts with keys:
-            ``id``, ``name``, ``models``, ``configured``.
+            ``id``, ``name``, ``models``.
         """
         providers = []
         for provider_id, adapter_cls in self._adapters.items():
             adapter = adapter_cls()
-            configured = False
-            if credential_service is not None and user_id is not None:
-                key = credential_service.get_decrypted_key(user_id, provider_id)
-                configured = key is not None
             providers.append(
                 {
                     "id": provider_id,
                     "name": adapter.provider_display_name,
                     "models": getattr(adapter, "SUPPORTED_MODELS", []),
-                    "configured": configured,
                 }
             )
         return providers

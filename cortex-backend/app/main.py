@@ -10,12 +10,10 @@ from app.routers import (
     animal_feed_producers,
     auth,
     breweries,
-    chat,
     coffee_farms,
     entities,
     health,
     n8n_chat,
-    provider_credentials,
     wine_producers,
 )
 
@@ -45,9 +43,7 @@ def create_app() -> FastAPI:
     application.include_router(animal_feed_producers.router)
     application.include_router(wine_producers.router)
     application.include_router(entities.router)
-    application.include_router(chat.router)
     application.include_router(n8n_chat.router)
-    application.include_router(provider_credentials.router)
 
     return application
 

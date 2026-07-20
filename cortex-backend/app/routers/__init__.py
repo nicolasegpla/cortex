@@ -1,1 +1,1 @@
-__all__ = ['animal_feed_producers', 'auth', 'breweries', 'chat', 'entities', 'health', 'n8n_chat', 'provider_credentials']
+__all__ = ['animal_feed_producers', 'auth', 'breweries', 'entities', 'health', 'n8n_chat']
