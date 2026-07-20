@@ -14,7 +14,6 @@ from app.routers import (
     entities,
     health,
     n8n_chat,
-    provider_credentials,
     wine_producers,
 )
 
@@ -44,7 +43,6 @@ def create_app() -> FastAPI:
     application.include_router(animal_feed_producers.router)
     application.include_router(wine_producers.router)
     application.include_router(entities.router)
-    application.include_router(provider_credentials.router)
     application.include_router(n8n_chat.router)
 
     return application
