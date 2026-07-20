@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from app.adapters import (
     AnthropicAdapter,
@@ -18,13 +17,6 @@ class TestProviderRegistry:
     def registry(self):
         """Return a fresh registry instance for each test."""
         return ProviderRegistry()
-
-    @pytest.fixture
-    def mock_credential_service(self):
-        """Mock credential service with get_decrypted_key method."""
-        service = MagicMock()
-        service.get_decrypted_key = MagicMock(return_value=None)
-        return service
 
     def test_register_adds_adapter_class(self, registry):
         """register() stores adapter class by provider_name."""
@@ -73,31 +65,14 @@ class TestProviderRegistry:
         openai_entry = next(p for p in providers if p["id"] == "openai")
         assert openai_entry["name"] == "OpenAI"
         assert "gpt-4o" in openai_entry["models"]
+        assert "configured" not in openai_entry
 
-    def test_list_providers_includes_configured_status(self, registry, mock_credential_service):
-        """list_providers() marks providers as configured when credential exists."""
+    def test_list_providers_does_not_accept_credential_params(self, registry):
+        """list_providers() MUST NOT accept credential_service or user_id params."""
         registry.register(OpenAIAdapter)
-        mock_credential_service.get_decrypted_key.return_value = "sk-test-key"
 
-        providers = registry.list_providers(
-            credential_service=mock_credential_service, user_id="user-123"
-        )
-
-        openai_entry = next(p for p in providers if p["id"] == "openai")
-        assert openai_entry["configured"] is True
-        mock_credential_service.get_decrypted_key.assert_called_once_with("user-123", "openai")
-
-    def test_list_providers_unconfigured_when_no_credential(self, registry, mock_credential_service):
-        """list_providers() marks providers as unconfigured when credential missing."""
-        registry.register(OpenAIAdapter)
-        mock_credential_service.get_decrypted_key.return_value = None
-
-        providers = registry.list_providers(
-            credential_service=mock_credential_service, user_id="user-123"
-        )
-
-        openai_entry = next(p for p in providers if p["id"] == "openai")
-        assert openai_entry["configured"] is False
+        with pytest.raises(TypeError):
+            registry.list_providers(credential_service=object(), user_id="user-123")
 
     def test_list_providers_excludes_non_v1_providers(self, registry):
         """Registry only includes explicitly registered V1 providers."""
@@ -112,6 +87,7 @@ class TestProviderRegistry:
         assert provider_ids == {"openai", "anthropic", "gemini", "deepseek"}
         assert "kimi" not in provider_ids
         assert "minimax" not in provider_ids
+        assert all("configured" not in p for p in providers)
 
     def test_registry_singleton_exists(self):
         """Module-level _registry singleton is available."""
