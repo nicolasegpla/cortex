@@ -43,4 +43,17 @@ describe('locationData', () => {
         expect(cities).toContain('Bogotá D.C.');
         expect(cities).toContain('Medellín');
     });
+
+    it('guards the Colombia catalog against department regressions', () => {
+        const cities = getCitiesForCountry('Colombia');
+
+        // Regression guard for the departments-for-cities swap that broke
+        // the catalog once (commit 13f2445): cardinality and exclusion.
+        expect(cities).toHaveLength(32);
+        expect(cities).not.toContain('Antioquia');
+        expect(cities).not.toContain('Cundinamarca');
+        expect(cities).not.toContain('Valle del Cauca');
+        expect(cities).not.toContain('Amazonas');
+        expect(cities).not.toContain('Santander');
+    });
 });
