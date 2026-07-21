@@ -32,7 +32,7 @@ CORTEX follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`):
 | Bump | When to use it | CORTEX examples |
 |------|----------------|-----------------|
 | `PATCH` | Bug fix, correction, or small compatible improvement. | Fix auth redirect loop; correct a chat SQL guardrail; fix Docker Compose healthcheck. |
-| `MINOR` | New backward-compatible feature or significant UX improvement. | Add a new LLM provider adapter; add role-based UI sections; add batch import for producers. |
+| `MINOR` | New backward-compatible feature or significant UX improvement. | Add a new entity CRUD module; add role-based UI sections; add batch import for producers. |
 | `MAJOR` | Breaking change that requires consumer action or changes the public API contract. | Rename a public API route; remove an authentication method; change the chat message schema. |
 
 When in doubt, prefer the smaller bump. A `MAJOR` release should be a deliberate decision.

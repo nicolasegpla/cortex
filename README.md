@@ -2,6 +2,8 @@
 
 Reusable single-tenant foundation for client deployments. This release documents the current backend-mediated chat path and ordered multi-phone contact support across producer workflows.
 
+n8n owns agents, models, providers, and credentials; Cortex proxies chat only through the authenticated `/chat/n8n` route and stores no provider API keys.
+
 ## Quick start
 
 1. Start the stack with Docker: `docker compose up --build`
@@ -14,8 +16,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 
 - React 19 + Vite + TypeScript + SCSS, managed with pnpm.
 - Auth shell: login, session restore, logout, role-aware routing (`super_admin` / `operativo`).
-- Chat interface backed by the authenticated backend `/chat/n8n` route, with Markdown rendering and legacy `/chat/stream` SSE code retained as a rollback path.
-- Configuration screen for LLM provider API keys (OpenAI, Anthropic, Google Gemini, DeepSeek).
+- Chat interface backed by the authenticated backend `/chat/n8n` route, with Markdown rendering.
 - User management screen (super_admin only) to create and delete managed users.
 - Database hub and full CRUD lists/forms for four entity tables: breweries, coffee farms, wine producers, and animal feed producers.
 - Ordered multi-phone contact editing and detail rendering for breweries, coffee farms, wine producers, and animal feed producers.
@@ -28,9 +29,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 - Auth endpoints: `/auth/login`, `/auth/me`, `/auth/logout`.
 - Admin user endpoints: `/admin/users` (create, list, delete) with a guard against deleting the last super_admin. User creation is invite-only: a `super_admin` provisions the account, the backend generates a Supabase invite link with `generate_link(type="invite")`, and the branded invite email is sent through Resend. Invited users activate the account at `/auth/invite` and set their password.
 - Four entity routers with full CRUD: `/breweries`, `/coffee-farms`, `/animal-feed-producers`, `/wine-producers`.
-- Active chat pipeline: `/chat/n8n` proxies authenticated messages to the configured n8n/Hermes route and returns a stable JSON answer. The legacy `/chat/stream` read-only SQL SSE flow remains available in code as a rollback path.
-- Provider credential router: `/provider-credentials` stores API keys encrypted at rest and supports a test endpoint.
-- LLM adapter registry supporting OpenAI, Anthropic, Google Gemini, and DeepSeek.
+- Active chat pipeline: `/chat/n8n` proxies authenticated messages to the configured n8n/Hermes route and returns a stable JSON answer.
 - Generic `/entities` router is currently a placeholder (returns HTTP 501).
 
 ### Infrastructure
@@ -46,10 +45,8 @@ Reusable single-tenant foundation for client deployments. This release documents
 | Frontend | React 19, Vite, TypeScript, SCSS, pnpm, Zustand, React Router |
 | Backend | FastAPI modular monolith, Python 3.12 |
 | Data platform | Supabase Cloud (PostgreSQL + Auth + storage) |
-| Chat route | Backend `/chat/n8n` proxy to the configured n8n/Hermes route; legacy `/chat/stream` SSE SQL path retained for rollback |
-| LLM providers | OpenAI, Anthropic, Google Gemini, DeepSeek via adapter registry |
+| Chat route | Backend `/chat/n8n` proxy to the configured n8n/Hermes route |
 | Auth | Supabase Auth JWT, Bearer tokens, role-based access control |
-| Encryption | Fernet encryption for stored provider API keys |
 | Package manager | pnpm for frontend, pip for backend |
 | Testing | Vitest + Testing Library (frontend), pytest (backend) |
 | Local orchestration | Docker Compose |
@@ -60,7 +57,7 @@ Reusable single-tenant foundation for client deployments. This release documents
 .
 ├── cortex-backend/
 │   ├── app/
-│   │   ├── adapters/          # LLM provider adapters
+│   │   ├── adapters/          # legacy adapter code (pending removal)
 │   │   ├── core/              # Config, security, dependencies
 │   │   ├── orchestrators/     # Chat SQL orchestrator
 │   │   ├── planner/           # SQL generation from schema + question
@@ -169,7 +166,6 @@ The new user is fully created in Supabase Auth at step 2; steps 5–6 only activ
 - `SUPABASE_INVITE_REDIRECT_URL` — frontend URL where Supabase redirects after an invite link is followed (must be allowed in Supabase Auth > URL Configuration)
 - `RESEND_API_KEY` — Resend API key for sending application-controlled invite emails
 - `RESEND_FROM_EMAIL` — verified sender address used for invite emails
-- `ENCRYPTION_KEY`
 
 See the `.env.example` files inside `cortex-frontend/` and `cortex-backend/`.
 

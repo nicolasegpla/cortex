@@ -36,7 +36,6 @@ Before deploying, make sure you have:
 | `SUPABASE_INVITE_REDIRECT_URL` | Frontend URL where Supabase redirects after an invite email | `https://cortex-app.netlify.app/auth/invite` |
 | `RESEND_API_KEY` | Resend API key for sending application-controlled invite emails | `re_...` |
 | `RESEND_FROM_EMAIL` | Verified sender address used for invite emails | `invites@your-domain.com` |
-| `ENCRYPTION_KEY` | Base64-encoded Fernet key for provider API keys | `base64...` |
 | `PORT` | Injected by Railway automatically | `8000` |
 
 Set these in the Railway service **Variables** tab. The `PORT` variable is normally injected by the platform.
@@ -319,7 +318,7 @@ Use this list after both Railway and Netlify report a successful deploy.
 - [ ] Frontend environment variables use `https://` for `VITE_API_BASE_URL`.
 - [ ] Supabase Auth URL Configuration allow-lists the same `/auth/invite` production URL.
 - [ ] Login works from the Netlify URL.
-- [ ] Chat returns a streamed response.
+- [ ] Chat returns a complete answer via the `/chat/n8n` proxy.
 - [ ] All four entity lists load: breweries, coffee farms, wine producers, animal feed producers.
 - [ ] Entity create/update/delete flows work for at least one table.
 - [ ] A super_admin can invite a new user and the activation email arrives.

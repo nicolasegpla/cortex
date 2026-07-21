@@ -11,7 +11,7 @@ Current system overview. This document reflects the state of the codebase as of 
 
 ## What CORTEX is today
 
-CORTEX is a reusable single-tenant application base for delivering client-specific business flows. In `v0.4.0` it provides a working web shell, a working backend, Supabase-backed auth and data, an authenticated n8n/Hermes chat route, and ordered multi-phone contact workflows for the current entity domains.
+CORTEX is a reusable single-tenant application base for delivering client-specific business flows. In `v0.4.0` it provides a working web shell, a working backend, Supabase-backed auth and data, an authenticated n8n/Hermes chat route, and ordered multi-phone contact workflows for the current entity domains. n8n owns agents, models, providers, and credentials; Cortex has no active LLM adapter or credential storage, and chat flows exclusively through the `/chat/n8n` proxy.
 
 ## Technical shape
 
@@ -23,9 +23,7 @@ CORTEX is a reusable single-tenant application base for delivering client-specif
 | Routing | React Router |
 | Backend | FastAPI modular monolith, Python 3.12 |
 | Data layer | Supabase Cloud (PostgreSQL + Auth) |
-| Chat pipeline | Backend `/chat/n8n` proxy to the configured n8n/Hermes route; legacy `/chat/stream` SSE SQL path retained for rollback |
-| LLM providers | OpenAI, Anthropic, Google Gemini, DeepSeek |
-| Encryption | Fernet for stored provider API keys |
+| Chat pipeline | Backend `/chat/n8n` proxy to the configured n8n/Hermes route |
 | Package manager | pnpm (frontend), pip (backend) |
 | Testing | Vitest + Testing Library (frontend), pytest (backend) |
 | Local orchestration | Docker Compose |
@@ -44,9 +42,6 @@ CORTEX is a reusable single-tenant application base for delivering client-specif
   - Animal feed producers
 - Ordered `phones[]` support across backend payloads, persistence, forms, lists, and detail views for all four entity domains.
 - Chat interface using the backend `/chat/n8n` route, which sends authenticated messages to the configured n8n/Hermes workflow and renders the returned answer.
-- Legacy `/chat/stream` SSE SQL orchestration path retained as a rollback option.
-- Encrypted storage of per-user LLM provider API keys with a test endpoint.
-- Adapter registry for OpenAI, Anthropic, Google Gemini, and DeepSeek.
 - Docker-based local workflow with dedicated frontend and backend images.
 - Test foundations on both sides.
 
@@ -78,13 +73,11 @@ The backend owns:
 - Supabase Auth flow integration.
 - Entity CRUD orchestration.
 - Active chat proxying through `/chat/n8n`, including authenticated session id forwarding and n8n response validation.
-- Legacy chat SQL generation, validation, execution, and response synthesis when using the rollback `/chat/stream` path.
-- Encryption of provider API keys before storage.
 - Role enforcement for super_admin vs operativo.
 
 ### Chat database access
 
-The active chat route is backend-mediated through `/chat/n8n`. The legacy chat-to-database route is backend-first and read-only when the rollback `/chat/stream` path is used.
+The only active chat route is backend-mediated through `/chat/n8n`. The backend's retained chat-to-database SQL code (no longer exposed as a route) is read-only by design:
 
 - The LLM receives schema metadata from a backend RPC, not direct database access.
 - Generated SQL is validated against a whitelist before execution.
@@ -99,7 +92,7 @@ The frontend owns:
 
 - Auth shell, login page, and session recovery.
 - Chat page that posts to the backend n8n proxy and renders Markdown answers.
-- Configuration page for provider credentials and user management.
+- User management page for super_admin.
 - Database hub and CRUD views for the four entity domains.
 - API consumption with automatic logout on 401.
 
@@ -114,7 +107,7 @@ The frontend owns:
 ```text
 cortex-backend/
   app/
-    adapters/          # LLM provider adapters
+    adapters/          # legacy adapter code (pending removal)
     core/              # Config, security, dependencies
     orchestrators/     # SqlOrchestrator
     planner/           # SQL generation from schema + question
