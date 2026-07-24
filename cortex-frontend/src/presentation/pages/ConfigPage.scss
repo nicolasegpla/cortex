@@ -150,6 +150,11 @@
     opacity: 0.72;
 }
 
+// Class composition with `.config-page__nav-item` is intentional: the footer
+// reuses the nav-item hover/focus/cursor rules with zero new declarations.
+// The footer must NOT use the `--active` or `--placeholder` modifiers —
+// `--placeholder` would disable the `:hover` rule above via its
+// `:not(.config-page__nav-item--placeholder)` guard.
 .config-page__nav-footer {
     display: flex;
     align-items: center;
@@ -163,6 +168,14 @@
 .config-page__nav-footer span {
     font-size: 0.8125rem;
     font-weight: 500;
+}
+
+// Keyboard focus indicator for the support entry. This intentionally deviates
+// from the "zero new declarations" composition note above: the spec requires
+// visible focus feedback, mirroring `.config-page__close:focus-visible`.
+.config-page__nav-footer:focus-visible {
+    outline: 2px solid rgba(17, 24, 39, 0.2);
+    outline-offset: 2px;
 }
 
 .config-page__content {

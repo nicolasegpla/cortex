@@ -19,6 +19,7 @@ interface ConfigPageProps {
 
 export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
     const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+    const [isFeedbackOpen, setIsFeedbackOpen] = useState<boolean>(false);
     const { role } = useAuthStore();
     const isSuperAdmin = role === 'super_admin';
 
@@ -78,10 +79,16 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                             ))}
                         </div>
 
-                        <div className="config-page__nav-footer" aria-hidden="true">
+                        <button
+                            type="button"
+                            className="config-page__nav-footer config-page__nav-item"
+                            aria-label="Abrir ayuda y soporte"
+                            aria-expanded={isFeedbackOpen}
+                            onClick={() => setIsFeedbackOpen(true)}
+                        >
                             <Chat className="config-page__nav-icon" width={16} height={16} />
                             <span>Ayuda y soporte</span>
-                        </div>
+                        </button>
                     </aside>
                 )}
 

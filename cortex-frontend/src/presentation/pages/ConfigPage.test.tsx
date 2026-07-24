@@ -83,6 +83,94 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('dialog', { name: 'Administración de usuarios' })).toBeInTheDocument();
     });
 
+    it('renders "Ayuda y soporte" as a button with accessible name', () => {
+        setAuth('super_admin');
+
+        render(<ConfigPage />);
+
+        expect(screen.getByRole('button', { name: 'Abrir ayuda y soporte' })).toBeInTheDocument();
+    });
+
+    it('does not hide the support entry from assistive technology', () => {
+        setAuth('super_admin');
+
+        const { container } = render(<ConfigPage />);
+
+        expect(
+            container.querySelector('.config-page__nav-footer[aria-hidden]'),
+        ).not.toBeInTheDocument();
+    });
+
+    it('flips aria-expanded to true when the support entry is clicked', async () => {
+        const user = userEvent.setup();
+        setAuth('super_admin');
+
+        render(<ConfigPage />);
+
+        const button = screen.getByRole('button', { name: 'Abrir ayuda y soporte' });
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+
+        await user.click(button);
+
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('flips aria-expanded to true on Enter and Space keyboard activation', async () => {
+        const user = userEvent.setup();
+        setAuth('super_admin');
+
+        const { unmount } = render(<ConfigPage />);
+
+        const button = screen.getByRole('button', { name: 'Abrir ayuda y soporte' });
+        button.focus();
+        expect(button).toHaveFocus();
+        await user.type(button, '{Enter}');
+
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+
+        unmount();
+
+        render(<ConfigPage />);
+
+        const freshButton = screen.getByRole('button', { name: 'Abrir ayuda y soporte' });
+        freshButton.focus();
+        expect(freshButton).toHaveFocus();
+        await user.type(freshButton, ' ');
+
+        expect(freshButton).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('reaches the support entry via Tab traversal and activates it with Enter', async () => {
+        const user = userEvent.setup();
+        setAuth('super_admin');
+
+        render(<ConfigPage />);
+
+        const button = screen.getByRole('button', { name: 'Abrir ayuda y soporte' });
+
+        for (let i = 0; i < 10 && document.activeElement !== button; i += 1) {
+            await user.tab();
+        }
+
+        expect(button).toHaveFocus();
+
+        await user.keyboard('{Enter}');
+
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('keeps the support entry as the last nav child with composed classes', () => {
+        setAuth('super_admin');
+
+        const { container } = render(<ConfigPage />);
+
+        const footer = container.querySelector('.config-page__nav-footer.config-page__nav-item');
+        expect(footer).toBeInTheDocument();
+
+        const nav = container.querySelector('aside.config-page__nav');
+        expect(nav?.lastElementChild).toBe(footer);
+    });
+
     it('keeps the parent modal open when the nested create-user modal opens', async () => {
         const user = userEvent.setup();
         const onClose = vi.fn();
