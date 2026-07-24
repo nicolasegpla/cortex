@@ -7,6 +7,7 @@ import { ConfigContentTemplate } from '@/presentation/components/templates/Confi
 import { FeedbackModal } from '@/presentation/components/organisms';
 import { UserManagement } from '@/features/user-management';
 import { useAuthStore } from '@/features/auth/store';
+import { submitFeedback } from '@/services/supportApi';
 
 import './ConfigPage.scss';
 
@@ -113,11 +114,11 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                 </div>
             </div>
 
-            {/* onSubmit is an intentional inert stub pending CORTEXDIST-27 (real API wiring). */}
+            {/* onSubmit wired to the real support API (CORTEXDIST-27): POST /support/feedback. */}
             <FeedbackModal
                 isOpen={isFeedbackOpen}
                 onClose={() => setIsFeedbackOpen(false)}
-                onSubmit={() => Promise.resolve({ success: true, message: 'Gracias por tu feedback.' })}
+                onSubmit={submitFeedback}
             />
         </section>
     );

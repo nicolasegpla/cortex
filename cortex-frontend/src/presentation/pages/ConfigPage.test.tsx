@@ -28,9 +28,19 @@ vi.mock('@/services/adminUserApi', () => ({
     },
 }));
 
+const mockSubmitFeedback = vi.fn();
+
+vi.mock('@/services/supportApi', () => ({
+    submitFeedback: (...args: unknown[]) => mockSubmitFeedback(...args),
+    supportApi: {
+        submitFeedback: (...args: unknown[]) => mockSubmitFeedback(...args),
+    },
+}));
+
 describe('ConfigPage', () => {
     beforeEach(() => {
         mockListUsers.mockResolvedValue([]);
+        mockSubmitFeedback.mockReset();
     });
 
     afterEach(() => {
@@ -236,5 +246,44 @@ describe('ConfigPage', () => {
 
         expect(screen.queryByRole('dialog', { name: 'Ayuda y soporte' })).not.toBeInTheDocument();
         expect(screen.getByRole('dialog', { name: /invitar usuario/i })).toBeInTheDocument();
+    });
+
+    it('wires the feedback modal to the real supportApi service and shows the success result', async () => {
+        const user = userEvent.setup();
+        setAuth('super_admin');
+        mockSubmitFeedback.mockResolvedValue({ success: true, message: 'Mensaje enviado correctamente' });
+
+        render(<ConfigPage />);
+
+        await user.click(screen.getByRole('button', { name: 'Abrir ayuda y soporte' }));
+        await user.type(screen.getByLabelText('Asunto'), 'Crash al guardar');
+        await user.type(screen.getByLabelText('Mensaje'), 'Pasos para reproducir');
+        await user.click(screen.getByRole('button', { name: 'Enviar' }));
+
+        expect(mockSubmitFeedback).toHaveBeenCalledTimes(1);
+        expect(mockSubmitFeedback).toHaveBeenCalledWith({
+            type: 'bug',
+            subject: 'Crash al guardar',
+            message: 'Pasos para reproducir',
+        });
+        expect(await screen.findByRole('status')).toHaveTextContent('Mensaje enviado correctamente');
+    });
+
+    it('shows the error result and preserves the typed form values when the submit fails', async () => {
+        const user = userEvent.setup();
+        setAuth('super_admin');
+        mockSubmitFeedback.mockResolvedValue({ success: false, message: 'Error de red' });
+
+        render(<ConfigPage />);
+
+        await user.click(screen.getByRole('button', { name: 'Abrir ayuda y soporte' }));
+        await user.type(screen.getByLabelText('Asunto'), 'Crash al guardar');
+        await user.type(screen.getByLabelText('Mensaje'), 'Pasos para reproducir');
+        await user.click(screen.getByRole('button', { name: 'Enviar' }));
+
+        expect(mockSubmitFeedback).toHaveBeenCalledTimes(1);
+        expect(await screen.findByRole('status')).toHaveTextContent('Error de red');
+        expect(screen.getByLabelText('Asunto')).toHaveValue('Crash al guardar');
+        expect(screen.getByLabelText('Mensaje')).toHaveValue('Pasos para reproducir');
     });
 });
