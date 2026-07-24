@@ -1,0 +1,53 @@
+@use '@/presentation/styles/variables' as vars;
+
+.textarea-field {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-sm;
+}
+
+.textarea-field__label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: vars.$color-text-primary;
+}
+
+.textarea-field__label-row {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-xs;
+}
+
+.textarea-field__required {
+    color: vars.$color-feedback-error-text;
+}
+
+.textarea-field__control {
+    width: 100%;
+    background-color: vars.$color-surface-primary;
+    border: 1px solid vars.$color-border-divider;
+    border-radius: vars.$radius-md;
+    min-height: 120px;
+    resize: vertical;
+    padding: vars.$space-xs vars.$space-sm;
+    color: vars.$color-text-primary;
+    // Use 16px on mobile to prevent Safari iPhone auto-zoom on focus.
+    font-size: 1rem;
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+
+    @media (min-width: 768px) {
+        font-size: 0.8125rem;
+    }
+}
+
+.textarea-field__control::placeholder {
+    color: vars.$color-text-placeholder;
+}
+
+.textarea-field__control:focus {
+    border-color: vars.$color-accent-primary;
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
+    outline: none;
+}

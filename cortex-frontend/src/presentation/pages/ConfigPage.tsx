@@ -4,8 +4,10 @@ import { Chat } from '@/presentation/components/atoms/Icon/Chat';
 import { Admin } from '@/presentation/components/atoms/Icon/Admin';
 import { X } from '@/presentation/components/atoms/Icon/X';
 import { ConfigContentTemplate } from '@/presentation/components/templates/ConfigContentTemplate';
+import { FeedbackModal } from '@/presentation/components/organisms';
 import { UserManagement } from '@/features/user-management';
 import { useAuthStore } from '@/features/auth/store';
+import { submitFeedback } from '@/services/supportApi';
 
 import './ConfigPage.scss';
 
@@ -19,6 +21,7 @@ interface ConfigPageProps {
 
 export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
     const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+    const [isFeedbackOpen, setIsFeedbackOpen] = useState<boolean>(false);
     const { role } = useAuthStore();
     const isSuperAdmin = role === 'super_admin';
 
@@ -78,10 +81,16 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                             ))}
                         </div>
 
-                        <div className="config-page__nav-footer" aria-hidden="true">
+                        <button
+                            type="button"
+                            className="config-page__nav-footer config-page__nav-item"
+                            aria-label="Abrir ayuda y soporte"
+                            aria-expanded={isFeedbackOpen}
+                            onClick={() => setIsFeedbackOpen(true)}
+                        >
                             <Chat className="config-page__nav-icon" width={16} height={16} />
                             <span>Ayuda y soporte</span>
-                        </div>
+                        </button>
                     </aside>
                 )}
 
@@ -104,6 +113,13 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                     </div>
                 </div>
             </div>
+
+            {/* onSubmit wired to the real support API (CORTEXDIST-27): POST /support/feedback. */}
+            <FeedbackModal
+                isOpen={isFeedbackOpen}
+                onClose={() => setIsFeedbackOpen(false)}
+                onSubmit={submitFeedback}
+            />
         </section>
     );
 }
