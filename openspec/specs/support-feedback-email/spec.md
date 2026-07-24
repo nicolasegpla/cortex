@@ -63,3 +63,13 @@ The `message` escaping (`html.escape`) and `subject` CRLF sanitization from CORT
 - GIVEN a message containing HTML markup (`<div>test</div>`)
 - WHEN `send_support_feedback` builds the rich template
 - THEN the HTML body contains escaped entities (`&lt;div&gt;`), not raw HTML tags from user input
+
+### Requirement: ResendError Propagation at Service Boundary
+
+When the Resend SDK raises `resend.exceptions.ResendError` during `send_support_feedback`, the service method MUST propagate the exception unchanged to the caller (no swallowing, no translation, no fallback return). The router's existing `except Exception` clause maps it to HTTP 502 with the Spanish detail message.
+
+#### Scenario: ResendError from send_support_feedback is propagated
+
+- GIVEN `resend.Emails.send` raises `ResendError(code=422, error_type='invalid_parameter', message='Invalid email')`
+- WHEN `send_support_feedback` is called with the five required arguments (feedback_type, subject, message, user_email, user_id)
+- THEN the `ResendError` propagates unchanged to the caller (no catch, no translation, no fallback return)
