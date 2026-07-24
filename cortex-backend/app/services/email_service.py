@@ -1,10 +1,18 @@
 """Application-controlled email delivery service."""
 
 import html
+from datetime import datetime, timezone
 
 import resend
 
 from app.core.config import Settings, get_settings
+
+FEEDBACK_TYPE_LABELS = {
+    "bug": "Bug",
+    "mejora": "Mejora",
+    "nueva_funcion": "Nueva Función",
+    "otro": "Otro",
+}
 
 
 class EmailService:
@@ -164,19 +172,30 @@ class EmailService:
             }
         )
 
-    def send_support_feedback(self, feedback_type: str, subject: str, message: str) -> dict:
+    def send_support_feedback(
+        self,
+        feedback_type: str,
+        subject: str,
+        message: str,
+        user_email: str,
+        user_id: str,
+    ) -> dict:
         """Send a support feedback email to the internal support inbox.
 
         The recipient is resolved internally from
         ``settings.support_to_email`` (default ``stalloy@stalloy.io``) —
         feedback always lands in the support inbox, never the submitter's.
-        The HTML body is intentionally minimal; CORTEXDIST-30 owns the
-        rich template.
+        ``reply_to`` is the RAW user email (a header value, never escaped);
+        ``from`` is always the verified Resend sender. All user-provided
+        content rendered inside the HTML body is ``html.escape``-d and the
+        subject is CRLF-sanitized.
 
         Args:
             feedback_type: One of the FeedbackType Literal values.
             subject: The feedback subject line.
             message: The feedback body text.
+            user_email: The authenticated user's email (used as reply_to).
+            user_id: The authenticated user's ID (``str(current_user.id)``).
 
         Returns:
             The Resend send response (contains the email id).
@@ -189,13 +208,87 @@ class EmailService:
             raise RuntimeError("El servicio de email no está configurado")
 
         safe_subject = subject.replace("\r", " ").replace("\n", " ")
+        safe_subject_html = html.escape(safe_subject)
         safe_message = html.escape(message)
+        safe_user_email = html.escape(user_email)
+        safe_user_id = html.escape(str(user_id))
+        type_label = FEEDBACK_TYPE_LABELS.get(feedback_type, feedback_type.title())
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        html_body = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Feedback de soporte — Cortex</title>
+</head>
+<body style="margin:0;padding:0;background-color:#030303;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#030303;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:48px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background-color:#0d0d0d;border-radius:16px;border:1px solid #1a1a1a;overflow:hidden;">
+          <tr>
+            <td style="height:3px;background:linear-gradient(90deg,#00e87a,#00ff88,#00e87a);"></td>
+          </tr>
+
+          <tr>
+            <td style="padding:36px 40px 28px;">
+              <p style="margin:0 0 8px;font-size:11px;font-weight:600;color:#00FF88;text-transform:uppercase;letter-spacing:2px;">Feedback de soporte</p>
+              <p style="margin:0 0 4px;font-size:12px;color:#888888;">Tipo: <strong style="color:#ffffff;">{type_label}</strong></p>
+              <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;line-height:1.3;letter-spacing:-0.5px;">{safe_subject_html}</h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 40px 28px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#111111;border-radius:10px;border:1px solid #1a1a1a;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0;font-size:14px;color:#cccccc;line-height:1.6;white-space:pre-wrap;">{safe_message}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 40px 28px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#111111;border-radius:10px;border:1px solid #1a1a1a;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 6px;font-size:12px;color:#888888;">Usuario: <span style="color:#ffffff;">{safe_user_email}</span></p>
+                    <p style="margin:0;font-size:12px;color:#888888;">ID: <span style="color:#ffffff;">{safe_user_id}</span></p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 40px;">
+              <div style="height:1px;background-color:#1a1a1a;"></div>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" style="padding:24px 40px 32px;">
+              <p style="margin:0 0 6px;font-size:12px;color:#444444;">Recibido el {timestamp}</p>
+              <p style="margin:0;font-size:11px;color:#333333;">© 2025 Cortex. Todos los derechos reservados.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
 
         return resend.Emails.send(
             {
                 "from": self._from_email,
                 "to": self.settings.support_to_email,
+                "reply_to": user_email,
                 "subject": f"[Cortex Feedback - {feedback_type}] {safe_subject}",
-                "html": f"<pre>{safe_message}</pre>",
+                "html": html_body,
             }
         )

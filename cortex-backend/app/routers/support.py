@@ -25,7 +25,8 @@ def submit_feedback(
 
     The recipient is resolved internally by the seam from
     ``settings.support_to_email`` — the router never passes a ``to_email``.
-    ``current_user`` identity is used only for logging/audit.
+    ``current_user`` identity is used for logging/audit and passed to the
+    seam (email as ``reply_to``, id as template context).
     """
     logger.info(
         "SUPPORT-FEEDBACK: start type=%s subject_len=%d user_id=%s",
@@ -39,6 +40,8 @@ def submit_feedback(
             feedback_type=payload.type,
             subject=payload.subject,
             message=payload.message,
+            user_email=current_user.email,
+            user_id=str(current_user.id),
         )
     except Exception as exc:
         logger.warning("SUPPORT-FEEDBACK: failed status=502 error=%s", type(exc).__name__)

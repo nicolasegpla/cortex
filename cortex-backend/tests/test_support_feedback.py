@@ -108,6 +108,8 @@ class TestSupportFeedbackRouter:
             feedback_type="bug",
             subject="Issue title",
             message="Details",
+            user_email="user@example.com",
+            user_id="a1b2c3d4-e5f6-7890-abcd-ef1234567890",
         )
 
     def test_r6_seam_success_returns_200(self, client, mock_email_service):
@@ -165,6 +167,8 @@ class TestSupportFeedbackRouter:
             feedback_type="bug",
             subject="s",
             message="m",
+            user_email="user@example.com",
+            user_id="a1b2c3d4-e5f6-7890-abcd-ef1234567890",
         )
 
         assert result == {"id": "email-123"}
