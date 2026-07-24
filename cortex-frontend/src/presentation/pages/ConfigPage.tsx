@@ -4,6 +4,7 @@ import { Chat } from '@/presentation/components/atoms/Icon/Chat';
 import { Admin } from '@/presentation/components/atoms/Icon/Admin';
 import { X } from '@/presentation/components/atoms/Icon/X';
 import { ConfigContentTemplate } from '@/presentation/components/templates/ConfigContentTemplate';
+import { FeedbackModal } from '@/presentation/components/organisms';
 import { UserManagement } from '@/features/user-management';
 import { useAuthStore } from '@/features/auth/store';
 
@@ -111,6 +112,13 @@ export function ConfigPage({ variant = 'page', onClose }: ConfigPageProps) {
                     </div>
                 </div>
             </div>
+
+            {/* onSubmit is an intentional inert stub pending CORTEXDIST-27 (real API wiring). */}
+            <FeedbackModal
+                isOpen={isFeedbackOpen}
+                onClose={() => setIsFeedbackOpen(false)}
+                onSubmit={() => Promise.resolve({ success: true, message: 'Gracias por tu feedback.' })}
+            />
         </section>
     );
 }

@@ -185,4 +185,56 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('dialog', { name: /invitar usuario/i })).toBeInTheDocument();
         expect(onClose).not.toHaveBeenCalled();
     });
+
+    it('opens the feedback modal when the support entry is clicked', async () => {
+        const user = userEvent.setup();
+        setAuth('super_admin');
+
+        render(<ConfigPage />);
+
+        await user.click(screen.getByRole('button', { name: 'Abrir ayuda y soporte' }));
+
+        expect(screen.getByRole('dialog', { name: 'Ayuda y soporte' })).toBeInTheDocument();
+    });
+
+    it('closes the feedback modal and resets it to a fresh idle form on the next open', async () => {
+        const user = userEvent.setup();
+        setAuth('super_admin');
+
+        render(<ConfigPage />);
+
+        await user.click(screen.getByRole('button', { name: 'Abrir ayuda y soporte' }));
+        expect(screen.getByRole('dialog', { name: 'Ayuda y soporte' })).toBeInTheDocument();
+
+        await user.type(screen.getByLabelText('Asunto'), 'Draft subject');
+
+        await user.click(screen.getByRole('button', { name: 'Cerrar formulario' }));
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Abrir ayuda y soporte' }));
+
+        expect(screen.getByRole('dialog', { name: 'Ayuda y soporte' })).toBeInTheDocument();
+        expect(screen.getByLabelText('Asunto')).toHaveValue('');
+        expect(screen.getByLabelText('Mensaje')).toHaveValue('');
+        expect(screen.getByRole('button', { name: 'Enviar' })).toBeEnabled();
+    });
+
+    it('closes only the feedback modal on Escape when it is nested above the create-user modal', async () => {
+        const user = userEvent.setup();
+        setAuth('super_admin');
+
+        render(<ConfigPage />);
+
+        await user.click(screen.getByRole('button', { name: /invitar usuario/i }));
+        await user.click(screen.getByRole('button', { name: 'Abrir ayuda y soporte' }));
+
+        expect(screen.getByRole('dialog', { name: /invitar usuario/i })).toBeInTheDocument();
+        expect(screen.getByRole('dialog', { name: 'Ayuda y soporte' })).toBeInTheDocument();
+
+        await user.keyboard('{Escape}');
+
+        expect(screen.queryByRole('dialog', { name: 'Ayuda y soporte' })).not.toBeInTheDocument();
+        expect(screen.getByRole('dialog', { name: /invitar usuario/i })).toBeInTheDocument();
+    });
 });
