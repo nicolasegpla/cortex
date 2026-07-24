@@ -6,6 +6,7 @@ from supabase import AuthApiError
 
 from app.core.config import get_settings
 from app.core.security import User, require_role
+from app.dependencies import get_email_service
 from app.schemas.admin_users import CreateUserRequest, UserListResponse, UserResponse
 from app.services.email_service import EmailService
 from app.services.supabase_service import SupabaseService
@@ -27,17 +28,6 @@ def get_supabase_client():
             detail="Supabase no está configurado",
         )
     return client
-
-
-def get_email_service():
-    """Get a configured EmailService for transactional delivery."""
-    service = EmailService(get_settings())
-    if not service.is_configured():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="El servicio de email no está configurado",
-        )
-    return service
 
 
 def _error_message(exc: AuthApiError) -> str:

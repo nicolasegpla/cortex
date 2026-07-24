@@ -58,3 +58,37 @@ class TestEmailService:
             )
             with pytest.raises(ResendError, match='Invalid email'):
                 service.send_invite_email('new@example.com', 'http://link')
+
+    def test_send_support_feedback_escapes_message_html(self) -> None:
+        """User message is HTML-escaped so injected markup cannot break out of <pre>."""
+        settings = Settings(RESEND_API_KEY='re_test_key', RESEND_FROM_EMAIL='invites@cortex.io')
+        service = EmailService(settings)
+
+        with patch('app.services.email_service.resend.Emails.send') as mock_send:
+            mock_send.return_value = {'id': 'email-789'}
+            service.send_support_feedback(
+                feedback_type='bug',
+                subject='s',
+                message='</pre><div>injected</div><pre>',
+            )
+
+        call_args = mock_send.call_args[0][0]
+        assert '&lt;/pre&gt;&lt;div&gt;injected&lt;/div&gt;&lt;pre&gt;' in call_args['html']
+        assert '<div>injected</div>' not in call_args['html']
+
+    def test_send_support_feedback_sanitizes_subject_crlf(self) -> None:
+        """CR/LF in the subject is stripped so headers cannot be injected."""
+        settings = Settings(RESEND_API_KEY='re_test_key', RESEND_FROM_EMAIL='invites@cortex.io')
+        service = EmailService(settings)
+
+        with patch('app.services.email_service.resend.Emails.send') as mock_send:
+            mock_send.return_value = {'id': 'email-790'}
+            service.send_support_feedback(
+                feedback_type='bug',
+                subject='hello\r\nBCC: evil@x.com',
+                message='m',
+            )
+
+        call_args = mock_send.call_args[0][0]
+        assert '\r' not in call_args['subject']
+        assert '\n' not in call_args['subject']

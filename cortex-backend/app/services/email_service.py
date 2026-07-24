@@ -1,5 +1,7 @@
 """Application-controlled email delivery service."""
 
+import html
+
 import resend
 
 from app.core.config import Settings, get_settings
@@ -159,5 +161,41 @@ class EmailService:
                 "to": to_email,
                 "subject": "Has sido invitado a Cortex",
                 "html": html,
+            }
+        )
+
+    def send_support_feedback(self, feedback_type: str, subject: str, message: str) -> dict:
+        """Send a support feedback email to the internal support inbox.
+
+        The recipient is resolved internally from
+        ``settings.support_to_email`` (default ``stalloy@stalloy.io``) —
+        feedback always lands in the support inbox, never the submitter's.
+        The HTML body is intentionally minimal; CORTEXDIST-30 owns the
+        rich template.
+
+        Args:
+            feedback_type: One of the FeedbackType Literal values.
+            subject: The feedback subject line.
+            message: The feedback body text.
+
+        Returns:
+            The Resend send response (contains the email id).
+
+        Raises:
+            RuntimeError: If the email service is not configured.
+            resend.exceptions.ResendError: If the Resend API rejects the request.
+        """
+        if not self.is_configured():
+            raise RuntimeError("El servicio de email no está configurado")
+
+        safe_subject = subject.replace("\r", " ").replace("\n", " ")
+        safe_message = html.escape(message)
+
+        return resend.Emails.send(
+            {
+                "from": self._from_email,
+                "to": self.settings.support_to_email,
+                "subject": f"[Cortex Feedback - {feedback_type}] {safe_subject}",
+                "html": f"<pre>{safe_message}</pre>",
             }
         )
