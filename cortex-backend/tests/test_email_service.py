@@ -60,6 +60,25 @@ class TestEmailService:
             with pytest.raises(ResendError, match='Invalid email'):
                 service.send_invite_email('new@example.com', 'http://link')
 
+    def test_send_support_feedback_propagates_resend_errors(self) -> None:
+        """ResendError from the SDK propagates unchanged (router maps it to 502)."""
+        settings = Settings(RESEND_API_KEY='re_test_key', RESEND_FROM_EMAIL='invites@cortex.io')
+        service = EmailService(settings)
+
+        with patch('app.services.email_service.resend.Emails.send') as mock_send:
+            from resend.exceptions import ResendError
+            mock_send.side_effect = ResendError(
+                code=422, error_type='invalid_parameter', message='Invalid email', suggested_action='Fix it'
+            )
+            with pytest.raises(ResendError, match='Invalid email'):
+                service.send_support_feedback(
+                    feedback_type='bug',
+                    subject='s',
+                    message='m',
+                    user_email='user@example.com',
+                    user_id='id-1',
+                )
+
     def test_send_support_feedback_escapes_message_html(self) -> None:
         """User message is HTML-escaped so injected markup cannot break out of <pre>."""
         settings = Settings(RESEND_API_KEY='re_test_key', RESEND_FROM_EMAIL='invites@cortex.io')
