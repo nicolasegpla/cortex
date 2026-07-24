@@ -52,9 +52,9 @@ The `POST /support/feedback` endpoint MUST require a valid JWT via `get_current_
 
 #### Scenario: User email from session, not payload
 
-- GIVEN authenticated user with `email="user@test.com"` AND payload contains no email field
+- GIVEN authenticated user with `email="user@test.com"` AND `id="a1b2c3d4-..."` AND payload contains no email field
 - WHEN `POST /support/feedback` succeeds
-- THEN `EmailService.send_support_feedback` is called with NO `to_email` argument; the recipient is resolved internally from `settings.support_to_email` (default `stalloy@stalloy.io`); `current_user.email` is used only for logging/audit identity
+- THEN `send_support_feedback` is called with `user_email="user@test.com"` AND `user_id="a1b2c3d4-..."` AND no `to_email` argument; the recipient is resolved internally from `settings.support_to_email` (default `stalloy@stalloy.io`)
 
 ### Requirement: Payload Validation on POST
 
@@ -84,13 +84,13 @@ On valid payload and authentication, the endpoint SHALL delegate to `EmailServic
 
 #### Scenario: Email service called with correct arguments
 
-- GIVEN authenticated user AND valid payload `{type: "bug", subject: "Issue title", message: "Details"}`
+- GIVEN authenticated user with `email="user@test.com"` AND `id="a1b2c3d4-..."` AND valid payload `{type: "bug", subject: "Issue title", message: "Details"}`
 - WHEN `POST /support/feedback` succeeds
-- THEN `send_support_feedback(feedback_type="bug", subject="Issue title", message="Details")` is called (no `to_email` argument — the recipient is resolved internally from `settings.support_to_email`)
+- THEN `send_support_feedback(feedback_type="bug", subject="Issue title", message="Details", user_email="user@test.com", user_id="a1b2c3d4-...")` is called (no `to_email` argument — the recipient is resolved internally from `settings.support_to_email`)
 
 ### Requirement: Email Service Seam
 
-`EmailService` MUST expose a `send_support_feedback(feedback_type, subject, message) → dict` method that resolves the recipient internally from `settings.support_to_email` (default `stalloy@stalloy.io`). When email is not configured, the endpoint MUST return `503 Service Unavailable`, following the existing `is_configured()` pattern.
+`EmailService` MUST expose a `send_support_feedback(feedback_type, subject, message, user_email, user_id) → dict` method that resolves the recipient internally from `settings.support_to_email` (default `stalloy@stalloy.io`). The `user_email` and `user_id` parameters carry the authenticated user's identity for template rendering and `reply_to` header; they are NOT used as the email recipient. When email is not configured, the endpoint MUST return `503 Service Unavailable`, following the existing `is_configured()` pattern.
 
 #### Scenario: Email not configured returns 503
 
