@@ -15,10 +15,14 @@ const COUNTRY_OPTIONS = Object.keys(COUNTRY_CITY_MAP).map((country) => ({
     label: country,
 }));
 
+function formatCityLabel(city: string): string {
+    return `${city.charAt(0).toUpperCase()}${city.slice(1)}`;
+}
+
 export function CountryCitySelect({ pais, ciudad, onChange, disabled }: CountryCitySelectProps) {
     const cityOptions = resolveCityOptions(pais, ciudad).map((city) => ({
         value: city,
-        label: city,
+        label: formatCityLabel(city),
     }));
 
     const handleCountryChange = (e: ChangeEvent<HTMLSelectElement>) => {

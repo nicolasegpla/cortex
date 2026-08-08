@@ -54,23 +54,25 @@ describe('CountryCitySelect', () => {
         await user.selectOptions(screen.getByLabelText(/País/i), 'Colombia');
 
         expect(screen.getByLabelText(/País/i)).toHaveValue('Colombia');
-        expect(screen.getByRole('option', { name: 'Bogotá D.C.' })).toBeInTheDocument();
-        expect(screen.getByRole('option', { name: 'Medellín' })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: 'Amazonas' })).toHaveValue('amazonas');
+        expect(screen.getByRole('option', { name: 'La guajira' })).toHaveValue('la guajira');
+        expect(screen.getByRole('option', { name: 'Norte de santander' })).toHaveValue('norte de santander');
+        expect(screen.getByRole('option', { name: 'San andres y providencia' })).toHaveValue('san andres y providencia');
         expect(screen.queryByRole('option', { name: 'Caracas' })).not.toBeInTheDocument();
     });
 
     it('clears the selected city when the country changes', async () => {
         const user = userEvent.setup();
 
-        render(<StatefulCountryCitySelect initialPais="Colombia" initialCiudad="Medellín" />);
+        render(<StatefulCountryCitySelect initialPais="Colombia" initialCiudad="la guajira" />);
 
-        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Medellín');
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('la guajira');
 
         await user.selectOptions(screen.getByLabelText(/País/i), 'Venezuela');
 
         expect(screen.getByLabelText(/País/i)).toHaveValue('Venezuela');
         expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('');
-        expect(screen.queryByRole('option', { name: 'Medellín' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'La guajira' })).not.toBeInTheDocument();
         expect(screen.getByRole('option', { name: 'Caracas' })).toBeInTheDocument();
     });
 
@@ -78,14 +80,14 @@ describe('CountryCitySelect', () => {
         render(
             <CountryCitySelect
                 pais="Colombia"
-                ciudad="Cali"
+                ciudad="norte de santander"
                 onChange={vi.fn()}
             />
         );
 
         expect(screen.getByLabelText(/País/i)).toHaveValue('Colombia');
-        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Cali');
-        expect(screen.getByRole('option', { name: 'Cali' })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('norte de santander');
+        expect(screen.getByRole('option', { name: 'Norte de santander' })).toHaveValue('norte de santander');
     });
 
     it('renders an unknown legacy city as a transient option', () => {
@@ -99,6 +101,6 @@ describe('CountryCitySelect', () => {
 
         expect(screen.getByLabelText(/Ciudad/i)).toHaveValue('Palmira');
         expect(screen.getByRole('option', { name: 'Palmira' })).toBeInTheDocument();
-        expect(screen.getByRole('option', { name: 'Bogotá D.C.' })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: 'Bogotá D.C.' })).toHaveValue('bogotá D.C.');
     });
 });

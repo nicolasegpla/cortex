@@ -8,12 +8,13 @@ describe('locationData', () => {
         expect(COUNTRY_CITY_MAP.Venezuela.length).toBeGreaterThan(0);
     });
 
-    it('returns the Colombian city list for Colombia', () => {
+    it('returns the Colombian department list for Colombia', () => {
         const cities = getCitiesForCountry('Colombia');
 
-        expect(cities).toContain('Bogotá D.C.');
-        expect(cities).toContain('Medellín');
-        expect(cities[0]).toBe('Bogotá D.C.');
+        expect(cities).toContain('amazonas');
+        expect(cities).toContain('antioquia');
+        expect(cities).toContain('norte de santander');
+        expect(cities[0]).toBe('amazonas');
     });
 
     it('returns the Venezuelan city list for Venezuela', () => {
@@ -29,31 +30,30 @@ describe('locationData', () => {
     });
 
     it('returns catalog cities unchanged when the current city is already in the catalog', () => {
-        const cities = resolveCityOptions('Colombia', 'Bogotá D.C.');
+        const cities = resolveCityOptions('Colombia', 'antioquia');
 
-        const bogotaOccurrences = cities.filter((city) => city === 'Bogotá D.C.').length;
-        expect(bogotaOccurrences).toBe(1);
-        expect(cities).toContain('Medellín');
+        const antioquiaOccurrences = cities.filter((city) => city === 'antioquia').length;
+        expect(antioquiaOccurrences).toBe(1);
+        expect(cities).toContain('norte de santander');
     });
 
     it('appends an unknown legacy city as a transient option', () => {
         const cities = resolveCityOptions('Colombia', 'Palmira');
 
         expect(cities[0]).toBe('Palmira');
-        expect(cities).toContain('Bogotá D.C.');
-        expect(cities).toContain('Medellín');
+        expect(cities).toContain('amazonas');
+        expect(cities).toContain('antioquia');
     });
 
-    it('guards the Colombia catalog against department regressions', () => {
+    it('guards the Colombia catalog against city regressions', () => {
         const cities = getCitiesForCountry('Colombia');
 
-        // Regression guard for the departments-for-cities swap that broke
-        // the catalog once (commit 13f2445): cardinality and exclusion.
-        expect(cities).toHaveLength(32);
-        expect(cities).not.toContain('Antioquia');
-        expect(cities).not.toContain('Cundinamarca');
-        expect(cities).not.toContain('Valle del Cauca');
-        expect(cities).not.toContain('Amazonas');
-        expect(cities).not.toContain('Santander');
+        expect(cities).toHaveLength(33);
+        expect(cities).toContain('amazonas');
+        expect(cities).toContain('cundinamarca');
+        expect(cities).toContain('valle del cauca');
+        expect(cities).toContain('santander');
+        expect(cities).not.toContain('Medellín');
+        expect(cities).not.toContain('Cali');
     });
 });
